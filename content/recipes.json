@@ -1,0 +1,46 @@
+{
+  "recipes": [
+    {
+      "slug": "espresso-light",
+      "method": "espresso",
+      "roast": "light",
+      "status": "published",
+      "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 18, "yield": 41, "time": [28, 32], "temp": [94, 96] }]
+    },
+    {
+      "slug": "espresso-medium",
+      "method": "espresso",
+      "roast": "medium",
+      "status": "published",
+      "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 18, "yield": 36, "time": [25, 30], "temp": [92, 94] }]
+    },
+    {
+      "slug": "espresso-dark",
+      "method": "espresso",
+      "roast": "dark",
+      "status": "published",
+      "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 18, "yield": 32, "time": [22, 27], "temp": [88, 92] }]
+    },
+    {
+      "slug": "filter-light",
+      "method": "filter",
+      "roast": "light",
+      "status": "published",
+      "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 15, "yield": 248, "time": [165, 195], "temp": [94, 96] }]
+    },
+    {
+      "slug": "filter-medium",
+      "method": "filter",
+      "roast": "medium",
+      "status": "published",
+      "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 15, "yield": 240, "time": [150, 180], "temp": [92, 94] }]
+    },
+    {
+      "slug": "filter-dark",
+      "method": "filter",
+      "roast": "dark",
+      "status": "published",
+      "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 15, "yield": 225, "time": [135, 165], "temp": [88, 92] }]
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+import { describe, expect, it } from 'vitest'
+import content from '../content/recipes.json' with { type: 'json' }
+import { MISSIONS, RANKS, RECIPES, REPORT_XP, parseRecipeContent, progressFor, rankFor, type Report } from './data'
+
+const DAY = 24 * 60 * 60 * 1000
+const T0 = Date.UTC(2026, 9, 26, 9, 0)
+
+let n = 0
+const report = (over: Partial<Report> = {}): Report => ({
+  id: `r${++n}`,
+  ts: T0,
+  method: 'espresso',
+  roast: 'medium',
+  dose: 18,
+  yield: 36,
+  time: 27,
+  taste: 'balanced',
+  diag: 'balanced',
+  ...over,
+})
+
+const progress = (id: string, reports: Report[], working: Record<string, string> = {}) => {
+  const m = MISSIONS.find((x) => x.id === id)
+  if (!m) throw new Error(`no mission ${id}`)
+  return m.progress(reports, working)
+}
+
+describe('missions', () => {
+  it('have unique ids and positive goals', () => {
+    expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(MISSIONS.length)
+    for (const m of MISSIONS) expect(m.goal).toBeGreaterThan(0)
+  })
+
+  it.each(MISSIONS.map((m) => m.id))('%s: no progress on empty input', (id) => {
+    expect(progress(id, [], {})).toBe(0)
+  })
+
+  it('m1/m6 count every report, including several on the same day', () => {
+    const rs = [report(), report({ ts: T0 + 1 }), report({ ts: T0 + 60_000 })]
+    expect(progress('m1', rs)).toBe(3)
+    expect(progress('m6', rs)).toBe(3)
+  })
+
+  it('m2 counts balanced taste, also when the time was off', () => {
+    const rs = [
+      report({ taste: 'balanced', diag: 'balanced' }),
+      report({ taste: 'balanced', time: 40, diag: 'balanced_off' }),
+      report({ taste: 'sour', diag: 'sour_ok' }),
+    ]
+    expect(progress('m2', rs)).toBe(2)
+  })
+
+  it('m3 counts distinct methods', () => {
+    expect(progress('m3', [report(), report()])).toBe(1)
+    expect(progress('m3', [report(), report({ method: 'filter' }), report({ method: 'filter' })])).toBe(2)
+  })
+
+  it('m4 counts distinct roasts, across methods', () => {
+    expect(progress('m4', [report({ roast: 'light' }), report({ roast: 'light', method: 'filter' })])).toBe(1)
+    const rs = [report({ roast: 'light' }), report({ roast: 'medium' }), report({ roast: 'dark', method: 'filter' })]
+    expect(progress('m4', rs)).toBe(3)
+  })
+
+  it('m5 counts working recipes, not reports', () => {
+    const r = report()
+    expect(progress('m5', [r], {})).toBe(0)
+    expect(progress('m5', [r], { 'espresso-medium': r.id })).toBe(1)
+    expect(progress('m5', [r], { 'espresso-medium': r.id, 'filter-light': r.id })).toBe(2)
+  })
+
+  it('progress is independent of report order and timestamps', () => {
+    const rs = [
+      report({ ts: T0, method: 'filter', roast: 'light' }),
+      report({ ts: T0 - DAY, taste: 'sour' }),
+      report({ ts: T0 - 3 * DAY, roast: 'dark' }),
+    ]
+    for (const m of MISSIONS) {
+      expect(m.progress([...rs].reverse(), {})).toBe(m.progress(rs, {}))
+    }
+  })
+})
+
+describe('progressFor', () => {
+  const xpOf = (...ids: string[]) => ids.reduce((a, id) => a + MISSIONS.find((m) => m.id === id)!.xp, 0)
+
+  it('starts empty', () => {
+    const p = progressFor([], {})
+    expect(p.xp).toBe(0)
+    expect(p.rank.idx).toBe(0)
+    expect(p.missions.every((m) => m.cur === 0 && !m.done)).toBe(true)
+  })
+
+  it('clamps progress at the goal', () => {
+    const rs = Array.from({ length: 8 }, () => report())
+    const m6 = progressFor(rs, {}).missions.find((m) => m.id === 'm6')!
+    expect(m6).toMatchObject({ cur: 5, goal: 5, done: true })
+  })
+
+  it('adds XP per report plus each finished mission once', () => {
+    // one balanced espresso: m1 and m2 done
+    expect(progressFor([report()], {}).xp).toBe(REPORT_XP + xpOf('m1', 'm2'))
+    // a second one finishes nothing new
+    expect(progressFor([report(), report()], {}).xp).toBe(2 * REPORT_XP + xpOf('m1', 'm2'))
+  })
+
+  it('counts mission XP from working recipes too', () => {
+    const r = report()
+    expect(progressFor([r], { 'espresso-medium': r.id }).xp).toBe(REPORT_XP + xpOf('m1', 'm2', 'm5'))
+  })
+
+  it('derives rank from the total XP', () => {
+    const rs = [
+      report({ method: 'espresso', roast: 'light' }),
+      report({ method: 'filter', roast: 'medium' }),
+      report({ roast: 'dark' }),
+      report(),
+      report(),
+    ]
+    const p = progressFor(rs, { 'espresso-light': rs[0].id })
+    expect(p.missions.every((m) => m.done)).toBe(true)
+    expect(p.xp).toBe(5 * REPORT_XP + xpOf(...MISSIONS.map((m) => m.id)))
+    expect(p.rank).toEqual(rankFor(p.xp))
+  })
+})
+
+describe('recipe content', () => {
+  // a fresh, editable copy of the real content file
+  const copy = () => structuredClone(content) as { recipes: Record<string, any>[] }
+  const entry = (c: ReturnType<typeof copy>, slug: string) => c.recipes.find((e) => e.slug === slug)!
+
+  it('the committed file is valid and covers every method x roast', () => {
+    expect(() => parseRecipeContent(content)).not.toThrow()
+    expect(Object.keys(RECIPES).sort()).toEqual(
+      ['espresso-dark', 'espresso-light', 'espresso-medium', 'filter-dark', 'filter-light', 'filter-medium'],
+    )
+  })
+
+  it('RECIPES uses the latest version and a stable id', () => {
+    const c = copy()
+    entry(c, 'espresso-medium').versions.push({ version: 2, publishedAt: '2026-11-01', dose: 19, yield: 38, time: [26, 31], temp: [92, 94] })
+    const parsed = parseRecipeContent(c)
+    const e = parsed.find((x) => x.slug === 'espresso-medium')!
+    expect(e.versions.map((v) => v.id)).toEqual(['espresso-medium@1', 'espresso-medium@2'])
+    expect(e.versions[1]).toMatchObject({ version: 2, dose: 19 })
+  })
+
+  it.each<[string, (c: ReturnType<typeof copy>) => void, RegExp]>([
+    ['missing combination', (c) => c.recipes.splice(0, 1), /espresso-light must appear exactly once/],
+    ['duplicate combination', (c) => c.recipes.push(structuredClone(c.recipes[0])), /exactly once \(found 2\)/],
+    ['slug not method-roast', (c) => (entry(c, 'filter-dark').slug = 'dark-filter'), /must be "filter-dark"/],
+    ['unknown status', (c) => (entry(c, 'filter-dark').status = 'draft'), /unknown status draft/],
+    ['no versions', (c) => (entry(c, 'filter-dark').versions = []), /at least one version/],
+    ['version gap', (c) => (entry(c, 'filter-dark').versions[0].version = 2), /1, 2, 3/],
+    ['bad date', (c) => (entry(c, 'filter-dark').versions[0].publishedAt = '26/10/2026'), /YYYY-MM-DD/],
+    ['zero dose', (c) => (entry(c, 'filter-dark').versions[0].dose = 0), /dose must be/],
+    ['inverted time range', (c) => (entry(c, 'filter-dark').versions[0].time = [165, 135]), /time must be/],
+    ['temp not a pair', (c) => (entry(c, 'filter-dark').versions[0].temp = [90]), /temp must be/],
+  ])('rejects %s', (_name, mutate, err) => {
+    const c = copy()
+    mutate(c)
+    expect(() => parseRecipeContent(c)).toThrow(err)
+  })
+})
+
+describe('rankFor', () => {
+  it('starts at the first rank', () => {
+    expect(rankFor(0)).toMatchObject({ idx: 0, cur: RANKS[0], next: RANKS[1], pct: 0 })
+  })
+
+  it('switches rank exactly at the threshold', () => {
+    expect(rankFor(199).idx).toBe(0)
+    expect(rankFor(200)).toMatchObject({ idx: 1, pct: 0 })
+    expect(rankFor(350).pct).toBe(50)
+  })
+
+  it('caps at the last rank', () => {
+    const last = RANKS[RANKS.length - 1]
+    expect(rankFor(last.xp)).toMatchObject({ idx: RANKS.length - 1, next: null, pct: 100 })
+    expect(rankFor(last.xp * 10).pct).toBe(100)
+  })
+})
