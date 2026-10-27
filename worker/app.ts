@@ -2,6 +2,7 @@ import { asc, count } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { auth } from './auth-routes'
 import { db } from './db/client'
+import { logError } from './log'
 import { recipes, recipeVersions } from './db/schema'
 import { toRecipeContent } from './recipes'
 
@@ -21,7 +22,7 @@ app.get('/health', async (c) => {
     const [row] = await db(c.env).select({ n: count() }).from(recipeVersions)
     return c.json({ ok: true, db: { ok: true, recipeVersions: row.n } })
   } catch (err) {
-    console.error(err)
+    logError('health.db', err)
     return c.json({ ok: false, db: { ok: false } }, 503)
   }
 })
@@ -41,6 +42,6 @@ app.get('/recipes', async (c) => {
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))
 
 app.onError((err, c) => {
-  console.error(err)
+  logError('unhandled', err, { method: c.req.method, path: c.req.path })
   return c.json({ error: { code: 'internal', message: 'Internal error' } }, 500)
 })

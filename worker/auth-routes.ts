@@ -5,6 +5,7 @@ import type { CookieOptions } from 'hono/utils/cookie'
 import { SESSION_COOKIE, SESSION_TTL_MS, hashSessionId } from './auth'
 import { db } from './db/client'
 import { sessions, users } from './db/schema'
+import { logError } from './log'
 import {
   OAUTH_COOKIE,
   OAUTH_TTL_S,
@@ -64,9 +65,14 @@ auth.get('/auth/google/callback', async (c) => {
   // Cancelling on Google's consent screen is not an error worth showing
   if (c.req.query('error') === 'access_denied') return c.redirect('/')
   const code = c.req.query('code')
-  if (!state || !verifier || !code || c.req.query('state') !== state) return failed(c)
+  if (!state || !verifier || !code || c.req.query('state') !== state) {
+    const reason = !state || !verifier ? 'no oauth cookie' : !code ? 'no code' : 'state mismatch'
+    logError('google_callback.state', new Error(reason))
+    return failed(c)
+  }
 
-  let profile
+  // Logged on failure; the code, state, verifier and tokens never are
+  let stage = 'token_exchange'
   try {
     const idToken = await exchangeCode({
       clientId: c.env.GOOGLE_CLIENT_ID,
@@ -75,32 +81,35 @@ auth.get('/auth/google/callback', async (c) => {
       code,
       verifier,
     })
-    profile = profileFromClaims(decodeIdToken(idToken), c.env.GOOGLE_CLIENT_ID, Date.now())
+    stage = 'id_token'
+    const profile = profileFromClaims(decodeIdToken(idToken), c.env.GOOGLE_CLIENT_ID, Date.now())
+    if (!profile) throw new Error('ID token claims rejected (issuer, audience, expiry or unverified email)')
+
+    stage = 'user_upsert'
+    const d = db(c.env)
+    const now = Date.now()
+    const fields = { email: profile.email, name: profile.name, avatarUrl: profile.picture, lastLoginAt: now }
+    const [user] = await d
+      .insert(users)
+      .values({ id: crypto.randomUUID(), googleSub: profile.sub, createdAt: now, ...fields })
+      .onConflictDoUpdate({ target: users.googleSub, set: fields })
+      .returning({ id: users.id })
+
+    // A fresh session on every sign-in; drop the one this browser had (if any) and the user's expired ones
+    stage = 'session_create'
+    const token = randomToken()
+    const previous = getCookie(c, SESSION_COOKIE)
+    const expired = and(eq(sessions.userId, user.id), lt(sessions.expiresAt, now))
+    await d.batch([
+      d.delete(sessions).where(previous ? or(expired, eq(sessions.idHash, await hashSessionId(previous))) : expired),
+      d.insert(sessions).values({ idHash: await hashSessionId(token), userId: user.id, expiresAt: now + SESSION_TTL_MS, createdAt: now }),
+    ])
+    setCookie(c, SESSION_COOKIE, token, { ...SESSION_OPTS, maxAge: SESSION_TTL_MS / 1000 })
+    return c.redirect('/')
   } catch (err) {
-    console.error(err)
+    logError(`google_callback.${stage}`, err)
     return failed(c)
   }
-  if (!profile) return failed(c)
-
-  const d = db(c.env)
-  const now = Date.now()
-  const fields = { email: profile.email, name: profile.name, avatarUrl: profile.picture, lastLoginAt: now }
-  const [user] = await d
-    .insert(users)
-    .values({ id: crypto.randomUUID(), googleSub: profile.sub, createdAt: now, ...fields })
-    .onConflictDoUpdate({ target: users.googleSub, set: fields })
-    .returning({ id: users.id })
-
-  // A fresh session on every sign-in; drop the one this browser had (if any) and the user's expired ones
-  const token = randomToken()
-  const previous = getCookie(c, SESSION_COOKIE)
-  const expired = and(eq(sessions.userId, user.id), lt(sessions.expiresAt, now))
-  await d.batch([
-    d.delete(sessions).where(previous ? or(expired, eq(sessions.idHash, await hashSessionId(previous))) : expired),
-    d.insert(sessions).values({ idHash: await hashSessionId(token), userId: user.id, expiresAt: now + SESSION_TTL_MS, createdAt: now }),
-  ])
-  setCookie(c, SESSION_COOKIE, token, { ...SESSION_OPTS, maxAge: SESSION_TTL_MS / 1000 })
-  return c.redirect('/')
 })
 
 // POST, so a link or image elsewhere cannot sign anyone out; SameSite=Lax keeps the cookie off cross-site POSTs
