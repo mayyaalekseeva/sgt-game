@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import { REPORT_XP, RECIPES, recipeKey, type Report, type Taste } from '../data'
+import { REPORT_XP, RECIPES, TASTES, recipeKey, type Report, type Taste } from '../data'
 import { diagnose, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
 import { useStore } from '../store'
-import { Button, Card, Chevrons, Display, Label, Stepper, fmtNum, fmtRange, fmtTime } from '../ui'
+import { Button, Card, Chevrons, Display, Label, LinkButton, Stepper, fmtNum, fmtRange, fmtTime } from '../ui'
 import RecipePicker from './RecipePicker'
 
-const TASTES: Taste[] = ['sour', 'bitter', 'thin', 'balanced']
-
-export default function Diagnose() {
+export default function Diagnose({ openDiary }: { openDiary: () => void }) {
   const { t, method, roast, rank, addReport, markWorking, working, reports } = useStore()
   const key = recipeKey(method, roast)
   const recipe = RECIPES[key]
@@ -33,7 +31,7 @@ export default function Diagnose() {
   const file = () => {
     if (!taste) return
     const diag = diagnose(recipe, { dose, yield: yld, time, taste })
-    const report = addReport({ method, roast, dose, yield: yld, time, taste, diag })
+    const report = addReport({ method, roast, dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
     setResult({ report, diag })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -167,6 +165,7 @@ export default function Diagnose() {
               ))}
             </ul>
           )}
+          <LinkButton onClick={openDiary}>{t('diary.open')}</LinkButton>
         </div>
       </div>
     </div>

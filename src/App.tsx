@@ -5,6 +5,8 @@ import Orders from './screens/Orders'
 import Diagnose from './screens/Diagnose'
 import Missions from './screens/Missions'
 import Dossier from './screens/Dossier'
+import Recipes from './screens/Recipes'
+import Diary from './screens/Diary'
 import { Card, Display, Label } from './ui'
 
 type Tab = 'orders' | 'diag' | 'missions' | 'dossier'
@@ -170,8 +172,15 @@ function SignInFailed() {
 export default function App() {
   const { t } = useStore()
   const [tab, setTab] = useState<Tab>('orders')
+  // Recipes opens from Orders and Diary from Diagnosis; their tab stays highlighted
+  const [sub, setSub] = useState<'recipes' | 'diary' | null>(null)
   const select = (id: Tab) => {
     setTab(id)
+    setSub(null)
+    window.scrollTo({ top: 0 })
+  }
+  const open = (s: 'recipes' | 'diary') => {
+    setSub(s)
     window.scrollTo({ top: 0 })
   }
 
@@ -213,10 +222,12 @@ export default function App() {
 
       <main className="flex-1 px-4 pb-28 pt-2 lg:min-w-0 lg:px-0 lg:py-8">
         <SignInFailed />
-        {tab === 'orders' && <Orders go={() => setTab('diag')} />}
-        {tab === 'diag' && <Diagnose />}
-        {tab === 'missions' && <Missions />}
-        {tab === 'dossier' && <Dossier />}
+        {sub === 'recipes' && <Recipes back={() => select('orders')} />}
+        {sub === 'diary' && <Diary back={() => select('diag')} />}
+        {!sub && tab === 'orders' && <Orders go={() => setTab('diag')} openRecipes={() => open('recipes')} />}
+        {!sub && tab === 'diag' && <Diagnose openDiary={() => open('diary')} />}
+        {!sub && tab === 'missions' && <Missions />}
+        {!sub && tab === 'dossier' && <Dossier />}
         <p className="mt-8 text-center text-xs text-ink/70 lg:hidden">{t('footer')}</p>
       </main>
 
