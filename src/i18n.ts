@@ -136,6 +136,13 @@ const en = {
   'c4.b':
     'The story behind A Sargento, told in the roaster’s own words. This chapter is a placeholder for the text the roaster will provide.',
 
+  'auth.signIn': 'Sign in with Google',
+  'auth.signOut': 'Sign out',
+  'auth.account': 'Account',
+  'auth.signedInAs': 'Signed in as',
+  'auth.failed': 'Sign-in did not go through. Try again.',
+  'auth.dismiss': 'Dismiss',
+
   'footer': 'Portfolio project. Recipes are starting points. Not affiliated commercially.',
 }
 
@@ -274,6 +281,13 @@ const pt: Record<keyof typeof en, string> = {
   'c4.t': 'O Sargento',
   'c4.b':
     'A história por trás da A Sargento, contada pelas palavras da própria torrefatora. Este capítulo é um espaço reservado para o texto que a torrefatora irá fornecer.',
+
+  'auth.signIn': 'Entrar com Google',
+  'auth.signOut': 'Terminar sessão',
+  'auth.account': 'Conta',
+  'auth.signedInAs': 'Sessão iniciada como',
+  'auth.failed': 'Não foi possível iniciar sessão. Tenta outra vez.',
+  'auth.dismiss': 'Fechar',
 
   'footer': 'Projeto de portfólio. As receitas são pontos de partida. Sem afiliação comercial.',
 }
