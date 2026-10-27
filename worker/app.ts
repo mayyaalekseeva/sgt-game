@@ -1,5 +1,6 @@
 import { count } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { auth } from './auth-routes'
 import { db } from './db/client'
 import { recipeVersions } from './db/schema'
 
@@ -23,6 +24,8 @@ app.get('/health', async (c) => {
     return c.json({ ok: false, db: { ok: false } }, 503)
   }
 })
+
+app.route('/', auth)
 
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))
 
