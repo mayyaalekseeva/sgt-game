@@ -15,7 +15,8 @@ const parse = (body: unknown) => parseCoffeeBatch(body, NOW)
 
 describe('parseCoffeeBatch', () => {
   it('accepts a coffee and fills name and archived', () => {
-    expect(parse({ coffees: [coffee({ roaster: ' Fábrica ' })] })).toEqual({ coffees: [{ ...coffee(), name: null, archived: false }] })
+    expect(parse({ coffees: [coffee({ roaster: ' Fábrica ' })] })).toEqual({ coffees: [{ ...coffee(), name: null, archived: false, roastedOn: null }] })
+    expect(parse({ coffees: [coffee({ roastedOn: '2026-10-20' })] })).toMatchObject({ coffees: [{ roastedOn: '2026-10-20' }] })
     expect(parse({ coffees: [coffee({ name: 'Yirga', archived: true })] })).toMatchObject({ coffees: [{ name: 'Yirga', archived: true }] })
   })
 
@@ -33,6 +34,8 @@ describe('parseCoffeeBatch', () => {
     ['roast', 'blonde'],
     ['name', 42],
     ['archived', 'yes'],
+    ['roastedOn', '20/10/2026'],
+    ['roastedOn', '2026-13-45'],
     ['updatedAt', 1.5],
     ['updatedAt', NOW + 2 * 24 * 60 * 60 * 1000],
   ])('rejects a bad %s (%s) and names the coffee', (field, value) => {
@@ -43,10 +46,14 @@ describe('parseCoffeeBatch', () => {
 
 describe('rows', () => {
   it('round-trips through toCoffeeOut', () => {
-    const [c] = (parse({ coffees: [coffee({ name: 'Yirga' })] }) as { coffees: Parameters<typeof toCoffeeRow>[0][] }).coffees
+    const [c] = (parse({ coffees: [coffee({ name: 'Yirga', roastedOn: '2026-10-20' })] }) as { coffees: Parameters<typeof toCoffeeRow>[0][] }).coffees
     const row = toCoffeeRow(c, 'u1', NOW)
     expect(row).toMatchObject({ userId: 'u1', createdAt: NOW })
-    expect(toCoffeeOut({ ...row, name: row.name ?? null, archived: row.archived ?? false })).toEqual({ ...coffee(), name: 'Yirga' })
+    expect(toCoffeeOut({ ...row, name: row.name ?? null, archived: row.archived ?? false, roastedOn: row.roastedOn ?? null })).toEqual({
+      ...coffee(),
+      name: 'Yirga',
+      roastedOn: '2026-10-20',
+    })
   })
 })
 

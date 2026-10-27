@@ -14,6 +14,7 @@ export interface MyCoffee {
   roast: Roast
   name?: string
   archived?: boolean // the bag is finished: out of the picker, still named in older reports
+  roastedOn?: string // YYYY-MM-DD from the bag, for freshness
   updatedAt: number // epoch ms; the newer copy wins when syncing
 }
 
@@ -22,6 +23,8 @@ export const MY_PREFIX = 'my:'
 export const myRef = (id: string) => `${MY_PREFIX}${id}`
 export const isMyRef = (ref: string | null | undefined): ref is string => !!ref && ref.startsWith(MY_PREFIX)
 export const MAX_TEXT = 60
+
+const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))
 
 const text = (v: unknown) => typeof v === 'string' && v.trim() !== '' && v.length <= MAX_TEXT
 
@@ -34,6 +37,7 @@ export function parseCoffee(raw: unknown): MyCoffee | null {
   if (!PROCESSES.includes(c.process as Process) || !ROASTS.includes(c.roast as Roast)) return null
   if (c.name != null && c.name !== '' && !text(c.name)) return null
   if (typeof c.updatedAt !== 'number' || !Number.isFinite(c.updatedAt)) return null
+  if (c.roastedOn != null && !isDay(c.roastedOn)) return null
   return {
     id: c.id,
     roaster: (c.roaster as string).trim(),
@@ -42,6 +46,7 @@ export function parseCoffee(raw: unknown): MyCoffee | null {
     roast: c.roast as Roast,
     ...(typeof c.name === 'string' && c.name.trim() !== '' ? { name: c.name.trim() } : {}),
     ...(c.archived === true ? { archived: true } : {}),
+    ...(typeof c.roastedOn === 'string' ? { roastedOn: c.roastedOn } : {}),
     updatedAt: c.updatedAt,
   }
 }
@@ -114,4 +119,22 @@ export function forRoast<R extends Recipe>(r: R, roast: Roast | undefined): R {
 export const lotOptionLabel = (slug: string, lang: Lang) => {
   const l = lotBySlug(slug)
   return l ? `${l.name} · ${l.country[lang]}` : slug
+}
+
+export type Freshness = 'resting' | 'peak' | 'fading' | 'stale'
+
+const dayNumber = (ymd: string) => Date.parse(`${ymd}T00:00:00Z`) / 86_400_000
+
+/**
+ * How a bag is doing, from its roast date to today (both YYYY-MM-DD). Fresh coffee is still giving off
+ * CO2: filter wants about 3 days of rest, espresso about a week. A month is the usual peak; after two it
+ * tastes flat. Null without a date, or for a date in the future.
+ */
+export function freshness(roastedOn: string | undefined, today: string, method: Method): { days: number; stage: Freshness } | null {
+  if (!roastedOn) return null
+  const days = Math.round(dayNumber(today) - dayNumber(roastedOn))
+  if (!Number.isFinite(days) || days < 0) return null
+  const rest = method === 'espresso' ? 7 : 3
+  const stage: Freshness = days < rest ? 'resting' : days <= 30 ? 'peak' : days <= 60 ? 'fading' : 'stale'
+  return { days, stage }
 }

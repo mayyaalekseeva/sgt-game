@@ -1,0 +1,1 @@
+ALTER TABLE `coffees` ADD `roasted_on` text;

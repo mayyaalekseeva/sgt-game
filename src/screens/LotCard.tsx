@@ -1,12 +1,13 @@
 import { lotBySlug } from '../lots'
 import { usePick } from '../reports'
+import Freshness from './Freshness'
 import { useStore } from '../store'
 import { Card, Display, Label } from '../ui'
 
 // The picked coffee: where it is from and how it tastes. A roaster lot uses the brewer's (or roast's)
 // starting recipe until the roaster gives one per lot; your own coffee shifts it by its roast.
 export default function LotCard() {
-  const { t, lang } = useStore()
+  const { t, lang, method } = useStore()
   const { lot: slug, mine } = usePick()
   if (mine) {
     return (
@@ -18,6 +19,7 @@ export default function LotCard() {
         <p className="mt-1 text-sm text-muted">
           {t(`process.${mine.process}`)} · {t(`roast.${mine.roast}`)}
         </p>
+        <Freshness coffee={mine} method={method} />
         <p className="mt-2 text-xs text-ink/70">{t('coffee.recipeNote')}</p>
       </Card>
     )
