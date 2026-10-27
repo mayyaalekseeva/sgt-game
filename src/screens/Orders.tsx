@@ -48,14 +48,15 @@ export default function Orders({
         </div>
         <LotCard />
 
-        <div key={key} className="grid animate-enter grid-cols-2 gap-3">
+        {/* sibling keys must differ: a shared key makes React leave stale copies behind on brewer change */}
+        <div key={`stats-${key}`} className="grid animate-enter grid-cols-2 gap-3">
           <Stat label={t('recipe.dose')} value={`${fmtNum(r.dose)} g`} />
           <Stat label={t(brew.brewer ? 'recipe.water' : 'recipe.yield')} value={`${fmtNum(r.yield)} g`} />
           <Stat label={t('recipe.time')} value={fmtRange(r.time, method)} compact={isFilter} />
           <Stat label={t(brew.brewer ? 'recipe.temperature' : 'recipe.temp')} value={`${r.temp[0]}–${r.temp[1]} °C`} />
         </div>
         {brew.brewer && (
-          <Card key={key} className="animate-enter">
+          <Card key={`steps-${key}`} className="animate-enter">
             <RecipeSteps recipe={r} brewer={brew.brewer} />
           </Card>
         )}

@@ -1,11 +1,11 @@
-import { PROCESSES, ROASTS, type coffees } from './db/schema'
+import { MAX_PROCESS, PROCESSES, ROASTS, type coffees } from './db/schema'
 
 // A coffee as the client stores it (src/coffees.ts MyCoffee)
 export interface CoffeeIn {
   id: string
   roaster: string
   origin: string
-  process: (typeof PROCESSES)[number]
+  process: string // one of PROCESSES, or free text
   roast: (typeof ROASTS)[number]
   name: string | null
   archived: boolean
@@ -35,7 +35,8 @@ export function parseCoffeeBatch(body: unknown, now = Date.now()): { coffees: Co
     if (typeof c.id !== 'string' || !ID.test(c.id)) return { error: `${at}.id is invalid` }
     if (!text(c.roaster)) return { error: `${at}.roaster is required` }
     if (!text(c.origin)) return { error: `${at}.origin is required` }
-    if (!oneOf(PROCESSES, c.process)) return { error: `${at}.process is invalid` }
+    const processOk = oneOf(PROCESSES, c.process) || (typeof c.process === 'string' && c.process.trim() !== '' && c.process.length <= MAX_PROCESS)
+    if (!processOk) return { error: `${at}.process is invalid` }
     if (!oneOf(ROASTS, c.roast)) return { error: `${at}.roast is invalid` }
     if (c.name != null && c.name !== '' && !text(c.name)) return { error: `${at}.name is invalid` }
     if (c.archived != null && typeof c.archived !== 'boolean') return { error: `${at}.archived is invalid` }
@@ -49,7 +50,7 @@ export function parseCoffeeBatch(body: unknown, now = Date.now()): { coffees: Co
       id: c.id,
       roaster: c.roaster.trim(),
       origin: c.origin.trim(),
-      process: c.process,
+      process: (c.process as string).trim(),
       roast: c.roast,
       name: typeof c.name === 'string' && c.name.trim() !== '' ? c.name.trim() : null,
       archived: c.archived === true,

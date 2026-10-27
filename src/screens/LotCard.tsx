@@ -2,7 +2,7 @@ import { lotBySlug } from '../lots'
 import { usePick } from '../reports'
 import Freshness from './Freshness'
 import { useStore } from '../store'
-import { Card, Display, Label } from '../ui'
+import { Card, Display, Label, processLabel } from '../ui'
 
 // The picked coffee: where it is from and how it tastes. A roaster lot uses the brewer's (or roast's)
 // starting recipe until the roaster gives one per lot; your own coffee shifts it by its roast.
@@ -17,7 +17,7 @@ export default function LotCard() {
         </Label>
         <Display className="mt-1 text-[28px] tracking-wide">{mine.name ?? mine.origin}</Display>
         <p className="mt-1 text-sm text-muted">
-          {t(`process.${mine.process}`)} · {t(`roast.${mine.roast}`)}
+          {processLabel(t, mine.process)} · {t(`roast.${mine.roast}`)}
         </p>
         <Freshness coffee={mine} method={method} />
         <p className="mt-2 text-xs text-ink/70">{t('coffee.recipeNote')}</p>

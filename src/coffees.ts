@@ -1,16 +1,19 @@
 import { GRINDS, ROASTS, brewOf, slugOf, type Brew, type Brewer, type Lang, type Method, type Recipe, type Roast } from './data'
 import { currentLots, lotBySlug } from './lots'
 
-// How the cherry was processed, as roasters label their bags
-export type Process = 'washed' | 'natural' | 'honey' | 'anaerobic' | 'decaf' | 'other'
-export const PROCESSES: Process[] = ['washed', 'natural', 'honey', 'anaerobic', 'decaf', 'other']
+// How the cherry was processed, as roasters label their bags. A coffee stores one of these, or the player's
+// own words for anything else ("Carbonic maceration"), up to MAX_PROCESS characters.
+export type Process = 'washed' | 'natural' | 'honey' | 'anaerobic' | 'decaf'
+export const PROCESSES: Process[] = ['washed', 'natural', 'honey', 'anaerobic', 'decaf']
+export const MAX_PROCESS = 30
+export const isProcess = (p: string): p is Process => PROCESSES.includes(p as Process)
 
 /** A coffee the player added: any roaster's bag. Referenced as `my:<id>` wherever a lot slug goes. */
 export interface MyCoffee {
   id: string // 32 hex characters, made on the client like report ids
   roaster: string
   origin: string
-  process: Process
+  process: string // a Process, or free text
   roast: Roast
   name?: string
   archived?: boolean // the bag is finished: out of the picker, still named in older reports
@@ -34,7 +37,8 @@ export function parseCoffee(raw: unknown): MyCoffee | null {
   if (typeof c !== 'object' || c === null) return null
   if (typeof c.id !== 'string' || !ID.test(c.id)) return null
   if (!text(c.roaster) || !text(c.origin)) return null
-  if (!PROCESSES.includes(c.process as Process) || !ROASTS.includes(c.roast as Roast)) return null
+  const processOk = typeof c.process === 'string' && (isProcess(c.process) || (c.process.trim() !== '' && c.process.length <= MAX_PROCESS))
+  if (!processOk || !ROASTS.includes(c.roast as Roast)) return null
   if (c.name != null && c.name !== '' && !text(c.name)) return null
   if (typeof c.updatedAt !== 'number' || !Number.isFinite(c.updatedAt)) return null
   if (c.roastedOn != null && !isDay(c.roastedOn)) return null
@@ -42,7 +46,7 @@ export function parseCoffee(raw: unknown): MyCoffee | null {
     id: c.id,
     roaster: (c.roaster as string).trim(),
     origin: (c.origin as string).trim(),
-    process: c.process as Process,
+    process: (c.process as string).trim(),
     roast: c.roast as Roast,
     ...(typeof c.name === 'string' && c.name.trim() !== '' ? { name: c.name.trim() } : {}),
     ...(c.archived === true ? { archived: true } : {}),

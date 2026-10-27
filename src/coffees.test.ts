@@ -19,6 +19,10 @@ describe('parseCoffee', () => {
     expect(parseCoffee({ ...mine(), roaster: '  Fábrica ', name: ' Yirga ' })).toEqual({ ...mine(), name: 'Yirga' })
   })
 
+  it('takes a process of your own words', () => {
+    expect(parseCoffee({ ...mine(), process: ' Carbonic maceration ' })?.process).toBe('Carbonic maceration')
+  })
+
   it('drops an empty name and unknown fields', () => {
     expect(parseCoffee({ ...mine(), name: '', extra: 1 })).toEqual(mine())
   })
@@ -27,7 +31,8 @@ describe('parseCoffee', () => {
     ['a short id', { id: 'abc' }],
     ['an empty roaster', { roaster: '  ' }],
     ['no origin', { origin: undefined }],
-    ['an unknown process', { process: 'wet-hulled' }],
+    ['an empty process', { process: ' ' }],
+    ['a long process', { process: 'x'.repeat(31) }],
     ['an unknown roast', { roast: 'blonde' }],
     ['a long name', { name: 'x'.repeat(61) }],
     ['no updatedAt', { updatedAt: undefined }],
