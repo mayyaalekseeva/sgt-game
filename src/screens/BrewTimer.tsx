@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RECIPES, RECIPE_CONTENT, STYLE_OF } from '../data'
 import { timeState } from '../diagnose'
+import { stepTone, tickTone, unlockAudio } from '../beep'
 import { forRoast } from '../coffees'
 import { usePick } from '../reports'
 import { useStore } from '../store'
@@ -10,7 +11,7 @@ import RecipeSteps from './RecipeSteps'
 
 // Calls each step of a filter recipe as it comes. Done hands the time to Diagnose.
 export default function BrewTimer({ done }: { done: () => void }) {
-  const { t, timer, startTimer, cancelTimer, finishTimer } = useStore()
+  const { t, timer, startTimer, cancelTimer, finishTimer, sound } = useStore()
   const pick = usePick()
   // a running brew keeps its recipe even if the picker changes on another tab
   const slug = timer?.slug ?? pick.slug
@@ -41,8 +42,15 @@ export default function BrewTimer({ done }: { done: () => void }) {
 
   // a short buzz on each new step, where the device can
   useEffect(() => {
-    if (timer && state.current > 0) navigator.vibrate?.(200)
-  }, [timer, state.current])
+    if (!timer || state.current <= 0) return
+    navigator.vibrate?.(200)
+    if (sound) stepTone()
+  }, [timer, state.current]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // soft ticks for the last three seconds before a step
+  useEffect(() => {
+    if (timer && sound && state.next !== null && state.toNext >= 1 && state.toNext <= 3) tickTone()
+  }, [timer, state.toNext]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!entry?.brewer || !recipe?.steps) {
     return (
@@ -71,7 +79,15 @@ export default function BrewTimer({ done }: { done: () => void }) {
               {fmtNum(recipe.dose)} g → {fmtNum(recipe.yield)} g · {recipe.temp[0]}–{recipe.temp[1]} °C
             </Display>
           </Card>
-          <Button onClick={() => startTimer(slug, roast)}>{t('timer.start')}</Button>
+          <Button
+            onClick={() => {
+              unlockAudio()
+              startTimer(slug, roast)
+            }}
+          >
+            {t('timer.start')}
+          </Button>
+          <SoundToggle />
         </div>
         <Card>
           <RecipeSteps recipe={recipe} brewer={entry.brewer} />
@@ -125,6 +141,7 @@ export default function BrewTimer({ done }: { done: () => void }) {
             {t('timer.finish')}
           </Button>
           <p className="text-xs text-ink/70">{t(`timer.finishHint.${style}`)}</p>
+          <SoundToggle />
           <Button variant="ghost" onClick={cancelTimer}>{t('timer.cancel')}</Button>
         </div>
       </div>
@@ -144,5 +161,24 @@ export default function BrewTimer({ done }: { done: () => void }) {
         </ol>
       </Card>
     </div>
+  )
+}
+
+// On by default; turning it on mid-brew also unlocks audio, since that is a tap too
+function SoundToggle() {
+  const { t, sound, setSound } = useStore()
+  return (
+    <label className="flex min-h-11 items-center gap-3 text-[15px] font-semibold">
+      <input
+        type="checkbox"
+        checked={sound}
+        onChange={(e) => {
+          if (e.target.checked) unlockAudio()
+          setSound(e.target.checked)
+        }}
+        className="h-5 w-5 accent-olive"
+      />
+      {t('timer.sound')}
+    </label>
   )
 }

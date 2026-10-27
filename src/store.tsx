@@ -15,6 +15,7 @@ interface Persisted {
   reports: Report[]
   working: Record<string, string> // working key (src/coffees.ts workingKey) -> report id
   coffees: MyCoffee[] // the guest's own coffees
+  sound: boolean // brew timer tones
 }
 
 const initial = (): Persisted => ({
@@ -26,6 +27,7 @@ const initial = (): Persisted => ({
   reports: [],
   working: {},
   coffees: [],
+  sound: true,
 })
 
 function load(): Persisted {
@@ -57,6 +59,7 @@ interface Store extends Persisted {
   setRoast: (r: Roast) => void
   setBrewer: (b: Brewer) => void
   setLot: (lot: string | null) => void
+  setSound: (on: boolean) => void
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
   reset: () => void
@@ -100,6 +103,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setRoast: (roast) => setS((p) => ({ ...p, roast })),
       setBrewer: (brewer) => setS((p) => ({ ...p, brewer })),
       setLot: (lot) => setS((p) => ({ ...p, lot })),
+      setSound: (sound) => setS((p) => ({ ...p, sound })),
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),
