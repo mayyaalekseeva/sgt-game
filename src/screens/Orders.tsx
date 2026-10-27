@@ -1,5 +1,6 @@
 import { RANKS, RECIPES } from '../data'
-import { useReports } from '../reports'
+import { forRoast } from '../coffees'
+import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, Button, RowButton, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
 import RankCard from './RankCard'
@@ -7,11 +8,22 @@ import LotCard from './LotCard'
 import RecipePicker from './RecipePicker'
 import RecipeSteps from './RecipeSteps'
 
-export default function Orders({ go, openTimer, openRecipes }: { go: () => void; openTimer: () => void; openRecipes: () => void }) {
-  const { t, method, brew, slug: key } = useStore()
+export default function Orders({
+  go,
+  openTimer,
+  openRecipes,
+  addCoffee,
+}: {
+  go: () => void
+  openTimer: () => void
+  openRecipes: () => void
+  addCoffee: () => void
+}) {
+  const { t, method } = useStore()
   const isFilter = method === 'filter'
   const { reports, working } = useReports()
-  const r = RECIPES[key]
+  const { brew, slug, mine, key } = usePick()
+  const r = forRoast(RECIPES[slug], mine?.roast)
   const tip = Math.floor(Date.now() / 86400000) % 5
   const workingReport = reports.find((x) => x.id === working[key])
 
@@ -32,7 +44,7 @@ export default function Orders({ go, openTimer, openRecipes }: { go: () => void;
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label>{t('orders.recipe')}</Label>
-          <RecipePicker />
+          <RecipePicker addCoffee={addCoffee} />
         </div>
         <LotCard />
 

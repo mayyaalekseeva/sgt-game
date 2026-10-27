@@ -1,5 +1,5 @@
-import { RECIPE_CONTENT, localDay } from '../data'
-import { lotBySlug } from '../lots'
+import { coffeeName } from '../coffees'
+import { localDay } from '../data'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, ScreenTitle, brewLabel, fmtDate, fmtNum, fmtTime } from '../ui'
@@ -8,10 +8,12 @@ import { Card, Display, Label, ScreenTitle, brewLabel, fmtDate, fmtNum, fmtTime 
 export default function SavedRecipes() {
   const { t, lang } = useStore()
   const data = useReports()
+  // one per recipe and coffee, newest first
   const saved = !data.loading
-    ? RECIPE_CONTENT.map((e) => e.slug)
-        .map((key) => data.reports.find((x) => x.id === data.working[key]))
+    ? Object.values(data.working)
+        .map((id) => data.reports.find((x) => x.id === id))
         .filter((r) => r !== undefined)
+        .sort((a, b) => b.ts - a.ts)
     : []
 
   return (
@@ -28,7 +30,7 @@ export default function SavedRecipes() {
               <Card className="lg:h-full">
                 <Label>
                   {brewLabel(t, r)}
-                  {lotBySlug(r.lot) && ` · ${lotBySlug(r.lot)?.name}`}
+                  {coffeeName(r.lot, data.coffees) && ` · ${coffeeName(r.lot, data.coffees)}`}
                 </Label>
                 <Display className="mt-1 text-[26px] !normal-case tracking-wide">
                   {fmtNum(r.dose)} g → {fmtNum(r.yield)} g · {fmtTime(r.time, r.method)}

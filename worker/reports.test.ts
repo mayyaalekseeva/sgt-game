@@ -60,6 +60,8 @@ describe('parseReportBatch', () => {
   it('accepts a lot slug, and no lot from older clients', () => {
     const r = report({ lot: 'peru-naranjo-yacu' })
     expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
+    const mine = report({ lot: 'my:' + 'a'.repeat(32) })
+    expect(parse({ reports: [mine] })).toEqual({ reports: [mine], imported: false })
     const { lot: _, ...noLot } = report()
     expect(parse({ reports: [noLot] })).toEqual({ reports: [report()], imported: false })
   })
@@ -86,6 +88,7 @@ describe('parseReportBatch', () => {
     ['recipeVersionId', 'espresso-medium@0'],
     ['lot', 'Peru Lot'],
     ['lot', 42],
+    ['lot', 'my:short'],
   ])('rejects a bad %s (%s) and names the report', (field, value) => {
     const out = parse({ reports: [report(), report({ [field]: value })] })
     expect(out).toHaveProperty('error')

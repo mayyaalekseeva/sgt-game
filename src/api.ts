@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RECIPE_CONTENT, parseRecipeContent, parseReportsResponse, type RecipeEntry, type Report } from './data'
+import { parseCoffees, type MyCoffee } from './coffees'
 import type { Sender } from './sync'
 
 // Where a screen's data came from: the API, or this browser (bundled recipes, guest reports)
@@ -27,8 +28,9 @@ export async function loadRecipes(signal: AbortSignal): Promise<{ recipes: Recip
 
 // The signed-in user's reports and working recipes. Throws on any failure (with .status when the API
 // answered); the caller keeps showing its cached copy.
-export async function fetchReports(signal: AbortSignal): Promise<{ reports: Report[]; working: Record<string, string> }> {
-  return parseReportsResponse(await getJson('/api/reports', signal))
+export async function fetchReports(signal: AbortSignal): Promise<{ reports: Report[]; working: Record<string, string>; coffees: MyCoffee[] }> {
+  const raw = await getJson('/api/reports', signal)
+  return { ...parseReportsResponse(raw), coffees: parseCoffees((raw as { coffees?: unknown }).coffees) }
 }
 
 async function send(method: 'POST' | 'PUT', path: string, body: unknown) {
@@ -40,10 +42,11 @@ async function send(method: 'POST' | 'PUT', path: string, body: unknown) {
   if (!res.ok) throw Object.assign(new Error(`${method} ${path}: ${res.status}`), { status: res.status })
 }
 
-// Writes for src/sync.ts. Both are safe to repeat: report ids come from the client.
+// Writes for src/sync.ts. All are safe to repeat: report and coffee ids come from the client.
 export const sender: Sender = {
   postReports: (reports, imported) => send('POST', '/api/reports', { reports, imported }),
   putWorking: (reportId) => send('PUT', '/api/working-recipes', { reportId }),
+  postCoffees: (coffees) => send('POST', '/api/coffees', { coffees }),
 }
 
 // Runs load once on mount; null while loading

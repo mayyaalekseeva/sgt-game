@@ -22,6 +22,13 @@
       "when": 1793117195907,
       "tag": "0002_report_lot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793118207179,
+      "tag": "0003_my_coffees",
+      "breakpoints": true
     }
   ]
 }

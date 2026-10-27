@@ -129,18 +129,25 @@ export function Segmented<T extends string>({
 }
 
 // compact: for long values such as a filter time range, which overflow the narrow desktop column
-// A labelled native select, styled like Segmented: the phone's own picker suits a longer list
+// A labelled native select, styled like Segmented: the phone's own picker suits a longer list.
+// Groups with a label become optgroups; an unlabelled group lists its options plainly.
 export function Select({
   value,
-  options,
+  groups,
   onChange,
   label,
 }: {
   value: string
-  options: { id: string; label: string }[]
+  groups: { label: string; options: { id: string; label: string }[] }[]
   onChange: (v: string) => void
   label: string
 }) {
+  const opts = (o: { id: string; label: string }[]) =>
+    o.map((x) => (
+      <option key={x.id} value={x.id}>
+        {x.label}
+      </option>
+    ))
   return (
     <div className="relative">
       <select
@@ -149,11 +156,15 @@ export function Select({
         onChange={(e) => onChange(e.target.value)}
         className="h-11 w-full appearance-none rounded-xl border-2 border-ink bg-cream pl-3 pr-10 text-[15px] font-semibold text-ink"
       >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
+        {groups.map((g, i) =>
+          g.label ? (
+            <optgroup key={i} label={g.label}>
+              {opts(g.options)}
+            </optgroup>
+          ) : (
+            opts(g.options)
+          ),
+        )}
       </select>
       <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink">
         ▾

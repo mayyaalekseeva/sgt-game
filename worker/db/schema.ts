@@ -8,6 +8,7 @@ export const ROASTS = ['light', 'medium', 'dark'] as const
 export const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
 export const BREWERS = ['v60', 'aeropress', 'frenchpress'] as const
 export const GRINDS = ['fine', 'medium_fine', 'medium', 'medium_coarse', 'coarse'] as const
+export const PROCESSES = ['washed', 'natural', 'honey', 'anaerobic', 'decaf', 'other'] as const
 
 // A filter recipe step (src/data.ts Step), stored as JSON on its version
 export interface StepJson {
@@ -94,13 +95,14 @@ export const reports = sqliteTable(
     taste: text('taste', { enum: TASTES }).notNull(),
     diag: text('diag').notNull(),
     recipeVersionId: text('recipe_version_id').references(() => recipeVersions.id),
-    lot: text('lot'), // coffee lot slug from content/lots.json; null for another coffee
+    lot: text('lot'), // a lot slug from content/lots.json, or `my:<coffee id>`; null on older reports
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('reports_user_ts_idx').on(t.userId, t.ts)],
 )
 
+// One per recipe and coffee. lot is '' for working recipes from before coffees (part of the key, so not null)
 export const workingRecipes = sqliteTable(
   'working_recipes',
   {
@@ -110,11 +112,33 @@ export const workingRecipes = sqliteTable(
     recipeSlug: text('recipe_slug')
       .notNull()
       .references(() => recipes.slug),
+    lot: text('lot').notNull().default(''),
     reportId: text('report_id').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
   (t) => [
-    primaryKey({ columns: [t.userId, t.recipeSlug] }),
+    primaryKey({ columns: [t.userId, t.recipeSlug, t.lot] }),
     foreignKey({ columns: [t.userId, t.reportId], foreignColumns: [reports.userId, reports.id] }).onDelete('cascade'),
   ],
+)
+
+// Coffees a player added (any roaster's bag). Reports name them as `my:<id>`. The client makes the id,
+// and the later updated_at wins, so a repeated or out-of-order send changes nothing.
+export const coffees = sqliteTable(
+  'coffees',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id').notNull(),
+    roaster: text('roaster').notNull(),
+    origin: text('origin').notNull(),
+    process: text('process', { enum: PROCESSES }).notNull(),
+    roast: text('roast', { enum: ROASTS }).notNull(),
+    name: text('name'),
+    archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+    updatedAt: integer('updated_at').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.id] })],
 )

@@ -1,3 +1,4 @@
+import { mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
 import { parseReportsResponse, type Report } from './data'
 
 // Signed-in sync, kept free of React and fetch so it can be tested. The server is the record; this
@@ -8,16 +9,18 @@ type Working = Record<string, string> // recipeKey -> report id
 export interface Outbox {
   reports: Report[]
   working: Working
+  coffees?: MyCoffee[] // added or edited coffees; sent before reports, which may name them
 }
 
 export interface AccountCache {
   reports: Report[] // as of the last GET /api/reports, plus what has been sent since
   working: Working
+  coffees: MyCoffee[]
   outbox: Outbox
   importDecided: boolean // asked once per account and browser whether to import the guest reports
 }
 
-export const emptyCache = (): AccountCache => ({ reports: [], working: {}, outbox: { reports: [], working: {} }, importDecided: false })
+export const emptyCache = (): AccountCache => ({ reports: [], working: {}, coffees: [], outbox: { reports: [], working: {} }, importDecided: false })
 
 // Same size as the server's MAX_BATCH (worker/reports.ts)
 export const BATCH = 200
@@ -30,7 +33,8 @@ export function parseAccountCache(raw: unknown): AccountCache {
     const c = raw as AccountCache
     return {
       ...parseReportsResponse({ reports: c.reports, working: c.working }),
-      outbox: parseReportsResponse(c.outbox),
+      coffees: parseCoffees(c.coffees),
+      outbox: { ...parseReportsResponse(c.outbox), ...(c.outbox?.coffees?.length ? { coffees: parseCoffees(c.outbox.coffees) } : {}) },
       importDecided: c.importDecided === true,
     }
   } catch {
@@ -39,30 +43,45 @@ export function parseAccountCache(raw: unknown): AccountCache {
 }
 
 /** What the screens show: the server's reports plus the ones still waiting to be sent, newest first. */
-export function view(c: AccountCache): { reports: Report[]; working: Working } {
+export function view(c: AccountCache): { reports: Report[]; working: Working; coffees: MyCoffee[] } {
   const ids = new Set(c.reports.map((r) => r.id))
   const reports = [...c.reports, ...c.outbox.reports.filter((r) => !ids.has(r.id))].sort((a, b) => b.ts - a.ts)
-  return { reports, working: { ...c.working, ...c.outbox.working } }
+  return { reports, working: { ...c.working, ...c.outbox.working }, coffees: mergeCoffees(c.coffees, c.outbox.coffees ?? []) }
 }
 
 /** A fresh GET /api/reports replaces the copy; the outbox stays, since the server may not have it yet. */
-export const withServer = (c: AccountCache, server: { reports: Report[]; working: Working }): AccountCache => ({ ...c, ...server })
+export const withServer = (c: AccountCache, server: { reports: Report[]; working: Working; coffees?: MyCoffee[] }): AccountCache => ({
+  ...c,
+  ...server,
+  coffees: server.coffees ?? c.coffees,
+})
 
 export interface Sender {
   postReports: (reports: Report[], imported: boolean) => Promise<void>
   putWorking: (reportId: string) => Promise<void>
+  postCoffees: (coffees: MyCoffee[]) => Promise<void>
 }
 
 // The server refused it (400: invalid, 404: report not there). Sending it again would not help.
 const refused = (err: unknown) => [400, 404].includes((err as { status?: number }).status ?? 0)
 
 /**
- * Sends the outbox in order: reports first, since a working recipe needs its report on the server.
+ * Sends the outbox in order: coffees, then reports (which may name a coffee), then working recipes, which
+ * need their report on the server.
  * Stops at the first failure that might pass on a retry (offline, 5xx, 401) and returns what went
  * through, refused items included so they leave the outbox.
  */
 export async function flush(outbox: Outbox, send: Sender): Promise<Outbox> {
   const done: Outbox = { reports: [], working: {} }
+  for (const batch of chunks(outbox.coffees ?? [], BATCH)) {
+    try {
+      await send.postCoffees(batch)
+    } catch (err) {
+      if (!refused(err)) return done
+      console.error('Coffees refused by the server', err)
+    }
+    done.coffees = [...(done.coffees ?? []), ...batch]
+  }
   for (const batch of chunks(outbox.reports, BATCH)) {
     try {
       await send.postReports(batch, false)
@@ -90,20 +109,29 @@ export function applySent(c: AccountCache, sent: Outbox): AccountCache {
   const have = new Set(c.reports.map((r) => r.id))
   const working = { ...c.outbox.working }
   for (const [key, id] of Object.entries(sent.working)) if (working[key] === id) delete working[key]
+  // a coffee edited again while it was being sent stays queued
+  const sentCoffees = sent.coffees ?? []
+  const queued = (c.outbox.coffees ?? []).filter((q) => !sentCoffees.some((s) => s.id === q.id && s.updatedAt === q.updatedAt))
   return {
     ...c,
+    coffees: mergeCoffees(c.coffees, sentCoffees),
     reports: [...c.reports, ...sent.reports.filter((r) => !have.has(r.id))],
     working: { ...c.working, ...sent.working },
-    outbox: { reports: c.outbox.reports.filter((r) => !ids.has(r.id)), working },
+    outbox: { reports: c.outbox.reports.filter((r) => !ids.has(r.id)), working, ...(queued.length ? { coffees: queued } : {}) },
   }
 }
 
 /**
- * First sign-in: sends this browser's guest reports to the account, marked as imported, and its
+ * First sign-in: sends this browser's guest coffees, then its reports marked as imported, and its
  * working recipes for the recipes the account has none for yet. Returns what went through, for
  * applySent. Throws if a batch does not go through; sending again is safe, the ids make it a no-op.
  */
-export async function importGuest(guest: { reports: Report[]; working: Working }, account: Working, send: Sender): Promise<Outbox> {
+export async function importGuest(
+  guest: { reports: Report[]; working: Working; coffees?: MyCoffee[] },
+  account: Working,
+  send: Sender,
+): Promise<Outbox> {
+  for (const batch of chunks(guest.coffees ?? [], BATCH)) await send.postCoffees(batch)
   for (const batch of chunks(guest.reports, BATCH)) await send.postReports(batch, true)
   const ids = new Set(guest.reports.map((r) => r.id))
   const working: Working = {}
@@ -116,7 +144,7 @@ export async function importGuest(guest: { reports: Report[]; working: Working }
       if (!refused(err)) throw err
     }
   }
-  return { reports: guest.reports, working }
+  return { reports: guest.reports, working, ...(guest.coffees?.length ? { coffees: guest.coffees } : {}) }
 }
 
 // Not crypto.randomUUID(): it only exists on https and localhost, and the dev server is opened from
