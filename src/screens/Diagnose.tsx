@@ -7,8 +7,8 @@ import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, LinkButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
 import RecipePicker from './RecipePicker'
 
-export default function Diagnose({ openDiary }: { openDiary: () => void }) {
-  const { t, method, brew, slug: key } = useStore()
+export default function Diagnose({ openDiary, openTimer }: { openDiary: () => void; openTimer: () => void }) {
+  const { t, method, brew, slug: key, timed, takeTimed } = useStore()
   const { rank, addReport, markWorking, working, reports } = useReports()
   const recipe = RECIPES[key]
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
@@ -18,6 +18,7 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
   const [time, setTime] = useState(mid)
   const [taste, setTaste] = useState<Taste | null>(null)
   const [bloomed, setBloomed] = useState(true)
+  const [fromTimer, setFromTimer] = useState(false)
   const [result, setResult] = useState<{ report: Report; diag: DiagId } | null>(null)
 
   // when the recipe selection changes, reset the form to that recipe
@@ -27,8 +28,21 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
     setTime(mid)
     setTaste(null)
     setBloomed(true)
+    setFromTimer(false)
     setResult(null)
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // a brew just finished on the timer: take its time (after the reset above, which also runs on mount)
+  useEffect(() => {
+    if (!timed) return
+    if (timed.slug === key) {
+      setTime(timed.time)
+      setBloomed(true)
+      setFromTimer(true)
+      setResult(null)
+    }
+    takeTimed()
+  }, [timed]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFilter = method === 'filter'
   const style = brew.brewer ? STYLE_OF[brew.brewer] : null
@@ -122,12 +136,16 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
 
       <div className="flex flex-col gap-4">
         <RecipePicker />
+        {style && <Button variant="secondary" onClick={openTimer}>{t('timer.open')}</Button>}
 
         <Card className="!py-2">
           <Stepper label={t('recipe.dose')} value={dose} step={0.5} min={5} max={40} display={`${fmtNum(dose)} g`} onChange={setDose} />
           <Stepper label={t(isFilter ? 'recipe.water' : 'recipe.yield')} value={yld} step={isFilter ? 5 : 1} min={10} max={500} display={`${fmtNum(yld)} g`} onChange={setYld} />
-          <Stepper label={t('recipe.time')} value={time} step={isFilter ? 5 : 1} min={5} max={600} display={fmtTime(time, method)} onChange={setTime} />
-          <div className="py-2 text-xs text-muted">{t('diag.target', { range: fmtRange(recipe.time, method) })}</div>
+          <Stepper label={t('recipe.time')} value={time} step={isFilter ? 5 : 1} min={5} max={600} display={fmtTime(time, method)} onChange={(v) => {
+              setTime(v)
+              setFromTimer(false)
+            }} />
+          <div className="py-2 text-xs text-muted">{t('diag.target', { range: fmtRange(recipe.time, method) })}{fromTimer && ` ${t('diag.fromTimer')}`}</div>
           {style === 'pour' && (
             <label className="flex min-h-11 items-center gap-3 border-t border-line py-2 text-[15px] font-semibold">
               <input type="checkbox" checked={bloomed} onChange={(e) => setBloomed(e.target.checked)} className="h-5 w-5 accent-olive" />

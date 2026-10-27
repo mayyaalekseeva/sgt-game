@@ -50,12 +50,22 @@ interface Store extends Persisted {
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
   reset: () => void
+  // Brew timer, kept in memory only: it survives switching tabs, not a reload
+  timer: { slug: string; startedAt: number } | null
+  startTimer: (slug: string) => void
+  cancelTimer: () => void
+  // A finished timed brew waiting to be diagnosed; Diagnose takes its time and clears it
+  timed: { slug: string; time: number } | null
+  finishTimer: (time: number) => void
+  takeTimed: () => void
 }
 
 const Ctx = createContext<Store | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<Persisted>(load)
+  const [timer, setTimer] = useState<Store['timer']>(null)
+  const [timed, setTimed] = useState<Store['timed']>(null)
 
   useEffect(() => {
     try {
@@ -81,8 +91,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),
+      timer,
+      startTimer: (slug) => setTimer({ slug, startedAt: Date.now() }),
+      cancelTimer: () => setTimer(null),
+      timed,
+      finishTimer: (time) => {
+        if (timer) setTimed({ slug: timer.slug, time })
+        setTimer(null)
+      },
+      takeTimed: () => setTimed(null),
     }
-  }, [s, t])
+  }, [s, t, timer, timed])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

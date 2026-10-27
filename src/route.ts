@@ -1,8 +1,8 @@
 // The screen lives in the URL hash, so the browser's back button, a refresh and a shared link all
-// land on the same screen: #/profile, #/profile/diary, #/diag/diary.
+// land on the same screen: #/profile, #/profile/diary, #/diag/diary, #/diag/timer.
 
 export const TABS = ['orders', 'diag', 'recipes', 'profile'] as const
-export const SUBS = ['saved', 'diary', 'missions', 'dossier'] as const
+export const SUBS = ['saved', 'diary', 'missions', 'dossier', 'timer'] as const
 
 export type Tab = (typeof TABS)[number]
 export type Sub = (typeof SUBS)[number]

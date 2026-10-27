@@ -6,7 +6,7 @@ import RankCard from './RankCard'
 import RecipePicker from './RecipePicker'
 import RecipeSteps from './RecipeSteps'
 
-export default function Orders({ go, openRecipes }: { go: () => void; openRecipes: () => void }) {
+export default function Orders({ go, openTimer, openRecipes }: { go: () => void; openTimer: () => void; openRecipes: () => void }) {
   const { t, method, brew, slug: key } = useStore()
   const isFilter = method === 'filter'
   const { reports, working } = useReports()
@@ -63,7 +63,8 @@ export default function Orders({ go, openRecipes }: { go: () => void; openRecipe
           )}
         </Card>
 
-        <Button onClick={go}>{t('orders.cta')}</Button>
+        {isFilter && <Button onClick={openTimer}>{t('timer.open')}</Button>}
+        <Button variant={isFilter ? 'secondary' : 'primary'} onClick={go}>{t('orders.cta')}</Button>
       </div>
       <span className="hidden">{RANKS.length}</span>
     </div>
