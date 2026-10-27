@@ -97,8 +97,13 @@ export default function BrewTimer({ done }: { done: () => void }) {
 
         <div className="rounded-2xl border-2 border-ink bg-olive p-4 text-cream lg:p-6" aria-live="polite">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-cream/80">{t('timer.now')}</div>
-          <p className="mt-1 text-[26px] font-semibold leading-snug">{cur ? stepText(state.current) : t('timer.ready')}</p>
-          <div className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-cream/80">
+          {/* keyed by step: each new step slides in */}
+          <p key={state.current} className="mt-1 animate-step text-[26px] font-semibold leading-snug">{cur ? stepText(state.current) : t('timer.ready')}</p>
+          {/* the last three seconds before a step pulse once each */}
+          <div
+            key={next && state.toNext <= 3 ? state.toNext : 'next'}
+            className={`mt-3 text-xs font-semibold uppercase tracking-[0.12em] ${next && state.toNext <= 3 ? 'animate-pop text-cream' : 'text-cream/80'}`}
+          >
             {next ? t('timer.next', { at: fmtTime(next.at, 'filter'), n: state.toNext }) : t('timer.last')}
           </div>
           <p className="mt-1 text-[17px] leading-snug">

@@ -36,14 +36,14 @@ export default function Orders({ go, openTimer, openRecipes }: { go: () => void;
         </div>
         <LotCard />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div key={key} className="grid animate-enter grid-cols-2 gap-3">
           <Stat label={t('recipe.dose')} value={`${fmtNum(r.dose)} g`} />
           <Stat label={t(brew.brewer ? 'recipe.water' : 'recipe.yield')} value={`${fmtNum(r.yield)} g`} />
           <Stat label={t('recipe.time')} value={fmtRange(r.time, method)} compact={isFilter} />
           <Stat label={t(brew.brewer ? 'recipe.temperature' : 'recipe.temp')} value={`${r.temp[0]}–${r.temp[1]} °C`} />
         </div>
         {brew.brewer && (
-          <Card>
+          <Card key={key} className="animate-enter">
             <RecipeSteps recipe={r} brewer={brew.brewer} />
           </Card>
         )}
