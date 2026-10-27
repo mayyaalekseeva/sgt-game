@@ -4,6 +4,7 @@ import { initial, useAuth } from './auth'
 import { parseRoute, routeHash, type Route, type Sub, type Tab } from './route'
 import { useStore } from './store'
 import Orders from './screens/Orders'
+import BrewTimer from './screens/BrewTimer'
 import Diagnose from './screens/Diagnose'
 import Recipes from './screens/Recipes'
 import Profile from './screens/Profile'
@@ -142,11 +143,12 @@ export default function App() {
             {sub === 'diary' && <Diary />}
             {sub === 'missions' && <Missions />}
             {sub === 'dossier' && <Dossier />}
+            {sub === 'timer' && <BrewTimer done={() => select('diag')} />}
           </>
         ) : (
           <>
-            {tab === 'orders' && <Orders go={() => select('diag')} openRecipes={() => select('recipes')} />}
-            {tab === 'diag' && <Diagnose openDiary={() => open('diary')} />}
+            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} />}
+            {tab === 'diag' && <Diagnose openDiary={() => open('diary')} openTimer={() => open('timer')} />}
             {tab === 'recipes' && <Recipes use={() => select('orders')} />}
             {tab === 'profile' && <Profile open={open} />}
           </>

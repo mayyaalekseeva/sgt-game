@@ -3,7 +3,7 @@ import { toRecipeContent } from '../worker/recipes'
 import { RECIPE_CONTENT, parseRecipeContent } from './data'
 
 // The rows scripts/seed-recipes.mjs writes for the content file
-const recipeRows = RECIPE_CONTENT.map((e) => ({ slug: e.slug, method: e.method, roast: e.roast, status: e.status, createdAt: 0, updatedAt: 0 }))
+const recipeRows = RECIPE_CONTENT.map((e) => ({ slug: e.slug, method: e.method, roast: e.roast ?? null, brewer: e.brewer ?? null, status: e.status, createdAt: 0, updatedAt: 0 }))
 const versionRows = RECIPE_CONTENT.flatMap((e) =>
   e.versions.map((v) => ({
     id: v.id,
@@ -15,6 +15,8 @@ const versionRows = RECIPE_CONTENT.flatMap((e) =>
     timeMax: v.time[1],
     tempMin: v.temp[0],
     tempMax: v.temp[1],
+    grind: v.grind ?? null,
+    steps: v.steps ?? null,
     publishedAt: v.publishedAt,
     createdAt: 0,
   })),

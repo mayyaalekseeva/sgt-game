@@ -1,5 +1,5 @@
 import { AccountCard, LangToggle } from '../account'
-import { CHAPTERS, METHODS, ROASTS, recipeKey } from '../data'
+import { CHAPTERS, RECIPE_CONTENT } from '../data'
 import { useReports } from '../reports'
 import type { Sub } from '../route'
 import { useStore } from '../store'
@@ -11,7 +11,7 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
   const { t, reset } = useStore()
   const data = useReports()
   const { missions, rank } = data
-  const keys = METHODS.flatMap((m) => ROASTS.map((r) => recipeKey(m, r)))
+  const keys = RECIPE_CONTENT.map((e) => e.slug)
   const saved = data.loading ? null : keys.filter((k) => data.reports.some((x) => x.id === data.working[k])).length
   const done = missions.filter((m) => m.done).length
   const chapters = CHAPTERS.filter((c) => rank.idx >= c.rank).length

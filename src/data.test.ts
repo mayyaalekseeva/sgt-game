@@ -141,11 +141,30 @@ describe('recipe content', () => {
   const copy = () => structuredClone(content) as { recipes: Record<string, any>[] }
   const entry = (c: ReturnType<typeof copy>, slug: string) => c.recipes.find((e) => e.slug === slug)!
 
-  it('the committed file is valid and covers every method x roast', () => {
+  it('the committed file is valid: espresso per roast, filter per brewer, old filter recipes archived', () => {
     expect(() => parseRecipeContent(content)).not.toThrow()
-    expect(Object.keys(RECIPES).sort()).toEqual(
-      ['espresso-dark', 'espresso-light', 'espresso-medium', 'filter-dark', 'filter-light', 'filter-medium'],
-    )
+    expect(Object.keys(RECIPES).sort()).toEqual([
+      'espresso-dark',
+      'espresso-light',
+      'espresso-medium',
+      'filter-aeropress',
+      'filter-dark',
+      'filter-frenchpress',
+      'filter-light',
+      'filter-medium',
+      'filter-v60',
+    ])
+    const filter = RECIPE_CONTENT.filter((e) => e.method === 'filter')
+    expect(filter.filter((e) => e.status === 'published').map((e) => e.brewer).sort()).toEqual(['aeropress', 'frenchpress', 'v60'])
+    expect(filter.filter((e) => e.roast).every((e) => e.status === 'archived')).toBe(true)
+  })
+
+  it('keeps steps and grind on brewer recipes only', () => {
+    expect(RECIPES['filter-v60'].grind).toBe('medium_fine')
+    expect(RECIPES['filter-v60'].steps?.[0]).toEqual({ at: 0, kind: 'bloom', to: 45 })
+    expect(RECIPES['filter-frenchpress'].steps?.at(-1)).toEqual({ at: 300, kind: 'press' })
+    expect(RECIPES['espresso-medium']).not.toHaveProperty('steps')
+    expect(RECIPES['filter-light']).not.toHaveProperty('grind')
   })
 
   it('RECIPES uses the latest version and a stable id', () => {
@@ -158,10 +177,27 @@ describe('recipe content', () => {
   })
 
   it.each<[string, (c: ReturnType<typeof copy>) => void, RegExp]>([
-    ['missing combination', (c) => c.recipes.splice(0, 1), /espresso-light must appear exactly once/],
-    ['duplicate combination', (c) => c.recipes.push(structuredClone(c.recipes[0])), /exactly once \(found 2\)/],
+    ['missing recipe', (c) => c.recipes.splice(0, 1), /espresso-light is missing/],
+    ['missing brewer', (c) => c.recipes.splice(c.recipes.indexOf(entry(c, 'filter-aeropress')), 1), /filter-aeropress is missing/],
+    ['duplicate recipe', (c) => c.recipes.push(structuredClone(c.recipes[0])), /espresso-light appears more than once/],
     ['slug not method-roast', (c) => (entry(c, 'filter-dark').slug = 'dark-filter'), /must be "filter-dark"/],
-    ['unknown status', (c) => (entry(c, 'filter-dark').status = 'draft'), /unknown status draft/],
+    ['slug not method-brewer', (c) => (entry(c, 'filter-v60').slug = 'filter-pourover'), /must be "filter-v60"/],
+    ['unknown status', (c) => (entry(c, 'espresso-dark').status = 'draft'), /unknown status draft/],
+    ['published per-roast filter', (c) => (entry(c, 'filter-dark').status = 'published'), /must be archived/],
+    ['filter with roast and brewer', (c) => (entry(c, 'filter-v60').roast = 'light'), /needs a brewer/],
+    ['espresso with a brewer', (c) => (entry(c, 'espresso-dark').brewer = 'v60'), /needs a roast and no brewer/],
+    ['unknown brewer', (c) => (entry(c, 'filter-v60').brewer = 'chemex'), /unknown brewer chemex/],
+    ['steps on espresso', (c) => (entry(c, 'espresso-dark').versions[0].steps = []), /grind and steps are for brewer recipes/],
+    ['brewer without grind', (c) => delete entry(c, 'filter-v60').versions[0].grind, /grind must be one of/],
+    ['brewer without steps', (c) => (entry(c, 'filter-v60').versions[0].steps = []), /steps must be/],
+    ['unknown step', (c) => (entry(c, 'filter-v60').versions[0].steps[1].kind = 'dance'), /steps must be/],
+    ['pour without a target', (c) => delete entry(c, 'filter-v60').versions[0].steps[2].to, /steps must be/],
+    ['target on a stir', (c) => (entry(c, 'filter-aeropress').versions[0].steps[1].to = 10), /steps must be/],
+    ['first step after 0', (c) => (entry(c, 'filter-v60').versions[0].steps[0].at = 5), /starts at 0/],
+    ['steps out of order', (c) => (entry(c, 'filter-v60').versions[0].steps[3].at = 30), /in time order/],
+    ['step after the time range', (c) => (entry(c, 'filter-frenchpress').versions[0].steps[3].at = 345), /before the end of the time range/],
+    ['falling pour targets', (c) => (entry(c, 'filter-v60').versions[0].steps[2].to = 40), /must rise/],
+    ['pours short of the yield', (c) => (entry(c, 'filter-v60').versions[0].yield = 260), /must reach the yield \(260 g\)/],
     ['no versions', (c) => (entry(c, 'filter-dark').versions = []), /at least one version/],
     ['version gap', (c) => (entry(c, 'filter-dark').versions[0].version = 2), /1, 2, 3/],
     ['bad date', (c) => (entry(c, 'filter-dark').versions[0].publishedAt = '26/10/2026'), /YYYY-MM-DD/],
@@ -208,6 +244,16 @@ describe('parseReportsResponse', () => {
     expect(working).toEqual({ 'espresso-medium': 'a' })
   })
 
+  it('accepts filter reports by brewer (roast null from the API) and older ones by roast', () => {
+    const v60 = { ...report({ id: 'c', method: 'filter', brewer: 'v60' }), roast: null }
+    const old = report({ id: 'd', method: 'filter', roast: 'light' })
+    const [a, b] = parseReportsResponse(body({ reports: [v60, old] })).reports
+    expect(a).toMatchObject({ method: 'filter', brewer: 'v60' })
+    expect(a).not.toHaveProperty('roast')
+    expect(b).toMatchObject({ method: 'filter', roast: 'light' })
+    expect(b).not.toHaveProperty('brewer')
+  })
+
   it('keeps diag ids it does not know (older or newer builds)', () => {
     expect(parseReportsResponse(body({ reports: [report({ diag: 'future_id' })] })).reports[0].diag).toBe('future_id')
   })
@@ -224,6 +270,10 @@ describe('parseReportsResponse', () => {
     ['an unknown taste', { reports: [{ ...report(), taste: 'salty' }], working: {} }],
     ['a string dose', { reports: [{ ...report(), dose: '18' }], working: {} }],
     ['a numeric recipeVersionId', { reports: [{ ...report(), recipeVersionId: 1 }], working: {} }],
+    ['espresso without a roast', { reports: [{ ...report(), roast: null }], working: {} }],
+    ['espresso with a brewer', { reports: [{ ...report(), brewer: 'v60' }], working: {} }],
+    ['filter with neither roast nor brewer', { reports: [{ ...report({ method: 'filter' }), roast: null }], working: {} }],
+    ['an unknown brewer', { reports: [{ ...report({ method: 'filter' }), brewer: 'chemex' }], working: {} }],
   ])('rejects %s', (_name, raw) => {
     expect(() => parseReportsResponse(raw)).toThrow(/GET \/api\/reports/)
   })

@@ -6,6 +6,15 @@ import { foreignKey, index, integer, primaryKey, real, sqliteTable, text, unique
 export const METHODS = ['espresso', 'filter'] as const
 export const ROASTS = ['light', 'medium', 'dark'] as const
 export const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
+export const BREWERS = ['v60', 'aeropress', 'frenchpress'] as const
+export const GRINDS = ['fine', 'medium_fine', 'medium', 'medium_coarse', 'coarse'] as const
+
+// A filter recipe step (src/data.ts Step), stored as JSON on its version
+export interface StepJson {
+  at: number
+  kind: string
+  to?: number
+}
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -32,11 +41,13 @@ export const sessions = sqliteTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 )
 
-// The slug ("espresso-medium") is the identity; working recipes are keyed by it
+// The slug ("espresso-medium", "filter-v60") is the identity; working recipes are keyed by it.
+// Espresso has a roast; filter a brewer (its roast will come from the coffee lot), or a roast if archived.
 export const recipes = sqliteTable('recipes', {
   slug: text('slug').primaryKey(),
   method: text('method', { enum: METHODS }).notNull(),
-  roast: text('roast', { enum: ROASTS }).notNull(),
+  roast: text('roast', { enum: ROASTS }),
+  brewer: text('brewer', { enum: BREWERS }),
   status: text('status', { enum: ['published', 'archived'] }).notNull(),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
@@ -57,6 +68,8 @@ export const recipeVersions = sqliteTable(
     timeMax: integer('time_max').notNull(),
     tempMin: integer('temp_min').notNull(),
     tempMax: integer('temp_max').notNull(),
+    grind: text('grind', { enum: GRINDS }), // brewer recipes only
+    steps: text('steps', { mode: 'json' }).$type<StepJson[]>(), // brewer recipes only
     publishedAt: text('published_at').notNull(), // YYYY-MM-DD, as in the content file
     createdAt: integer('created_at').notNull(),
   },
@@ -73,7 +86,8 @@ export const reports = sqliteTable(
     id: text('id').notNull(),
     ts: integer('ts').notNull(),
     method: text('method', { enum: METHODS }).notNull(),
-    roast: text('roast', { enum: ROASTS }).notNull(),
+    roast: text('roast', { enum: ROASTS }),
+    brewer: text('brewer', { enum: BREWERS }),
     dose: real('dose').notNull(),
     yieldG: real('yield_g').notNull(),
     time: integer('time').notNull(),

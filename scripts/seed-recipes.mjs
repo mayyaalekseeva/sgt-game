@@ -21,10 +21,13 @@ const wrangler = (...args) =>
   execFileSync(process.execPath, [wranglerBin, 'd1', 'execute', 'DB', target, ...args], { encoding: 'utf8' })
 
 const q = (s) => `'${String(s).replaceAll("'", "''")}'`
+const qn = (s) => (s == null ? 'NULL' : q(s))
+// steps are stored as JSON text; null for espresso and archived per-roast filter recipes
+const stepsJson = (v) => (v.steps ? JSON.stringify(v.steps) : null)
 
 // 1. Compare with what the database already holds
 const [{ results: existing }] = JSON.parse(
-  wrangler('--json', '--command', 'SELECT id, dose, yield_g, time_min, time_max, temp_min, temp_max, published_at FROM recipe_versions'),
+  wrangler('--json', '--command', 'SELECT id, dose, yield_g, time_min, time_max, temp_min, temp_max, grind, steps, published_at FROM recipe_versions'),
 )
 const inFile = new Map(RECIPE_CONTENT.flatMap((e) => e.versions.map((v) => [v.id, v])))
 const problems = []
@@ -41,6 +44,8 @@ for (const row of existing) {
     row.time_max === v.time[1] &&
     row.temp_min === v.temp[0] &&
     row.temp_max === v.temp[1] &&
+    row.grind === (v.grind ?? null) &&
+    row.steps === stepsJson(v) &&
     row.published_at === v.publishedAt
   if (!same) problems.push(`${row.id} was changed in the file; add a new version instead`)
 }
@@ -55,14 +60,14 @@ const known = new Set(existing.map((r) => r.id))
 const statements = []
 for (const e of RECIPE_CONTENT) {
   statements.push(
-    `INSERT INTO recipes (slug, method, roast, status, created_at, updated_at) VALUES (${q(e.slug)}, ${q(e.method)}, ${q(e.roast)}, ${q(e.status)}, ${now}, ${now})` +
+    `INSERT INTO recipes (slug, method, roast, brewer, status, created_at, updated_at) VALUES (${q(e.slug)}, ${q(e.method)}, ${qn(e.roast)}, ${qn(e.brewer)}, ${q(e.status)}, ${now}, ${now})` +
       ` ON CONFLICT(slug) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at WHERE recipes.status <> excluded.status;`,
   )
   for (const v of e.versions) {
     if (known.has(v.id)) continue
     statements.push(
-      `INSERT INTO recipe_versions (id, recipe_slug, version, dose, yield_g, time_min, time_max, temp_min, temp_max, published_at, created_at)` +
-        ` VALUES (${q(v.id)}, ${q(e.slug)}, ${v.version}, ${v.dose}, ${v.yield}, ${v.time[0]}, ${v.time[1]}, ${v.temp[0]}, ${v.temp[1]}, ${q(v.publishedAt)}, ${now});`,
+      `INSERT INTO recipe_versions (id, recipe_slug, version, dose, yield_g, time_min, time_max, temp_min, temp_max, grind, steps, published_at, created_at)` +
+        ` VALUES (${q(v.id)}, ${q(e.slug)}, ${v.version}, ${v.dose}, ${v.yield}, ${v.time[0]}, ${v.time[1]}, ${v.temp[0]}, ${v.temp[1]}, ${qn(v.grind)}, ${qn(stepsJson(v))}, ${q(v.publishedAt)}, ${now});`,
     )
   }
 }

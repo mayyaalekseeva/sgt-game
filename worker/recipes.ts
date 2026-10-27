@@ -11,6 +11,7 @@ export function toRecipeContent(rows: RecipeRow[], versions: VersionRow[]) {
       slug: r.slug,
       method: r.method,
       roast: r.roast,
+      brewer: r.brewer,
       status: r.status,
       versions: versions
         .filter((v) => v.recipeSlug === r.slug)
@@ -22,6 +23,8 @@ export function toRecipeContent(rows: RecipeRow[], versions: VersionRow[]) {
           yield: v.yieldG,
           time: [v.timeMin, v.timeMax],
           temp: [v.tempMin, v.tempMax],
+          grind: v.grind,
+          steps: v.steps,
         })),
     })),
   }

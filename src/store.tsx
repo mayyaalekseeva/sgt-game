@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { recipeKey, type Lang, type Method, type Report, type Roast } from './data'
+import { BREWERS, brewOf, slugOf, type Brew, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { translate, type Key } from './i18n'
 
 const STORAGE_KEY = 'barista-game:v1'
@@ -7,15 +7,17 @@ const STORAGE_KEY = 'barista-game:v1'
 interface Persisted {
   lang: Lang
   method: Method
-  roast: Roast
+  roast: Roast // espresso
+  brewer: Brewer // filter
   reports: Report[]
-  working: Record<string, string> // recipeKey -> report id
+  working: Record<string, string> // recipe slug -> report id
 }
 
 const initial = (): Persisted => ({
   lang: navigator.language?.toLowerCase().startsWith('pt') ? 'pt' : 'en',
   method: 'espresso',
   roast: 'medium',
+  brewer: 'v60',
   reports: [],
   working: {},
 })
@@ -24,7 +26,11 @@ function load(): Persisted {
   const base = initial()
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return { ...base, ...JSON.parse(raw) }
+    if (raw) {
+      const saved = { ...base, ...JSON.parse(raw) } as Persisted
+      // saved before brewers existed
+      return BREWERS.includes(saved.brewer) ? saved : { ...saved, brewer: base.brewer }
+    }
   } catch {
     /* storage unavailable: run in memory */
   }
@@ -38,15 +44,28 @@ interface Store extends Persisted {
   setLang: (l: Lang) => void
   setMethod: (m: Method) => void
   setRoast: (r: Roast) => void
+  setBrewer: (b: Brewer) => void
+  brew: Brew // the picked recipe: espresso + roast or filter + brewer
+  slug: string
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
   reset: () => void
+  // Brew timer, kept in memory only: it survives switching tabs, not a reload
+  timer: { slug: string; startedAt: number } | null
+  startTimer: (slug: string) => void
+  cancelTimer: () => void
+  // A finished timed brew waiting to be diagnosed; Diagnose takes its time and clears it
+  timed: { slug: string; time: number } | null
+  finishTimer: (time: number) => void
+  takeTimed: () => void
 }
 
 const Ctx = createContext<Store | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<Persisted>(load)
+  const [timer, setTimer] = useState<Store['timer']>(null)
+  const [timed, setTimed] = useState<Store['timed']>(null)
 
   useEffect(() => {
     try {
@@ -63,14 +82,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return {
       ...s,
       t,
+      brew: brewOf(s.method, s.roast, s.brewer),
+      slug: slugOf(brewOf(s.method, s.roast, s.brewer)),
       setLang: (lang) => setS((p) => ({ ...p, lang })),
       setMethod: (method) => setS((p) => ({ ...p, method })),
       setRoast: (roast) => setS((p) => ({ ...p, roast })),
+      setBrewer: (brewer) => setS((p) => ({ ...p, brewer })),
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),
+      timer,
+      startTimer: (slug) => setTimer({ slug, startedAt: Date.now() }),
+      cancelTimer: () => setTimer(null),
+      timed,
+      finishTimer: (time) => {
+        if (timer) setTimed({ slug: timer.slug, time })
+        setTimer(null)
+      },
+      takeTimed: () => setTimed(null),
     }
-  }, [s, t])
+  }, [s, t, timer, timed])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -80,5 +111,3 @@ export function useStore() {
   if (!v) throw new Error('StoreProvider missing')
   return v
 }
-
-export const keyOf = (m: Method, r: Roast) => recipeKey(m, r)

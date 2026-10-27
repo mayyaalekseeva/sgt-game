@@ -82,18 +82,18 @@ app.post('/reports', requireUser, async (c) => {
   return c.json({ saved: results.reduce((n, r) => n + r.length, 0) })
 })
 
-// A report is the working recipe for its own method and roast, so the slug comes from the report
+// A report is the working recipe for its own recipe (method + roast, or filter + brewer), so the slug comes from the report
 app.put('/working-recipes', requireUser, async (c) => {
   const { reportId } = ((await c.req.json().catch(() => null)) ?? {}) as { reportId?: unknown }
   if (!isReportId(reportId)) return c.json({ error: { code: 'invalid', message: 'reportId is invalid' } }, 400)
   const d = db(c.env)
   const userId = c.var.userId
   const [report] = await d
-    .select({ method: reports.method, roast: reports.roast })
+    .select({ method: reports.method, roast: reports.roast, brewer: reports.brewer })
     .from(reports)
     .where(and(eq(reports.userId, userId), eq(reports.id, reportId)))
   if (!report) return c.json({ error: { code: 'not_found', message: 'Report not found' } }, 404)
-  const recipeSlug = `${report.method}-${report.roast}`
+  const recipeSlug = report.method === 'filter' && report.brewer ? `filter-${report.brewer}` : `${report.method}-${report.roast}`
   const now = Date.now()
   await d
     .insert(workingRecipes)

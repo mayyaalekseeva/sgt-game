@@ -40,6 +40,8 @@ come from the client so re-sending is a no-op; the client caches per account and
 - Recipe content lives in content/recipes.json (no admin UI). Versions are append-only: to change a
   recipe, add version N+1; never edit or delete a published version (reports reference `slug@version`,
   and the seed refuses changed versions). Archive with `"status": "archived"`.
+- Espresso recipes are per roast (`espresso-medium`); filter recipes are per brewer (`filter-v60`) with a grind and
+  timed steps, and no roast level: it will come from the coffee lot. The old per-roast filter recipes stay archived.
 - Never edit an applied migration; change the schema and run `npm run db:generate`.
 - Never commit secrets. Use .dev.vars locally and Cloudflare secrets in production.
 - Design is mobile-first (390px). Desktop (1024px+) is a secondary adaptation: keep it minimal,
