@@ -12,7 +12,7 @@ Portfolio project. Runs as one Cloudflare Worker: the static app plus a small AP
     npm run preview   # serve the build in the local Workers runtime
     npm run cf:types  # regenerate worker-configuration.d.ts after changing wrangler.jsonc
 
-Check the API with `curl http://localhost:5173/api/health`: it reports `db.recipeVersions`, which is 0 until the migrate and seed commands have run. Local D1 data lives in `.wrangler/state` (gitignored).
+Check the API with `curl http://localhost:5173/api/health`: it reports `db.recipeVersions`, which is 0 until the migrate and seed commands have run. `GET /api/recipes` returns the seeded recipes with every version, in the same shape as `content/recipes.json`. Local D1 data lives in `.wrangler/state` (gitignored).
 
 ## Google sign-in
 
@@ -83,9 +83,10 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 - `src/data.ts`: recipe content parsing and validation, ranks, missions (recipes are starting points, to verify with the roaster)
 - `src/diagnose.ts`: rule-based diagnosis (taste + time vs. recipe range -> one change)
 - `src/i18n.ts`: all EN/PT texts
-- `src/screens/`: Orders, Diagnose, Missions, Dossier
+- `src/api.ts`: reads the API, falling back to the browser (bundled recipes, guest reports in localStorage)
+- `src/screens/`: Orders, Diagnose, Missions, Dossier, plus Recipes (opened from Orders) and Diary (opened from Diagnose)
 - `public/brand/`: logo and photos (used with the roaster's permission)
 
 ## Next
 
-Verify recipes/thresholds, real Dossier texts from the roaster, recipes + diary screens, syncing reports to D1 for signed-in users.
+Verify recipes/thresholds, real Dossier texts from the roaster, syncing reports to D1 for signed-in users (the Diary reads `GET /api/reports` once it exists).

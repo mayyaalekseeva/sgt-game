@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Method, Recipe } from './data'
+import type { Lang, Method, Recipe } from './data'
 
 export function Chevrons({ n, size = 22, color = 'currentColor' }: { n: number; size?: number; color?: string }) {
   const h = 8 * n + 2
@@ -22,6 +22,30 @@ export function Label({ children }: { children: ReactNode }) {
 
 export function Display({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`font-display font-extrabold uppercase leading-none ${className}`}>{children}</div>
+}
+
+// Inline navigation to a sub-screen; 44px tall for touch
+export function LinkButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="mt-1 flex h-11 items-center gap-1 text-[15px] font-semibold text-ink underline underline-offset-4">
+      {children}
+      <span aria-hidden="true">→</span>
+    </button>
+  )
+}
+
+// Title row for sub-screens (Recipes, Diary) with a way back to the tab they were opened from
+export function SubHeader({ title, sub, back, onBack }: { title: string; sub: string; back: string; onBack: () => void }) {
+  return (
+    <div>
+      <button type="button" onClick={onBack} className="-ml-1 flex h-11 items-center gap-1 px-1 text-[15px] font-semibold text-ink">
+        <span aria-hidden="true">←</span>
+        {back}
+      </button>
+      <Display className="text-[40px] tracking-wide">{title}</Display>
+      <p className="mt-1 text-[15px] text-ink/80">{sub}</p>
+    </div>
+  )
 }
 
 export function Button({
@@ -132,6 +156,15 @@ export const fmtTime = (sec: number, method: Method) =>
 export const fmtRange = (r: [number, number], method: Method) =>
   method === 'filter' ? `${fmtTime(r[0], method)}–${fmtTime(r[1], method)}` : `${r[0]}–${r[1]} s`
 
-export const fmtNum = (n: number) => String(Math.round(n * 10) / 10)
+// publishedAt and diary days are calendar dates (YYYY-MM-DD), so format them in UTC to keep the day
+export const fmtDate = (ymd: string, lang: Lang) =>
+  new Intl.DateTimeFormat(lang === 'pt' ? 'pt-PT' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(`${ymd}T00:00:00Z`),
+  )
+
+export const fmtClock = (ts: number, lang: Lang) =>
+  new Intl.DateTimeFormat(lang === 'pt' ? 'pt-PT' : 'en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date(ts))
+
+export const fmtNum =(n: number) => String(Math.round(n * 10) / 10)
 
 export const ratio = (r: Recipe) => fmtNum(r.yield / r.dose)

@@ -1,9 +1,9 @@
 import { RANKS, RECIPES, recipeKey } from '../data'
 import { useStore } from '../store'
-import { Card, Chevrons, Display, Label, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
+import { Card, Chevrons, Display, Label, LinkButton, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
 import RecipePicker from './RecipePicker'
 
-export default function Orders({ go }: { go: () => void }) {
+export default function Orders({ go, openRecipes }: { go: () => void; openRecipes: () => void }) {
   const { t, rank, xp, method, roast, reports, working } = useStore()
   const key = recipeKey(method, roast)
   const r = RECIPES[key]
@@ -52,9 +52,12 @@ export default function Orders({ go }: { go: () => void }) {
           <Stat label={t('recipe.time')} value={fmtRange(r.time, method)} />
           <Stat label={t('recipe.temp')} value={`${r.temp[0]}–${r.temp[1]} °C`} />
         </div>
-        <p className="text-sm leading-snug text-ink/80">
-          {t('orders.ratio', { r: ratio(r) })}. {t('orders.note')}
-        </p>
+        <div>
+          <p className="text-sm leading-snug text-ink/80">
+            {t('orders.ratio', { r: ratio(r) })}. {t('orders.note')}
+          </p>
+          <LinkButton onClick={openRecipes}>{t('orders.allRecipes')}</LinkButton>
+        </div>
 
         <Card>
           <Label>{t('orders.working')}</Label>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { RECIPES, type Recipe, type Taste } from './data'
-import { diagnose, timeState, type DiagId } from './diagnose'
+import { DIAG_IDS, diagnose, isDiagId, timeState, type DiagId } from './diagnose'
 
 // espresso-medium: 18 g -> 36 g (ratio 2.0), 25-30 s
 const R = RECIPES['espresso-medium']
@@ -100,5 +100,17 @@ describe('diagnose', () => {
       }
     }
     expect([...reached].sort()).toEqual(Object.keys(ALL).sort())
+  })
+})
+
+describe('DIAG_IDS', () => {
+  it('lists every DiagId exactly once', () => {
+    expect([...DIAG_IDS].sort()).toEqual(Object.keys(ALL).sort())
+  })
+
+  it('isDiagId rejects ids this build does not know', () => {
+    expect(isDiagId('sour_fast')).toBe(true)
+    expect(isDiagId('sour_too_fast')).toBe(false)
+    expect(isDiagId('')).toBe(false)
   })
 })

@@ -1,8 +1,9 @@
-import { count } from 'drizzle-orm'
+import { asc, count } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { auth } from './auth-routes'
 import { db } from './db/client'
-import { recipeVersions } from './db/schema'
+import { recipes, recipeVersions } from './db/schema'
+import { toRecipeContent } from './recipes'
 
 export const app = new Hono<{ Bindings: Env }>().basePath('/api')
 
@@ -26,6 +27,16 @@ app.get('/health', async (c) => {
 })
 
 app.route('/', auth)
+
+// Public: every recipe with all its versions, archived ones included
+app.get('/recipes', async (c) => {
+  const d = db(c.env)
+  const [rows, versions] = await Promise.all([
+    d.select().from(recipes).orderBy(asc(recipes.slug)),
+    d.select().from(recipeVersions),
+  ])
+  return c.json(toRecipeContent(rows, versions))
+})
 
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))
 
