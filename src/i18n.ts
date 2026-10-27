@@ -176,6 +176,14 @@ const en = {
   'auth.failed': 'Sign-in did not go through. Try again.',
   'auth.dismiss': 'Dismiss',
 
+  'import.title': 'Bring your reports along?',
+  'import.body': 'This device has reports from before you signed in. Add them to your account and they count wherever you sign in.',
+  'import.count': 'Reports on this device: {n}',
+  'import.yes': 'Add to my account',
+  'import.busy': 'Adding…',
+  'import.no': 'Keep them on this device',
+  'import.failed': 'They did not go through. Check your connection and try again.',
+
   'footer': 'Portfolio project. Recipes are starting points. Not affiliated commercially.',
 }
 
@@ -354,6 +362,14 @@ const pt: Record<keyof typeof en, string> = {
   'auth.signedInAs': 'Sessão iniciada como',
   'auth.failed': 'Não foi possível iniciar sessão. Tenta outra vez.',
   'auth.dismiss': 'Fechar',
+
+  'import.title': 'Trazes os teus relatórios?',
+  'import.body': 'Este dispositivo tem relatórios de antes de iniciares sessão. Junta-os à tua conta e contam onde quer que entres.',
+  'import.count': 'Relatórios neste dispositivo: {n}',
+  'import.yes': 'Juntar à minha conta',
+  'import.busy': 'A juntar…',
+  'import.no': 'Manter neste dispositivo',
+  'import.failed': 'Não foi possível juntá-los. Verifica a ligação e tenta outra vez.',
 
   'footer': 'Projeto de portfólio. As receitas são pontos de partida. Sem afiliação comercial.',
 }

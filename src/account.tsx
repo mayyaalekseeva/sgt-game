@@ -1,6 +1,7 @@
 import { SIGN_IN_URL, displayName, useAuth, type User } from './auth'
+import { useReports } from './reports'
 import { useStore } from './store'
-import { Card, Label } from './ui'
+import { Button, Card, Display, Label } from './ui'
 
 export const personIcon = (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -78,6 +79,32 @@ export function AccountCard() {
     <Card className="flex flex-col gap-3">
       <p className="text-[15px] leading-snug">{t('profile.guest')}</p>
       <SignInLink />
+    </Card>
+  )
+}
+
+// First sign-in on a browser that has guest reports: offer to add them to the account, once
+export function ImportOffer() {
+  const { t } = useStore()
+  const { importOffer, acceptImport, declineImport } = useReports()
+  if (!importOffer) return null
+  const busy = importOffer.status === 'busy'
+  return (
+    <Card className="mb-4 flex flex-col gap-3 lg:max-w-xl">
+      <Display className="text-[24px] tracking-wide">{t('import.title')}</Display>
+      <p className="text-[15px] leading-snug">{t('import.body')}</p>
+      <p className="text-sm text-muted">{t('import.count', { n: importOffer.count })}</p>
+      {importOffer.status === 'failed' && (
+        <p role="alert" className="rounded-lg border-2 border-terracotta p-2 text-[15px] text-ink">
+          {t('import.failed')}
+        </p>
+      )}
+      <Button onClick={acceptImport} disabled={busy}>
+        {busy ? t('import.busy') : t('import.yes')}
+      </Button>
+      <Button variant="ghost" onClick={declineImport} disabled={busy}>
+        {t('import.no')}
+      </Button>
     </Card>
   )
 }
