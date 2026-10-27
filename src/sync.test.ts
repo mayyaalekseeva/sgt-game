@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { MyCoffee } from './coffees'
 import type { Report } from './data'
 import { BATCH, applySent, chunks, emptyCache, flush, importGuest, newReportId, parseAccountCache, view, withServer, type Sender } from './sync'
 
@@ -15,10 +16,20 @@ const rep = (id: string, ts = 1_000, over: Partial<Report> = {}): Report => ({
   ...over,
 })
 
+// ids must be 32 hex characters: pad the tag and map anything else to 'a'
+const coffee = (tag: string, updatedAt = 1): MyCoffee => ({
+  id: tag.padEnd(32, '0').replace(/[^0-9a-f]/g, 'a'),
+  roaster: 'R',
+  origin: tag,
+  process: 'washed',
+  roast: 'light',
+  updatedAt,
+})
+
 const status = (n: number) => Object.assign(new Error(String(n)), { status: n })
 
 // Records calls; `fail` decides per call whether (and how) it throws
-function fakeSender(fail: (kind: 'post' | 'put', arg: unknown) => Error | null = () => null) {
+function fakeSender(fail: (kind: 'post' | 'put' | 'coffees', arg: unknown) => Error | null = () => null) {
   const calls: [string, unknown, boolean?][] = []
   const send: Sender = {
     postReports: async (reports, imported) => {
@@ -29,6 +40,11 @@ function fakeSender(fail: (kind: 'post' | 'put', arg: unknown) => Error | null =
     putWorking: async (id) => {
       calls.push(['put', id])
       const e = fail('put', id)
+      if (e) throw e
+    },
+    postCoffees: async (coffees) => {
+      calls.push(['coffees', coffees.map((c) => c.id)])
+      const e = fail('coffees', coffees)
       if (e) throw e
     },
   }
@@ -64,7 +80,13 @@ describe('withServer', () => {
 
 describe('parseAccountCache', () => {
   it('round-trips a cache', () => {
-    const c = { reports: [rep('a')], working: { 'espresso-medium': 'a' }, outbox: { reports: [rep('b')], working: {} }, importDecided: true }
+    const c = {
+      reports: [rep('a')],
+      working: { 'espresso-medium': 'a' },
+      coffees: [coffee('c1')],
+      outbox: { reports: [rep('b')], working: {}, coffees: [coffee('c2')] },
+      importDecided: true,
+    }
     expect(parseAccountCache(JSON.parse(JSON.stringify(c)))).toEqual(c)
   })
 
@@ -145,6 +167,46 @@ describe('importGuest', () => {
   it('skips a working recipe the server refuses', async () => {
     const { send } = fakeSender((kind) => (kind === 'put' ? status(404) : null))
     expect((await importGuest(guest, {}, send)).working).toEqual({})
+  })
+})
+
+describe('coffees', () => {
+  it('sends coffees before reports, and records them as sent', async () => {
+    const { send, calls } = fakeSender()
+    const outbox = { reports: [rep('a')], working: {}, coffees: [coffee('c1')] }
+    expect(await flush(outbox, send)).toEqual(outbox)
+    expect(calls.map((c) => c[0])).toEqual(['coffees', 'post'])
+  })
+
+  it('stops before reports when coffees may pass later', async () => {
+    const { send, calls } = fakeSender((kind) => (kind === 'coffees' ? status(503) : null))
+    expect(await flush({ reports: [rep('a')], working: {}, coffees: [coffee('c1')] }, send)).toEqual({ reports: [], working: {} })
+    expect(calls).toHaveLength(1)
+  })
+
+  it('shows queued edits over the copy, and keeps an edit made while sending', () => {
+    const sent = coffee('c1', 1)
+    const newer = { ...coffee('c1', 2), origin: 'Kenya' }
+    const c = { ...emptyCache(), outbox: { reports: [], working: {}, coffees: [newer] } }
+    const next = applySent(c, { reports: [], working: {}, coffees: [sent] })
+    expect(next.outbox.coffees).toEqual([newer])
+    expect(view(next).coffees).toEqual([newer])
+    const done = applySent(next, { reports: [], working: {}, coffees: [newer] })
+    expect(done.outbox).toEqual({ reports: [], working: {} })
+    expect(view(done).coffees).toEqual([newer])
+  })
+
+  it('keeps cached coffees when the server sends none, and takes the server list when it does', () => {
+    const c = { ...emptyCache(), coffees: [coffee('c1')] }
+    expect(withServer(c, { reports: [], working: {} }).coffees).toEqual([coffee('c1')])
+    expect(withServer(c, { reports: [], working: {}, coffees: [] }).coffees).toEqual([])
+  })
+
+  it('imports guest coffees before their reports', async () => {
+    const { send, calls } = fakeSender()
+    const sent = await importGuest({ reports: [rep('g')], working: {}, coffees: [coffee('c1')] }, {}, send)
+    expect(calls.map((c) => c[0])).toEqual(['coffees', 'post'])
+    expect(sent.coffees).toEqual([coffee('c1')])
   })
 })
 

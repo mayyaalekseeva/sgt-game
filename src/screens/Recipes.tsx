@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react'
 import { loadRecipes, useLoad } from '../api'
 import { BREWERS, METHODS, ROASTS, latestVersion, type RecipeEntry, type RecipeVersion } from '../data'
+import { usePick } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, ScreenTitle, SmallButton, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
 import RecipeSteps from './RecipeSteps'
@@ -49,7 +50,8 @@ export default function Recipes({ use }: { use: () => void }) {
 }
 
 function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
-  const { t, lang, slug, setMethod, setRoast, setBrewer } = useStore()
+  const { t, lang, setMethod, setRoast, setBrewer } = useStore()
+  const { slug } = usePick()
   const [open, setOpen] = useState(false)
   const cur = latestVersion(entry)
   const older = entry.versions.slice(0, -1).reverse()

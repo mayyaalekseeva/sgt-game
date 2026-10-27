@@ -2,7 +2,7 @@
 // land on the same screen: #/profile, #/profile/diary, #/diag/diary, #/diag/timer.
 
 export const TABS = ['orders', 'diag', 'recipes', 'profile'] as const
-export const SUBS = ['saved', 'diary', 'missions', 'dossier', 'timer'] as const
+export const SUBS = ['saved', 'diary', 'missions', 'dossier', 'timer', 'coffee', 'coffees'] as const
 
 export type Tab = (typeof TABS)[number]
 export type Sub = (typeof SUBS)[number]

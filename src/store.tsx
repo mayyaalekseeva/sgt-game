@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { BREWERS, brewOf, slugOf, type Brew, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
+import { isMyRef, mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
+import { BREWERS, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { translate, type Key } from './i18n'
 import { lotBySlug } from './lots'
 
@@ -10,9 +11,10 @@ interface Persisted {
   method: Method
   roast: Roast // espresso
   brewer: Brewer // filter
-  lot: string | null // coffee lot slug; null for another coffee
+  lot: string | null // a lot slug or a my: coffee ref; null until one is picked (the first lot is shown)
   reports: Report[]
-  working: Record<string, string> // recipe slug -> report id
+  working: Record<string, string> // working key (src/coffees.ts workingKey) -> report id
+  coffees: MyCoffee[] // the guest's own coffees
 }
 
 const initial = (): Persisted => ({
@@ -23,6 +25,7 @@ const initial = (): Persisted => ({
   lot: null,
   reports: [],
   working: {},
+  coffees: [],
 })
 
 function load(): Persisted {
@@ -31,12 +34,12 @@ function load(): Persisted {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const saved = { ...base, ...JSON.parse(raw) } as Persisted
-      // saved before brewers existed
-      // saved before brewers or lots existed, or the lot left the content file
+      // saved before brewers, lots or coffees existed, or the lot left the content file
       return {
         ...saved,
         brewer: BREWERS.includes(saved.brewer) ? saved.brewer : base.brewer,
-        lot: lotBySlug(saved.lot) ? saved.lot : null,
+        lot: isMyRef(saved.lot) || lotBySlug(saved.lot) ? saved.lot : null,
+        coffees: parseCoffees(saved.coffees),
       }
     }
   } catch {
@@ -54,14 +57,15 @@ interface Store extends Persisted {
   setRoast: (r: Roast) => void
   setBrewer: (b: Brewer) => void
   setLot: (lot: string | null) => void
-  brew: Brew // the picked recipe: espresso + roast or filter + brewer
-  slug: string
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
   reset: () => void
+  saveCoffee: (c: MyCoffee) => void
+  // after the guest data went to an account at first sign-in
+  clearGuest: () => void
   // Brew timer, kept in memory only: it survives switching tabs, not a reload
-  timer: { slug: string; startedAt: number } | null
-  startTimer: (slug: string) => void
+  timer: { slug: string; roast?: Roast; startedAt: number } | null // roast: of your own coffee, which shifts the recipe
+  startTimer: (slug: string, roast?: Roast) => void
   cancelTimer: () => void
   // A finished timed brew waiting to be diagnosed; Diagnose takes its time and clears it
   timed: { slug: string; time: number } | null
@@ -91,8 +95,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return {
       ...s,
       t,
-      brew: brewOf(s.method, s.roast, s.brewer),
-      slug: slugOf(brewOf(s.method, s.roast, s.brewer)),
       setLang: (lang) => setS((p) => ({ ...p, lang })),
       setMethod: (method) => setS((p) => ({ ...p, method })),
       setRoast: (roast) => setS((p) => ({ ...p, roast })),
@@ -101,8 +103,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),
+      saveCoffee: (c) => setS((p) => ({ ...p, coffees: mergeCoffees(p.coffees, [c]) })),
+      clearGuest: () => setS((p) => ({ ...p, reports: [], working: {}, coffees: [] })),
       timer,
-      startTimer: (slug) => setTimer({ slug, startedAt: Date.now() }),
+      startTimer: (slug, roast) => setTimer({ slug, ...(roast ? { roast } : {}), startedAt: Date.now() }),
       cancelTimer: () => setTimer(null),
       timed,
       finishTimer: (time) => {

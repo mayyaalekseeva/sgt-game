@@ -1,6 +1,6 @@
 import { RECIPES, RECIPE_CONTENT, diaryDays, localDay, slugOf, versionOf, type Report } from '../data'
 import { isDiagId } from '../diagnose'
-import { lotBySlug } from '../lots'
+import { coffeeName, workingKey } from '../coffees'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Label, ScreenTitle, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
@@ -32,7 +32,7 @@ export default function Diary() {
               <Card className="!py-1">
                 <ul>
                   {rs.map((r) => (
-                    <Entry key={r.id} r={r} isWorking={data.working[slugOf(r)] === r.id} />
+                    <Entry key={r.id} r={r} isWorking={data.working[workingKey(r)] === r.id} />
                   ))}
                 </ul>
               </Card>
@@ -47,6 +47,8 @@ export default function Diary() {
 
 function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   const { t, lang } = useStore()
+  const { coffees } = useReports()
+  const coffee = coffeeName(r.lot, coffees)
   const v = versionOf(RECIPE_CONTENT, r.recipeVersionId)
   const recipe = v ?? RECIPES[slugOf(r)]
   return (
@@ -54,7 +56,7 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-semibold">
           {brewLabel(t, r)}
-          {lotBySlug(r.lot) && <span className="font-normal text-muted"> · {lotBySlug(r.lot)?.name}</span>}
+          {coffee && <span className="font-normal text-muted"> · {coffee}</span>}
         </span>
         <span className="whitespace-nowrap text-xs text-muted">{fmtClock(r.ts, lang)}</span>
       </div>

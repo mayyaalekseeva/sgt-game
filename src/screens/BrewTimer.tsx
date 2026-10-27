@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { RECIPES, RECIPE_CONTENT, STYLE_OF } from '../data'
 import { timeState } from '../diagnose'
+import { forRoast } from '../coffees'
+import { usePick } from '../reports'
 import { useStore } from '../store'
 import { elapsedSeconds, timerState } from '../timer'
 import { Button, Card, Display, Label, ScreenTitle, brewLabel, fmtNum, fmtRange, fmtTime } from '../ui'
@@ -8,11 +10,13 @@ import RecipeSteps from './RecipeSteps'
 
 // Calls each step of a filter recipe as it comes. Done hands the time to Diagnose.
 export default function BrewTimer({ done }: { done: () => void }) {
-  const { t, slug: picked, timer, startTimer, cancelTimer, finishTimer } = useStore()
+  const { t, timer, startTimer, cancelTimer, finishTimer } = useStore()
+  const pick = usePick()
   // a running brew keeps its recipe even if the picker changes on another tab
-  const slug = timer?.slug ?? picked
+  const slug = timer?.slug ?? pick.slug
+  const roast = timer ? timer.roast : pick.mine?.roast
   const entry = RECIPE_CONTENT.find((e) => e.slug === slug)
-  const recipe = RECIPES[slug]
+  const recipe = RECIPES[slug] && forRoast(RECIPES[slug], roast)
   const [now, setNow] = useState(Date.now)
 
   useEffect(() => {
@@ -67,7 +71,7 @@ export default function BrewTimer({ done }: { done: () => void }) {
               {fmtNum(recipe.dose)} g → {fmtNum(recipe.yield)} g · {recipe.temp[0]}–{recipe.temp[1]} °C
             </Display>
           </Card>
-          <Button onClick={() => startTimer(slug)}>{t('timer.start')}</Button>
+          <Button onClick={() => startTimer(slug, roast)}>{t('timer.start')}</Button>
         </div>
         <Card>
           <RecipeSteps recipe={recipe} brewer={entry.brewer} />

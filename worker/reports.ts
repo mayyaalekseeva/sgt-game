@@ -21,7 +21,8 @@ export const MAX_BATCH = 200
 // Client ids: older builds made 8-char base36 ids, newer ones crypto.randomUUID()
 const ID = /^[A-Za-z0-9_-]{1,64}$/
 const VERSION_ID = /^[a-z]+-[a-z0-9]+@[1-9]\d*$/
-const LOT = /^[a-z0-9]+(-[a-z0-9]+)*$/
+// A roaster lot slug, or one of the player's coffees: my:<32 hex>
+const LOT = /^([a-z0-9]+(-[a-z0-9]+)*|my:[0-9a-f]{32})$/
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 

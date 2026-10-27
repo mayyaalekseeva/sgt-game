@@ -2,30 +2,42 @@ import { useEffect, useState } from 'react'
 import { REPORT_XP, RECIPES, STYLE_OF, TASTES, type Report, type Taste } from '../data'
 import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
-import { useReports } from '../reports'
+import { coffeeName, forRoast } from '../coffees'
+import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
-import { lotBySlug } from '../lots'
 import RecipePicker from './RecipePicker'
 
-export default function Diagnose({ openDiary, openTimer }: { openDiary: () => void; openTimer: () => void }) {
-  const { t, lang, lot, method, brew, slug: key, timed, takeTimed } = useStore()
-  const { rank, addReport, markWorking, working, reports } = useReports()
-  const recipe = RECIPES[key]
+export default function Diagnose({
+  openDiary,
+  openTimer,
+  addCoffee,
+}: {
+  openDiary: () => void
+  openTimer: () => void
+  addCoffee: () => void
+}) {
+  const { t, method, timed, takeTimed } = useStore()
+  const { rank, addReport, markWorking, working, reports, coffees } = useReports()
+  const { brew, slug, lot, mine, key } = usePick()
+  const recipe = forRoast(RECIPES[slug], mine?.roast)
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
+  // your working recipe for this coffee comes first: start from its dose and yield
+  const workingReport = reports.find((x) => x.id === working[key])
+  const start = workingReport ?? recipe
 
-  const [dose, setDose] = useState(recipe.dose)
-  const [yld, setYld] = useState(recipe.yield)
+  const [dose, setDose] = useState(start.dose)
+  const [yld, setYld] = useState(start.yield)
   const [time, setTime] = useState(mid)
   const [taste, setTaste] = useState<Taste | null>(null)
   const [bloomed, setBloomed] = useState(true)
   const [fromTimer, setFromTimer] = useState(false)
   const [result, setResult] = useState<{ report: Report; diag: DiagId } | null>(null)
 
-  // when the recipe selection changes, reset the form to that recipe
+  // when the recipe or coffee changes, reset the form to its starting point
   useEffect(() => {
-    setDose(recipe.dose)
-    setYld(recipe.yield)
+    setDose(start.dose)
+    setYld(start.yield)
     setTime(mid)
     setTaste(null)
     setBloomed(true)
@@ -36,7 +48,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
   // a brew just finished on the timer: take its time (after the reset above, which also runs on mount)
   useEffect(() => {
     if (!timed) return
-    if (timed.slug === key) {
+    if (timed.slug === slug) {
       setTime(timed.time)
       setBloomed(true)
       setFromTimer(true)
@@ -51,7 +63,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
     if (!taste) return
     const input = { dose, yield: yld, time, taste, bloomed }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
-    const report = addReport({ ...brew, ...(lot ? { lot } : {}), dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
+    const report = addReport({ ...brew, lot, dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
     setResult({ report, diag })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -69,7 +81,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
             <div>
               <Label>
                 {t('diag.yourBrew')}
-                {lotBySlug(result.report.lot) && ` · ${lotBySlug(result.report.lot)?.name}`}
+                {coffeeName(result.report.lot, coffees) && ` · ${coffeeName(result.report.lot, coffees)}`}
               </Label>
               <Display className="mt-1 text-[24px] !normal-case tracking-wide">
                 {fmtNum(result.report.dose)} g → {fmtNum(result.report.yield)} g · {fmtTime(result.report.time, method)}
@@ -139,7 +151,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
       </div>
 
       <div className="flex flex-col gap-4">
-        <RecipePicker />
+        <RecipePicker addCoffee={addCoffee} />
         {style && <Button variant="secondary" onClick={openTimer}>{t('timer.open')}</Button>}
 
         <Card className="!py-2">

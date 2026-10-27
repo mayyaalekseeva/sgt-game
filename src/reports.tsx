@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchReports, sender, type Source } from './api'
 import { useAuth } from './auth'
+import { resolvePick, type MyCoffee, type Pick } from './coffees'
 import { progressFor, type Report } from './data'
 import { useStore } from './store'
 import {
@@ -55,7 +56,7 @@ function openAccount(userId: string): Account {
   return { userId, cache: cache ?? emptyCache(), cached: cache !== null, server: 'loading' }
 }
 
-const pending = (o: Outbox) => o.reports.length > 0 || Object.keys(o.working).length > 0
+const pending = (o: Outbox) => o.reports.length > 0 || Object.keys(o.working).length > 0 || (o.coffees?.length ?? 0) > 0
 
 type ImportStatus = 'idle' | 'busy' | 'failed'
 
@@ -64,10 +65,12 @@ interface Reports extends ReturnType<typeof progressFor> {
   loading: boolean // nothing to show yet; reports is empty
   signedIn: boolean
   reports: Report[]
-  working: Record<string, string> // recipeKey -> report id
+  working: Record<string, string> // working key (src/coffees.ts workingKey) -> report id
+  coffees: MyCoffee[] // the player's own coffees, archived ones included
+  saveCoffee: (c: MyCoffee) => void
   addReport: (r: Omit<Report, 'id' | 'ts'>) => Report
   markWorking: (key: string, reportId: string) => void
-  // This browser's guest reports, offered to the account once; null when there is nothing to ask
+  // This browser's guest reports and coffees, offered to the account once; null when there is nothing to ask
   importOffer: { count: number; status: ImportStatus } | null
   acceptImport: () => void
   declineImport: () => void
@@ -158,9 +161,9 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     if (!a) return
     setImportStatus('busy')
     try {
-      const sent = await importGuest({ reports: guest.reports, working: guest.working }, a.cache.working, sender)
+      const sent = await importGuest({ reports: guest.reports, working: guest.working, coffees: guest.coffees }, a.cache.working, sender)
       updateCache(a.userId, (c) => ({ ...applySent(c, sent), importDecided: true }))
-      guest.reset()
+      guest.clearGuest()
       setImportStatus('idle')
       setReload((n) => n + 1)
     } catch (err) {
@@ -174,10 +177,11 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
   }, [account, updateCache])
 
   const value = useMemo<Reports>(() => {
-    const shown = account ? view(account.cache) : { reports: guest.reports, working: guest.working }
+    const shown = account ? view(account.cache) : { reports: guest.reports, working: guest.working, coffees: guest.coffees }
+    const guestItems = guest.reports.length + guest.coffees.length
     // Asked only once the server has answered, so import knows which working recipes the account already has
     const offer =
-      account && confirmedId && account.server === 'loaded' && !account.cache.importDecided && guest.reports.length > 0
+      account && confirmedId && account.server === 'loaded' && !account.cache.importDecided && guestItems > 0
     return {
       ...shown,
       ...progressFor(shown.reports, shown.working),
@@ -194,7 +198,15 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
         if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, working: { ...c.outbox.working, [key]: reportId } } }))
         else guest.markWorking(key, reportId)
       },
-      importOffer: offer ? { count: guest.reports.length, status: importStatus } : null,
+      saveCoffee: (c) => {
+        if (account) {
+          updateCache(account.userId, (x) => ({
+            ...x,
+            outbox: { ...x.outbox, coffees: [...(x.outbox.coffees ?? []).filter((q) => q.id !== c.id), c] },
+          }))
+        } else guest.saveCoffee(c)
+      },
+      importOffer: offer ? { count: guestItems, status: importStatus } : null,
       acceptImport: () => void acceptImport(),
       declineImport,
     }
@@ -207,4 +219,11 @@ export function useReports() {
   const v = useContext(Ctx)
   if (!v) throw new Error('ReportsProvider missing')
   return v
+}
+
+/** The coffee and recipe the picker adds up to, with the player's coffees taken into account. */
+export function usePick(): Pick {
+  const { method, roast, brewer, lot } = useStore()
+  const { coffees } = useReports()
+  return resolvePick({ method, roast, brewer, lot }, coffees)
 }

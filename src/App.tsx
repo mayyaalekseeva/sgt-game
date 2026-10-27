@@ -4,7 +4,9 @@ import { initial, useAuth } from './auth'
 import { parseRoute, routeHash, type Route, type Sub, type Tab } from './route'
 import { useStore } from './store'
 import Orders from './screens/Orders'
+import AddCoffee from './screens/AddCoffee'
 import BrewTimer from './screens/BrewTimer'
+import MyCoffees from './screens/MyCoffees'
 import Diagnose from './screens/Diagnose'
 import Recipes from './screens/Recipes'
 import Profile from './screens/Profile'
@@ -146,11 +148,13 @@ export default function App() {
             {sub === 'missions' && <Missions />}
             {sub === 'dossier' && <Dossier />}
             {sub === 'timer' && <BrewTimer done={() => select('diag')} />}
+            {sub === 'coffee' && <AddCoffee done={() => select(tab)} />}
+            {sub === 'coffees' && <MyCoffees add={() => open('coffee')} />}
           </>
         ) : (
           <>
-            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} />}
-            {tab === 'diag' && <Diagnose openDiary={() => open('diary')} openTimer={() => open('timer')} />}
+            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} addCoffee={() => open('coffee')} />}
+            {tab === 'diag' && <Diagnose openDiary={() => open('diary')} openTimer={() => open('timer')} addCoffee={() => open('coffee')} />}
             {tab === 'recipes' && <Recipes use={() => select('orders')} />}
             {tab === 'profile' && <Profile open={open} />}
           </>
