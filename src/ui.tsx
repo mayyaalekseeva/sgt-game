@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import type { Lang, Method, Recipe } from './data'
+import type { Brew, Lang, Method, Recipe } from './data'
+import type { Key } from './i18n'
 
 export function Chevrons({ n, size = 22, color = 'currentColor' }: { n: number; size?: number; color?: string }) {
   const h = 8 * n + 2
@@ -124,11 +125,12 @@ export function Segmented<T extends string>({
   )
 }
 
-export function Stat({ label, value }: { label: string; value: string }) {
+// compact: for long values such as a filter time range, which overflow the narrow desktop column
+export function Stat({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
   return (
     <Card className="!p-3">
       <Label>{label}</Label>
-      <Display className="mt-1 whitespace-nowrap text-[34px] !normal-case tracking-wide">{value}</Display>
+      <Display className={`mt-1 whitespace-nowrap !normal-case tracking-wide ${compact ? 'text-[34px] lg:text-[26px]' : 'text-[34px]'}`}>{value}</Display>
     </Card>
   )
 }
@@ -188,3 +190,17 @@ export const fmtClock = (ts: number, lang: Lang) =>
 export const fmtNum =(n: number) => String(Math.round(n * 10) / 10)
 
 export const ratio = (r: Recipe) => fmtNum(r.yield / r.dose)
+
+type T = (key: Key, vars?: Record<string, string | number>) => string
+
+/** "Espresso · Light", "Filter · V60"; filter reports from before brewers keep their roast. */
+export const brewLabel = (t: T, b: Brew) =>
+  `${t(`method.${b.method}`)} · ${b.brewer ? t(`brewer.${b.brewer}`) : b.roast ? t(`roast.${b.roast}`) : ''}`
+
+// Values the diagnosis texts (d.*.change) can mention
+export const diagVars = (r: Recipe, method: Method) => ({
+  y: fmtNum(r.yield),
+  d: fmtNum(r.dose),
+  b: fmtNum(r.steps?.find((s) => s.kind === 'bloom')?.to ?? r.dose * 3),
+  range: fmtRange(r.time, method),
+})

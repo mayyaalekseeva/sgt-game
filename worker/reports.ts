@@ -1,11 +1,12 @@
-import { METHODS, ROASTS, TASTES, type reports } from './db/schema'
+import { BREWERS, METHODS, ROASTS, TASTES, type reports } from './db/schema'
 
 // A report as the client stores it (src/data.ts Report); `yield` is yield_g in the table
 export interface ReportIn {
   id: string
   ts: number
   method: (typeof METHODS)[number]
-  roast: (typeof ROASTS)[number]
+  roast: (typeof ROASTS)[number] | null
+  brewer: (typeof BREWERS)[number] | null
   dose: number
   yield: number
   time: number
@@ -18,7 +19,7 @@ export const MAX_BATCH = 200
 
 // Client ids: older builds made 8-char base36 ids, newer ones crypto.randomUUID()
 const ID = /^[A-Za-z0-9_-]{1,64}$/
-const VERSION_ID = /^[a-z]+-[a-z]+@[1-9]\d*$/
+const VERSION_ID = /^[a-z]+-[a-z0-9]+@[1-9]\d*$/
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 
@@ -28,6 +29,16 @@ const isInt = (v: unknown, min: number, max: number): v is number => Number.isIn
 const oneOf = <T extends string>(list: readonly T[], v: unknown): v is T => list.includes(v as T)
 
 export const isReportId = (v: unknown): v is string => typeof v === 'string' && ID.test(v)
+
+// Espresso has a roast; filter a brewer, or a roast on reports from before brewers (as src/data.ts isBrew)
+function brewOf(r: Record<string, unknown>): Pick<ReportIn, 'roast' | 'brewer'> | null {
+  const roast = r.roast ?? null
+  const brewer = r.brewer ?? null
+  if (roast !== null && !oneOf(ROASTS, roast)) return null
+  if (brewer !== null && !oneOf(BREWERS, brewer)) return null
+  const ok = r.method === 'espresso' ? roast !== null && brewer === null : roast !== null || brewer !== null
+  return ok ? { roast, brewer } : null
+}
 
 /**
  * Validates a POST /api/reports body: { reports: [...], imported?: boolean }.
@@ -48,7 +59,8 @@ export function parseReportBatch(
     if (!isReportId(r.id)) return { error: `${at}.id is invalid` }
     if (!isInt(r.ts, EARLIEST_TS, now + DAY)) return { error: `${at}.ts is out of range` }
     if (!oneOf(METHODS, r.method)) return { error: `${at}.method is invalid` }
-    if (!oneOf(ROASTS, r.roast)) return { error: `${at}.roast is invalid` }
+    const brew = brewOf(r)
+    if (!brew) return { error: `${at}: roast or brewer is invalid for ${r.method}` }
     if (!isNum(r.dose, 0.1, 100)) return { error: `${at}.dose is out of range` }
     if (!isNum(r.yield, 0.1, 2000)) return { error: `${at}.yield is out of range` }
     if (!isInt(r.time, 0, 3600)) return { error: `${at}.time is out of range` }
@@ -61,7 +73,7 @@ export function parseReportBatch(
       id: r.id,
       ts: r.ts,
       method: r.method,
-      roast: r.roast,
+      ...brew,
       dose: r.dose,
       yield: r.yield,
       time: r.time,
@@ -98,6 +110,7 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     ts: r.ts,
     method: r.method,
     roast: r.roast,
+    brewer: r.brewer,
     dose: r.dose,
     yield: r.yieldG,
     time: r.time,

@@ -1,14 +1,15 @@
-import { RANKS, RECIPES, recipeKey } from '../data'
+import { RANKS, RECIPES } from '../data'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, LinkButton, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
 import RankCard from './RankCard'
 import RecipePicker from './RecipePicker'
+import RecipeSteps from './RecipeSteps'
 
 export default function Orders({ go, openRecipes }: { go: () => void; openRecipes: () => void }) {
-  const { t, method, roast } = useStore()
+  const { t, method, brew, slug: key } = useStore()
+  const isFilter = method === 'filter'
   const { reports, working } = useReports()
-  const key = recipeKey(method, roast)
   const r = RECIPES[key]
   const tip = Math.floor(Date.now() / 86400000) % 5
   const workingReport = reports.find((x) => x.id === working[key])
@@ -35,10 +36,15 @@ export default function Orders({ go, openRecipes }: { go: () => void; openRecipe
 
         <div className="grid grid-cols-2 gap-3">
           <Stat label={t('recipe.dose')} value={`${fmtNum(r.dose)} g`} />
-          <Stat label={t('recipe.yield')} value={`${fmtNum(r.yield)} g`} />
-          <Stat label={t('recipe.time')} value={fmtRange(r.time, method)} />
-          <Stat label={t('recipe.temp')} value={`${r.temp[0]}–${r.temp[1]} °C`} />
+          <Stat label={t(brew.brewer ? 'recipe.water' : 'recipe.yield')} value={`${fmtNum(r.yield)} g`} />
+          <Stat label={t('recipe.time')} value={fmtRange(r.time, method)} compact={isFilter} />
+          <Stat label={t(brew.brewer ? 'recipe.temperature' : 'recipe.temp')} value={`${r.temp[0]}–${r.temp[1]} °C`} />
         </div>
+        {brew.brewer && (
+          <Card>
+            <RecipeSteps recipe={r} brewer={brew.brewer} />
+          </Card>
+        )}
         <div>
           <p className="text-sm leading-snug text-ink/80">
             {t('orders.ratio', { r: ratio(r) })}. {t('orders.note')}

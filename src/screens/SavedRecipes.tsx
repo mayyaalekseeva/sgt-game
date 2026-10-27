@@ -1,14 +1,14 @@
-import { METHODS, ROASTS, localDay, recipeKey } from '../data'
+import { RECIPE_CONTENT, localDay } from '../data'
 import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Card, Display, Label, ScreenTitle, fmtDate, fmtNum, fmtTime } from '../ui'
+import { Card, Display, Label, ScreenTitle, brewLabel, fmtDate, fmtNum, fmtTime } from '../ui'
 
 // The brews marked as working recipes, one per recipe. Opened from Profile.
 export default function SavedRecipes() {
   const { t, lang } = useStore()
   const data = useReports()
   const saved = !data.loading
-    ? METHODS.flatMap((m) => ROASTS.map((r) => recipeKey(m, r)))
+    ? RECIPE_CONTENT.map((e) => e.slug)
         .map((key) => data.reports.find((x) => x.id === data.working[key]))
         .filter((r) => r !== undefined)
     : []
@@ -25,9 +25,7 @@ export default function SavedRecipes() {
           {saved.map((r) => (
             <li key={r.id}>
               <Card className="lg:h-full">
-                <Label>
-                  {t(`method.${r.method}`)} · {t(`roast.${r.roast}`)}
-                </Label>
+                <Label>{brewLabel(t, r)}</Label>
                 <Display className="mt-1 text-[26px] !normal-case tracking-wide">
                   {fmtNum(r.dose)} g → {fmtNum(r.yield)} g · {fmtTime(r.time, r.method)}
                 </Display>

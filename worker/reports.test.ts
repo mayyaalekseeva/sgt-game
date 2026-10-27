@@ -8,6 +8,7 @@ const report = (over: Record<string, unknown> = {}) => ({
   ts: NOW - 60_000,
   method: 'espresso',
   roast: 'medium',
+  brewer: null,
   dose: 18,
   yield: 36,
   time: 28,
@@ -45,6 +46,16 @@ describe('parseReportBatch', () => {
     expect(parse({ reports: [report()], imported: 'yes' })).toHaveProperty('error')
   })
 
+  it('accepts filter reports by brewer, and older filter reports by roast', () => {
+    const v60 = report({ method: 'filter', roast: null, brewer: 'v60', recipeVersionId: 'filter-v60@1' })
+    expect(parse({ reports: [v60] })).toEqual({ reports: [v60], imported: false })
+    const old = report({ method: 'filter', roast: 'light', recipeVersionId: 'filter-light@1' })
+    expect(parse({ reports: [old] })).toEqual({ reports: [old], imported: false })
+    // older clients leave brewer out entirely
+    const { brewer: _, ...noBrewer } = report()
+    expect(parse({ reports: [noBrewer] })).toEqual({ reports: [report()], imported: false })
+  })
+
   it.each([
     ['id', ''],
     ['id', 'has space'],
@@ -54,6 +65,8 @@ describe('parseReportBatch', () => {
     ['ts', 1.5],
     ['method', 'aeropress'],
     ['roast', 'blonde'],
+    ['roast', null],
+    ['brewer', 'v60'],
     ['dose', 0],
     ['dose', Number.NaN],
     ['yield', '36'],
@@ -96,6 +109,6 @@ describe('toReportRows', () => {
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
-    expect(toReportOut({ ...row, recipeVersionId: row.recipeVersionId ?? null, importedAt: null })).toEqual(batch[0])
+    expect(toReportOut({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, importedAt: null })).toEqual(batch[0])
   })
 })

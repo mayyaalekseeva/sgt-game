@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
-import { REPORT_XP, RECIPES, TASTES, recipeKey, type Report, type Taste } from '../data'
-import { diagnose, timeState, type DiagId } from '../diagnose'
+import { REPORT_XP, RECIPES, STYLE_OF, TASTES, type Report, type Taste } from '../data'
+import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Button, Card, Chevrons, Display, Label, LinkButton, Stepper, fmtNum, fmtRange, fmtTime } from '../ui'
+import { Button, Card, Chevrons, Display, Label, LinkButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
 import RecipePicker from './RecipePicker'
 
 export default function Diagnose({ openDiary }: { openDiary: () => void }) {
-  const { t, method, roast } = useStore()
+  const { t, method, brew, slug: key } = useStore()
   const { rank, addReport, markWorking, working, reports } = useReports()
-  const key = recipeKey(method, roast)
   const recipe = RECIPES[key]
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
 
@@ -18,6 +17,7 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
   const [yld, setYld] = useState(recipe.yield)
   const [time, setTime] = useState(mid)
   const [taste, setTaste] = useState<Taste | null>(null)
+  const [bloomed, setBloomed] = useState(true)
   const [result, setResult] = useState<{ report: Report; diag: DiagId } | null>(null)
 
   // when the recipe selection changes, reset the form to that recipe
@@ -26,14 +26,17 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
     setYld(recipe.yield)
     setTime(mid)
     setTaste(null)
+    setBloomed(true)
     setResult(null)
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFilter = method === 'filter'
+  const style = brew.brewer ? STYLE_OF[brew.brewer] : null
   const file = () => {
     if (!taste) return
-    const diag = diagnose(recipe, { dose, yield: yld, time, taste })
-    const report = addReport({ method, roast, dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
+    const input = { dose, yield: yld, time, taste, bloomed }
+    const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
+    const report = addReport({ ...brew, dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
     setResult({ report, diag })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -68,7 +71,7 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
             </div>
             <Display className="mt-3 text-[34px] tracking-wide lg:text-[44px]">{t(k('title'))}</Display>
             <div className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-cream/80">{t('diag.oneChange')}</div>
-            <p className="mt-1 text-xl font-semibold leading-snug">{t(k('change'), { y: fmtNum(recipe.yield) })}</p>
+            <p className="mt-1 text-xl font-semibold leading-snug">{t(k('change'), diagVars(recipe, method))}</p>
             <div className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-cream/80">{t('diag.why')}</div>
             <p className="mt-1 text-[17px] leading-snug">{t(k('why'))}</p>
           </div>
@@ -122,9 +125,15 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
 
         <Card className="!py-2">
           <Stepper label={t('recipe.dose')} value={dose} step={0.5} min={5} max={40} display={`${fmtNum(dose)} g`} onChange={setDose} />
-          <Stepper label={t('recipe.yield')} value={yld} step={isFilter ? 5 : 1} min={10} max={500} display={`${fmtNum(yld)} g`} onChange={setYld} />
+          <Stepper label={t(isFilter ? 'recipe.water' : 'recipe.yield')} value={yld} step={isFilter ? 5 : 1} min={10} max={500} display={`${fmtNum(yld)} g`} onChange={setYld} />
           <Stepper label={t('recipe.time')} value={time} step={isFilter ? 5 : 1} min={5} max={600} display={fmtTime(time, method)} onChange={setTime} />
           <div className="py-2 text-xs text-muted">{t('diag.target', { range: fmtRange(recipe.time, method) })}</div>
+          {style === 'pour' && (
+            <label className="flex min-h-11 items-center gap-3 border-t border-line py-2 text-[15px] font-semibold">
+              <input type="checkbox" checked={bloomed} onChange={(e) => setBloomed(e.target.checked)} className="h-5 w-5 accent-olive" />
+              {t('diag.bloomed')}
+            </label>
+          )}
         </Card>
       </div>
 
@@ -157,9 +166,7 @@ export default function Diagnose({ openDiary }: { openDiary: () => void }) {
             <ul className="mt-2 flex flex-col gap-2">
               {reports.slice(0, 5).map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-line bg-cream px-3 py-2 text-sm">
-                  <span className="font-semibold">
-                    {t(`method.${r.method}`)} · {t(`roast.${r.roast}`)}
-                  </span>
+                  <span className="font-semibold">{brewLabel(t, r)}</span>
                   <span className="text-muted">
                     {fmtNum(r.dose)}→{fmtNum(r.yield)} g · {fmtTime(r.time, r.method)} · {t(`taste.${r.taste}`)}
                   </span>

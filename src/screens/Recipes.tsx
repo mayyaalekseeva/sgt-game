@@ -1,8 +1,12 @@
 import { Fragment, useState } from 'react'
 import { loadRecipes, useLoad } from '../api'
-import { METHODS, ROASTS, latestVersion, type RecipeEntry, type RecipeVersion } from '../data'
+import { BREWERS, METHODS, ROASTS, latestVersion, type RecipeEntry, type RecipeVersion } from '../data'
 import { useStore } from '../store'
 import { Card, Display, Label, LinkButton, ScreenTitle, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
+import RecipeSteps from './RecipeSteps'
+
+// Brewers in picker order, then roasts; archived per-roast filter recipes sort after the brewers
+const order = (e: RecipeEntry) => (e.brewer ? BREWERS.indexOf(e.brewer) : BREWERS.length + ROASTS.indexOf(e.roast ?? 'medium'))
 
 // All recipes with their version history. "Use" picks one and opens Orders.
 export default function Recipes({ use }: { use: () => void }) {
@@ -23,7 +27,7 @@ export default function Recipes({ use }: { use: () => void }) {
                 <ul className="flex flex-col gap-3">
                   {data.recipes
                     .filter((e) => e.method === m)
-                    .sort((a, b) => ROASTS.indexOf(a.roast) - ROASTS.indexOf(b.roast))
+                    .sort((a, b) => order(a) - order(b))
                     .map((e) => (
                       <li key={e.slug}>
                         <RecipeCard entry={e} use={use} />
@@ -44,23 +48,28 @@ export default function Recipes({ use }: { use: () => void }) {
 }
 
 function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
-  const { t, lang, method, roast, setMethod, setRoast } = useStore()
+  const { t, lang, slug, setMethod, setRoast, setBrewer } = useStore()
   const [open, setOpen] = useState(false)
   const cur = latestVersion(entry)
   const older = entry.versions.slice(0, -1).reverse()
   const archived = entry.status === 'archived'
-  const selected = method === entry.method && roast === entry.roast
+  const selected = slug === entry.slug
 
   return (
     <Card className={archived ? 'border-locked bg-locked/40' : ''}>
       <div className="flex items-baseline justify-between gap-2">
-        <Display className="text-[26px] tracking-wide">{t(`roast.${entry.roast}`)}</Display>
+        <Display className="text-[26px] tracking-wide">{entry.brewer ? t(`brewer.${entry.brewer}`) : t(`roast.${entry.roast ?? 'medium'}`)}</Display>
         <span className="whitespace-nowrap text-xs text-muted">
           {t('recipes.version', { n: cur.version, date: fmtDate(cur.publishedAt, lang) })}
         </span>
       </div>
       {archived && <div className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">{t('recipes.archived')}</div>}
       <VersionLine v={cur} method={entry.method} className="mt-2 text-[17px] font-semibold" />
+      {entry.brewer && !archived && (
+        <div className="mt-3">
+          <RecipeSteps recipe={cur} brewer={entry.brewer} />
+        </div>
+      )}
 
       {older.length > 0 && (
         <div className="mt-2">
@@ -92,7 +101,8 @@ function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
           <LinkButton
             onClick={() => {
               setMethod(entry.method)
-              setRoast(entry.roast)
+              if (entry.brewer) setBrewer(entry.brewer)
+              else if (entry.roast) setRoast(entry.roast)
               use()
             }}
           >

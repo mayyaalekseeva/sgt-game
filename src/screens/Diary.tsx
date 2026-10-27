@@ -1,8 +1,8 @@
-import { RECIPES, RECIPE_CONTENT, diaryDays, localDay, recipeKey, versionOf, type Report } from '../data'
+import { RECIPES, RECIPE_CONTENT, diaryDays, localDay, slugOf, versionOf, type Report } from '../data'
 import { isDiagId } from '../diagnose'
 import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Card, Label, ScreenTitle, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
+import { Card, Label, ScreenTitle, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -31,7 +31,7 @@ export default function Diary() {
               <Card className="!py-1">
                 <ul>
                   {rs.map((r) => (
-                    <Entry key={r.id} r={r} isWorking={data.working[recipeKey(r.method, r.roast)] === r.id} />
+                    <Entry key={r.id} r={r} isWorking={data.working[slugOf(r)] === r.id} />
                   ))}
                 </ul>
               </Card>
@@ -47,13 +47,11 @@ export default function Diary() {
 function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   const { t, lang } = useStore()
   const v = versionOf(RECIPE_CONTENT, r.recipeVersionId)
-  const recipe = v ?? RECIPES[recipeKey(r.method, r.roast)]
+  const recipe = v ?? RECIPES[slugOf(r)]
   return (
     <li className="flex flex-col gap-1 border-b border-line py-3 last:border-b-0">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-semibold">
-          {t(`method.${r.method}`)} · {t(`roast.${r.roast}`)}
-        </span>
+        <span className="font-semibold">{brewLabel(t, r)}</span>
         <span className="whitespace-nowrap text-xs text-muted">{fmtClock(r.ts, lang)}</span>
       </div>
       <div className="text-[15px]">
@@ -61,7 +59,7 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
       </div>
       {isDiagId(r.diag) && (
         <p className="text-sm leading-snug text-ink/80">
-          <span className="font-semibold text-ink">{t(`d.${r.diag}.title`)}</span> {t(`d.${r.diag}.change`, { y: fmtNum(recipe.yield) })}
+          <span className="font-semibold text-ink">{t(`d.${r.diag}.title`)}</span> {t(`d.${r.diag}.change`, diagVars(recipe, r.method))}
         </p>
       )}
       {(v || isWorking) && (

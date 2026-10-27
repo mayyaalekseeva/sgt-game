@@ -22,24 +22,95 @@
       "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 18, "yield": 32, "time": [22, 27], "temp": [88, 92] }]
     },
     {
+      "slug": "filter-v60",
+      "method": "filter",
+      "brewer": "v60",
+      "status": "published",
+      "versions": [
+        {
+          "version": 1,
+          "publishedAt": "2026-10-27",
+          "dose": 15,
+          "yield": 250,
+          "time": [165, 210],
+          "temp": [92, 96],
+          "grind": "medium_fine",
+          "steps": [
+            { "at": 0, "kind": "bloom", "to": 45 },
+            { "at": 10, "kind": "swirl" },
+            { "at": 45, "kind": "pour", "to": 150 },
+            { "at": 75, "kind": "pour", "to": 250 },
+            { "at": 105, "kind": "swirl" }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "filter-aeropress",
+      "method": "filter",
+      "brewer": "aeropress",
+      "status": "published",
+      "versions": [
+        {
+          "version": 1,
+          "publishedAt": "2026-10-27",
+          "dose": 15,
+          "yield": 225,
+          "time": [150, 195],
+          "temp": [90, 96],
+          "grind": "medium_fine",
+          "steps": [
+            { "at": 0, "kind": "pour", "to": 225 },
+            { "at": 10, "kind": "stir" },
+            { "at": 20, "kind": "cap" },
+            { "at": 120, "kind": "swirl" },
+            { "at": 135, "kind": "press" }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "filter-frenchpress",
+      "method": "filter",
+      "brewer": "frenchpress",
+      "status": "published",
+      "versions": [
+        {
+          "version": 1,
+          "publishedAt": "2026-10-27",
+          "dose": 30,
+          "yield": 500,
+          "time": [300, 345],
+          "temp": [92, 96],
+          "grind": "coarse",
+          "steps": [
+            { "at": 0, "kind": "pour", "to": 500 },
+            { "at": 240, "kind": "break" },
+            { "at": 270, "kind": "skim" },
+            { "at": 300, "kind": "press" }
+          ]
+        }
+      ]
+    },
+    {
       "slug": "filter-light",
       "method": "filter",
       "roast": "light",
-      "status": "published",
+      "status": "archived",
       "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 15, "yield": 248, "time": [165, 195], "temp": [94, 96] }]
     },
     {
       "slug": "filter-medium",
       "method": "filter",
       "roast": "medium",
-      "status": "published",
+      "status": "archived",
       "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 15, "yield": 240, "time": [150, 180], "temp": [92, 94] }]
     },
     {
       "slug": "filter-dark",
       "method": "filter",
       "roast": "dark",
-      "status": "published",
+      "status": "archived",
       "versions": [{ "version": 1, "publishedAt": "2026-10-26", "dose": 15, "yield": 225, "time": [135, 165], "temp": [88, 92] }]
     }
   ]
