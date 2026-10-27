@@ -1,5 +1,6 @@
 import { RECIPES, RECIPE_CONTENT, diaryDays, localDay, slugOf, versionOf, type Report } from '../data'
 import { isDiagId } from '../diagnose'
+import { lotBySlug } from '../lots'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Label, ScreenTitle, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
@@ -51,7 +52,10 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   return (
     <li className="flex flex-col gap-1 border-b border-line py-3 last:border-b-0">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-semibold">{brewLabel(t, r)}</span>
+        <span className="font-semibold">
+          {brewLabel(t, r)}
+          {lotBySlug(r.lot) && <span className="font-normal text-muted"> · {lotBySlug(r.lot)?.name}</span>}
+        </span>
         <span className="whitespace-nowrap text-xs text-muted">{fmtClock(r.ts, lang)}</span>
       </div>
       <div className="text-[15px]">

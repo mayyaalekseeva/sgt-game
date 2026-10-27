@@ -1,4 +1,5 @@
 import { RECIPE_CONTENT, localDay } from '../data'
+import { lotBySlug } from '../lots'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, ScreenTitle, brewLabel, fmtDate, fmtNum, fmtTime } from '../ui'
@@ -25,7 +26,10 @@ export default function SavedRecipes() {
           {saved.map((r) => (
             <li key={r.id}>
               <Card className="lg:h-full">
-                <Label>{brewLabel(t, r)}</Label>
+                <Label>
+                  {brewLabel(t, r)}
+                  {lotBySlug(r.lot) && ` · ${lotBySlug(r.lot)?.name}`}
+                </Label>
                 <Display className="mt-1 text-[26px] !normal-case tracking-wide">
                   {fmtNum(r.dose)} g → {fmtNum(r.yield)} g · {fmtTime(r.time, r.method)}
                 </Display>

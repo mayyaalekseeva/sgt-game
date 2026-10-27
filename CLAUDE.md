@@ -42,6 +42,8 @@ come from the client so re-sending is a no-op; the client caches per account and
   and the seed refuses changed versions). Archive with `"status": "archived"`.
 - Espresso recipes are per roast (`espresso-medium`); filter recipes are per brewer (`filter-v60`) with a grind and
   timed steps, and no roast level: it will come from the coffee lot. The old per-roast filter recipes stay archived.
+- Coffee lots live in content/lots.json (src/lots.ts), from the roaster shop. Reports store the lot slug, so never
+  rename or delete a lot: retire it with `"status": "retired"`. Recipes are not per lot yet; the roaster will supply them.
 - Never edit an applied migration; change the schema and run `npm run db:generate`.
 - Never commit secrets. Use .dev.vars locally and Cloudflare secrets in production.
 - Design is mobile-first (390px). Desktop (1024px+) is a secondary adaptation: keep it minimal,

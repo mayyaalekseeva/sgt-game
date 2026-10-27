@@ -194,6 +194,7 @@ export interface Report extends Brew {
   taste: Taste
   diag: string
   recipeVersionId?: string // `${slug}@${version}` the brew was diagnosed against; missing on older reports
+  lot?: string // coffee lot slug (src/lots.ts); missing for another coffee and on older reports
 }
 
 export const TASTES: Taste[] = ['sour', 'bitter', 'thin', 'balanced']
@@ -231,7 +232,8 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         num(r.time) &&
         TASTES.includes(r.taste as Taste) &&
         typeof r.diag === 'string' &&
-        (r.recipeVersionId == null || typeof r.recipeVersionId === 'string')
+        (r.recipeVersionId == null || typeof r.recipeVersionId === 'string') &&
+        (r.lot == null || typeof r.lot === 'string')
       if (!ok) fail(`reports[${i}] is invalid`)
       return {
         id: r.id as string,
@@ -245,6 +247,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         taste: r.taste as Taste,
         diag: r.diag as string,
         ...(typeof r.recipeVersionId === 'string' ? { recipeVersionId: r.recipeVersionId } : {}),
+        ...(typeof r.lot === 'string' ? { lot: r.lot } : {}),
       }
     }),
     working: Object.fromEntries(

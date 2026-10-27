@@ -1,12 +1,22 @@
 import { BREWERS, METHODS, ROASTS } from '../data'
+import { currentLots } from '../lots'
 import { useStore } from '../store'
-import { Segmented } from '../ui'
+import { Segmented, Select } from '../ui'
 
-// Espresso is picked by roast level; filter by brewer, since its roast comes with the coffee
+// The coffee, then the method; espresso is picked by roast level, filter by brewer
 export default function RecipePicker() {
-  const { t, method, roast, brewer, setMethod, setRoast, setBrewer } = useStore()
+  const { t, lang, lot, method, roast, brewer, setLot, setMethod, setRoast, setBrewer } = useStore()
   return (
     <div className="flex flex-col gap-2">
+      <Select
+        label={t('label.lot')}
+        value={lot ?? ''}
+        onChange={(v) => setLot(v || null)}
+        options={[
+          ...currentLots().map((l) => ({ id: l.slug, label: `${l.name} · ${l.country[lang]}` })),
+          { id: '', label: t('lot.other') },
+        ]}
+      />
       <Segmented
         label={t('label.method')}
         value={method}

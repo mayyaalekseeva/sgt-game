@@ -254,6 +254,12 @@ describe('parseReportsResponse', () => {
     expect(b).not.toHaveProperty('brewer')
   })
 
+  it('keeps the lot; a null lot becomes a missing one', () => {
+    const [a, b] = parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), lot: 'peru-naranjo-yacu' }, { ...report({ id: 'b' }), lot: null }] })).reports
+    expect(a.lot).toBe('peru-naranjo-yacu')
+    expect(b).not.toHaveProperty('lot')
+  })
+
   it('keeps diag ids it does not know (older or newer builds)', () => {
     expect(parseReportsResponse(body({ reports: [report({ diag: 'future_id' })] })).reports[0].diag).toBe('future_id')
   })
@@ -270,6 +276,7 @@ describe('parseReportsResponse', () => {
     ['an unknown taste', { reports: [{ ...report(), taste: 'salty' }], working: {} }],
     ['a string dose', { reports: [{ ...report(), dose: '18' }], working: {} }],
     ['a numeric recipeVersionId', { reports: [{ ...report(), recipeVersionId: 1 }], working: {} }],
+    ['a numeric lot', { reports: [{ ...report(), lot: 7 }], working: {} }],
     ['espresso without a roast', { reports: [{ ...report(), roast: null }], working: {} }],
     ['espresso with a brewer', { reports: [{ ...report(), brewer: 'v60' }], working: {} }],
     ['filter with neither roast nor brewer', { reports: [{ ...report({ method: 'filter' }), roast: null }], working: {} }],

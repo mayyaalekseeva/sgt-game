@@ -13,6 +13,7 @@ export interface ReportIn {
   taste: (typeof TASTES)[number]
   diag: string
   recipeVersionId: string | null
+  lot: string | null
 }
 
 export const MAX_BATCH = 200
@@ -20,6 +21,7 @@ export const MAX_BATCH = 200
 // Client ids: older builds made 8-char base36 ids, newer ones crypto.randomUUID()
 const ID = /^[A-Za-z0-9_-]{1,64}$/
 const VERSION_ID = /^[a-z]+-[a-z0-9]+@[1-9]\d*$/
+const LOT = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 
@@ -69,6 +71,7 @@ export function parseReportBatch(
     if (r.recipeVersionId != null && (typeof r.recipeVersionId !== 'string' || !VERSION_ID.test(r.recipeVersionId))) {
       return { error: `${at}.recipeVersionId is invalid` }
     }
+    if (r.lot != null && (typeof r.lot !== 'string' || r.lot.length > 64 || !LOT.test(r.lot))) return { error: `${at}.lot is invalid` }
     out.push({
       id: r.id,
       ts: r.ts,
@@ -80,6 +83,7 @@ export function parseReportBatch(
       taste: r.taste,
       diag: r.diag,
       recipeVersionId: (r.recipeVersionId as string | null | undefined) ?? null,
+      lot: (r.lot as string | null | undefined) ?? null,
     })
   }
   return { reports: out, imported }
@@ -117,5 +121,6 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     taste: r.taste,
     diag: r.diag,
     recipeVersionId: r.recipeVersionId,
+    lot: r.lot,
   }
 }

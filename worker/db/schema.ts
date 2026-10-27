@@ -94,6 +94,7 @@ export const reports = sqliteTable(
     taste: text('taste', { enum: TASTES }).notNull(),
     diag: text('diag').notNull(),
     recipeVersionId: text('recipe_version_id').references(() => recipeVersions.id),
+    lot: text('lot'), // coffee lot slug from content/lots.json; null for another coffee
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },

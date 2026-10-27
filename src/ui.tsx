@@ -25,12 +25,15 @@ export function Display({ children, className = '' }: { children: ReactNode; cla
   return <div className={`font-display font-extrabold uppercase leading-none ${className}`}>{children}</div>
 }
 
-// Inline navigation to a sub-screen; 44px tall for touch
-export function LinkButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+// A compact secondary action inside a card ("Use this recipe"); 44px tall for touch
+export function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="mt-1 flex h-11 items-center gap-1 text-[15px] font-semibold text-ink underline underline-offset-4">
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-3 flex h-11 items-center rounded-xl border-2 border-ink bg-cream px-4 text-[15px] font-semibold text-ink active:scale-[0.98]"
+    >
       {children}
-      <span aria-hidden="true">→</span>
     </button>
   )
 }
@@ -126,6 +129,39 @@ export function Segmented<T extends string>({
 }
 
 // compact: for long values such as a filter time range, which overflow the narrow desktop column
+// A labelled native select, styled like Segmented: the phone's own picker suits a longer list
+export function Select({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: string
+  options: { id: string; label: string }[]
+  onChange: (v: string) => void
+  label: string
+}) {
+  return (
+    <div className="relative">
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 w-full appearance-none rounded-xl border-2 border-ink bg-cream pl-3 pr-10 text-[15px] font-semibold text-ink"
+      >
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink">
+        ▾
+      </span>
+    </div>
+  )
+}
+
 export function Stat({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
   return (
     <Card className="!p-3">
