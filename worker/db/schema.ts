@@ -98,6 +98,7 @@ export const reports = sqliteTable(
     lot: text('lot'), // a lot slug from content/lots.json, or `my:<coffee id>`; null on older reports
     grinder: text('grinder'), // the player's grinder setting, free text
     notes: text('notes'),
+    timed: integer('timed', { mode: 'boolean' }).notNull().default(false), // brewed with the brew timer
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },

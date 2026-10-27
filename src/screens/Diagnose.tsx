@@ -78,6 +78,7 @@ export default function Diagnose({
       recipeVersionId: recipe.id,
       ...(grinder.trim() ? { grinder: grinder.trim() } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
+      ...(fromTimer ? { timed: true as const } : {}),
     })
     setResult({ report, diag })
     window.scrollTo({ top: 0, behavior: 'smooth' })

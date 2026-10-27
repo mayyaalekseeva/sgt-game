@@ -16,6 +16,7 @@ export interface ReportIn {
   lot: string | null
   grinder: string | null
   notes: string | null
+  timed: boolean
 }
 
 export const MAX_BATCH = 200
@@ -80,6 +81,7 @@ export function parseReportBatch(
     if (r.lot != null && (typeof r.lot !== 'string' || r.lot.length > 64 || !LOT.test(r.lot))) return { error: `${at}.lot is invalid` }
     if (r.grinder != null && (typeof r.grinder !== 'string' || r.grinder.length > MAX_GRINDER)) return { error: `${at}.grinder is invalid` }
     if (r.notes != null && (typeof r.notes !== 'string' || r.notes.length > MAX_NOTES)) return { error: `${at}.notes is invalid` }
+    if (r.timed != null && typeof r.timed !== 'boolean') return { error: `${at}.timed is invalid` }
     out.push({
       id: r.id,
       ts: r.ts,
@@ -94,6 +96,7 @@ export function parseReportBatch(
       lot: (r.lot as string | null | undefined) ?? null,
       grinder: (r.grinder as string | null | undefined) || null,
       notes: (r.notes as string | null | undefined) || null,
+      timed: r.timed === true,
     })
   }
   return { reports: out, imported }
@@ -134,5 +137,6 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     lot: r.lot,
     grinder: r.grinder,
     notes: r.notes,
+    ...(r.timed ? { timed: true } : {}),
   }
 }
