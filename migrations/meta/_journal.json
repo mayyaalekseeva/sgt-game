@@ -29,6 +29,13 @@
       "when": 1793118207179,
       "tag": "0003_my_coffees",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793118905385,
+      "tag": "0004_report_grinder_notes",
+      "breakpoints": true
     }
   ]
 }

@@ -63,6 +63,13 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
       <div className="text-[15px]">
         {fmtNum(r.dose)} g → {fmtNum(r.yield)} g · {fmtTime(r.time, r.method)} · {t(`taste.${r.taste}`)}
       </div>
+      {(r.grinder || r.notes) && (
+        <p className="text-sm leading-snug text-ink/80">
+          {r.grinder && <span className="font-semibold text-ink">{t('saved.grinder', { g: r.grinder })}</span>}
+          {r.grinder && r.notes && ' · '}
+          {r.notes}
+        </p>
+      )}
       {isDiagId(r.diag) && (
         <p className="text-sm leading-snug text-ink/80">
           <span className="font-semibold text-ink">{t(`d.${r.diag}.title`)}</span> {t(`d.${r.diag}.change`, diagVars(recipe, r.method))}

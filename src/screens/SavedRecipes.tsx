@@ -35,6 +35,8 @@ export default function SavedRecipes() {
                 <Display className="mt-1 text-[26px] !normal-case tracking-wide">
                   {fmtNum(r.dose)} g → {fmtNum(r.yield)} g · {fmtTime(r.time, r.method)}
                 </Display>
+                {r.grinder && <p className="mt-1 text-[15px] font-semibold">{t('saved.grinder', { g: r.grinder })}</p>}
+                {r.notes && <p className="mt-1 text-[15px] leading-snug">{r.notes}</p>}
                 <p className="mt-1 text-sm text-muted">{t('saved.from', { date: fmtDate(localDay(r.ts), lang) })}</p>
               </Card>
             </li>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { REPORT_XP, RECIPES, STYLE_OF, TASTES, type Report, type Taste } from '../data'
+import { MAX_GRINDER, MAX_NOTES, REPORT_XP, RECIPES, STYLE_OF, TASTES, type Report, type Taste } from '../data'
 import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
 import { coffeeName, forRoast } from '../coffees'
@@ -31,6 +31,8 @@ export default function Diagnose({
   const [time, setTime] = useState(mid)
   const [taste, setTaste] = useState<Taste | null>(null)
   const [bloomed, setBloomed] = useState(true)
+  const [grinder, setGrinder] = useState(workingReport?.grinder ?? '')
+  const [notes, setNotes] = useState('')
   const [fromTimer, setFromTimer] = useState(false)
   const [result, setResult] = useState<{ report: Report; diag: DiagId } | null>(null)
 
@@ -41,6 +43,8 @@ export default function Diagnose({
     setTime(mid)
     setTaste(null)
     setBloomed(true)
+    setGrinder(workingReport?.grinder ?? '')
+    setNotes('')
     setFromTimer(false)
     setResult(null)
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -63,7 +67,18 @@ export default function Diagnose({
     if (!taste) return
     const input = { dose, yield: yld, time, taste, bloomed }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
-    const report = addReport({ ...brew, lot, dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
+    const report = addReport({
+      ...brew,
+      lot,
+      dose,
+      yield: yld,
+      time,
+      taste,
+      diag,
+      recipeVersionId: recipe.id,
+      ...(grinder.trim() ? { grinder: grinder.trim() } : {}),
+      ...(notes.trim() ? { notes: notes.trim() } : {}),
+    })
     setResult({ report, diag })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -168,6 +183,30 @@ export default function Diagnose({
               {t('diag.bloomed')}
             </label>
           )}
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1">
+            <Label>{t('diag.grinder')}</Label>
+            <input
+              value={grinder}
+              maxLength={MAX_GRINDER}
+              placeholder={t('diag.grinderHint')}
+              onChange={(e) => setGrinder(e.target.value)}
+              className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[16px] font-semibold text-ink placeholder:font-normal placeholder:text-muted"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <Label>{t('diag.notes')}</Label>
+            <textarea
+              value={notes}
+              maxLength={MAX_NOTES}
+              rows={2}
+              placeholder={t('diag.notesHint')}
+              onChange={(e) => setNotes(e.target.value)}
+              className="rounded-xl border-2 border-ink bg-cream px-3 py-2 text-[16px] text-ink placeholder:text-muted"
+            />
+          </label>
         </Card>
       </div>
 

@@ -254,6 +254,13 @@ describe('parseReportsResponse', () => {
     expect(b).not.toHaveProperty('brewer')
   })
 
+  it('keeps grinder and notes; null or empty ones become missing', () => {
+    const [a, b] = parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), grinder: '18', notes: 'ok' }, { ...report({ id: 'b' }), grinder: null, notes: '' }] })).reports
+    expect(a).toMatchObject({ grinder: '18', notes: 'ok' })
+    expect(b).not.toHaveProperty('grinder')
+    expect(b).not.toHaveProperty('notes')
+  })
+
   it('keeps the lot; a null lot becomes a missing one', () => {
     const [a, b] = parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), lot: 'peru-naranjo-yacu' }, { ...report({ id: 'b' }), lot: null }] })).reports
     expect(a.lot).toBe('peru-naranjo-yacu')

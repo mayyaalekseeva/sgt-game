@@ -16,6 +16,8 @@ const report = (over: Record<string, unknown> = {}) => ({
   diag: 'balanced',
   recipeVersionId: 'espresso-medium@1',
   lot: null,
+  grinder: null,
+  notes: null,
   ...over,
 })
 
@@ -57,6 +59,12 @@ describe('parseReportBatch', () => {
     expect(parse({ reports: [noBrewer] })).toEqual({ reports: [report()], imported: false })
   })
 
+  it('keeps grinder and notes, and stores empty ones as null', () => {
+    const r = report({ grinder: '18 clicks', notes: 'Fresh bag' })
+    expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
+    expect(parse({ reports: [report({ grinder: '', notes: '' })] })).toEqual({ reports: [report()], imported: false })
+  })
+
   it('accepts a lot slug, and no lot from older clients', () => {
     const r = report({ lot: 'peru-naranjo-yacu' })
     expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
@@ -89,6 +97,8 @@ describe('parseReportBatch', () => {
     ['lot', 'Peru Lot'],
     ['lot', 42],
     ['lot', 'my:short'],
+    ['grinder', 'x'.repeat(31)],
+    ['notes', 7],
   ])('rejects a bad %s (%s) and names the report', (field, value) => {
     const out = parse({ reports: [report(), report({ [field]: value })] })
     expect(out).toHaveProperty('error')
@@ -122,6 +132,6 @@ describe('toReportRows', () => {
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
-    expect(toReportOut({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, importedAt: null })).toEqual(batch[0])
+    expect(toReportOut({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, importedAt: null })).toEqual(batch[0])
   })
 })

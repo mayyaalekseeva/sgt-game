@@ -14,6 +14,8 @@ export interface ReportIn {
   diag: string
   recipeVersionId: string | null
   lot: string | null
+  grinder: string | null
+  notes: string | null
 }
 
 export const MAX_BATCH = 200
@@ -23,6 +25,9 @@ const ID = /^[A-Za-z0-9_-]{1,64}$/
 const VERSION_ID = /^[a-z]+-[a-z0-9]+@[1-9]\d*$/
 // A roaster lot slug, or one of the player's coffees: my:<32 hex>
 const LOT = /^([a-z0-9]+(-[a-z0-9]+)*|my:[0-9a-f]{32})$/
+// Same limits as the client (src/data.ts MAX_GRINDER, MAX_NOTES)
+const MAX_GRINDER = 30
+const MAX_NOTES = 280
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 
@@ -73,6 +78,8 @@ export function parseReportBatch(
       return { error: `${at}.recipeVersionId is invalid` }
     }
     if (r.lot != null && (typeof r.lot !== 'string' || r.lot.length > 64 || !LOT.test(r.lot))) return { error: `${at}.lot is invalid` }
+    if (r.grinder != null && (typeof r.grinder !== 'string' || r.grinder.length > MAX_GRINDER)) return { error: `${at}.grinder is invalid` }
+    if (r.notes != null && (typeof r.notes !== 'string' || r.notes.length > MAX_NOTES)) return { error: `${at}.notes is invalid` }
     out.push({
       id: r.id,
       ts: r.ts,
@@ -85,6 +92,8 @@ export function parseReportBatch(
       diag: r.diag,
       recipeVersionId: (r.recipeVersionId as string | null | undefined) ?? null,
       lot: (r.lot as string | null | undefined) ?? null,
+      grinder: (r.grinder as string | null | undefined) || null,
+      notes: (r.notes as string | null | undefined) || null,
     })
   }
   return { reports: out, imported }
@@ -123,5 +132,7 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     diag: r.diag,
     recipeVersionId: r.recipeVersionId,
     lot: r.lot,
+    grinder: r.grinder,
+    notes: r.notes,
   }
 }
