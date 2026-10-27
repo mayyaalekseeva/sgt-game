@@ -43,6 +43,13 @@
       "when": 1793119007716,
       "tag": "0005_coffee_roasted_on",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793119092082,
+      "tag": "0006_report_timed",
+      "breakpoints": true
     }
   ]
 }

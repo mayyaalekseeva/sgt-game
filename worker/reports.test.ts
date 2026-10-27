@@ -18,6 +18,7 @@ const report = (over: Record<string, unknown> = {}) => ({
   lot: null,
   grinder: null,
   notes: null,
+  timed: false,
   ...over,
 })
 
@@ -99,6 +100,7 @@ describe('parseReportBatch', () => {
     ['lot', 'my:short'],
     ['grinder', 'x'.repeat(31)],
     ['notes', 7],
+    ['timed', 'yes'],
   ])('rejects a bad %s (%s) and names the report', (field, value) => {
     const out = parse({ reports: [report(), report({ [field]: value })] })
     expect(out).toHaveProperty('error')
@@ -132,6 +134,9 @@ describe('toReportRows', () => {
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
-    expect(toReportOut({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, importedAt: null })).toEqual(batch[0])
+    expect(toReportOut({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, timed: row.timed ?? false, importedAt: null })).toEqual({
+      ...batch[0],
+      timed: undefined,
+    })
   })
 })

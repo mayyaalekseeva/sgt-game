@@ -197,6 +197,7 @@ export interface Report extends Brew {
   lot?: string // a lot slug (src/lots.ts) or a my: coffee ref (src/coffees.ts); missing on older reports
   grinder?: string // the grinder setting as the player writes it ("18 clicks"); with notes, what a saved recipe keeps
   notes?: string
+  timed?: true // brewed with the brew timer
 }
 
 export const MAX_GRINDER = 30
@@ -240,7 +241,8 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         (r.recipeVersionId == null || typeof r.recipeVersionId === 'string') &&
         (r.lot == null || typeof r.lot === 'string') &&
         (r.grinder == null || typeof r.grinder === 'string') &&
-        (r.notes == null || typeof r.notes === 'string')
+        (r.notes == null || typeof r.notes === 'string') &&
+        (r.timed == null || typeof r.timed === 'boolean')
       if (!ok) fail(`reports[${i}] is invalid`)
       return {
         id: r.id as string,
@@ -257,6 +259,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         ...(typeof r.lot === 'string' ? { lot: r.lot } : {}),
         ...(typeof r.grinder === 'string' && r.grinder !== '' ? { grinder: r.grinder } : {}),
         ...(typeof r.notes === 'string' && r.notes !== '' ? { notes: r.notes } : {}),
+        ...(r.timed === true ? { timed: true as const } : {}),
       }
     }),
     working: Object.fromEntries(
@@ -297,6 +300,9 @@ export interface MissionDef {
 
 const distinct = <T,>(a: T[]) => new Set(a).size
 
+// The coffees with a working recipe; keys are "slug|lot" (src/coffees.ts workingKey), older ones just "slug"
+const workingLots = (w: Record<string, string>) => [...new Set(Object.keys(w).flatMap((k) => (k.includes('|') ? [k.split('|')[1]] : [])))]
+
 export const MISSIONS: MissionDef[] = [
   { id: 'm1', xp: 50, goal: 1, progress: (r) => r.length },
   { id: 'm2', xp: 75, goal: 1, progress: (r) => r.filter((x) => x.taste === 'balanced').length },
@@ -304,6 +310,11 @@ export const MISSIONS: MissionDef[] = [
   { id: 'm4', xp: 100, goal: 3, progress: (r) => distinct(r.flatMap((x) => (x.roast ? [x.roast] : []))) },
   { id: 'm5', xp: 100, goal: 1, progress: (_r, w) => Object.keys(w).length },
   { id: 'm6', xp: 100, goal: 5, progress: (r) => r.length },
+  { id: 'm7', xp: 100, goal: 3, progress: (r) => distinct(r.flatMap((x) => (x.brewer ? [x.brewer] : []))) },
+  { id: 'm8', xp: 75, goal: 1, progress: (r) => r.filter((x) => x.timed).length },
+  { id: 'm9', xp: 75, goal: 1, progress: (r) => r.filter((x) => x.lot?.startsWith('my:')).length },
+  { id: 'm10', xp: 100, goal: 1, progress: (_r, w) => workingLots(w).filter((l) => !l.startsWith('my:')).length },
+  { id: 'm11', xp: 150, goal: 2, progress: (_r, w) => workingLots(w).length },
 ]
 
 // XP, rank and mission progress are always derived from reports, never stored

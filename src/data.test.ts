@@ -38,6 +38,30 @@ const progress = (id: string, reports: Report[], working: Record<string, string>
   return m.progress(reports, working)
 }
 
+describe('new missions', () => {
+  const MY = 'my:' + 'a'.repeat(32)
+
+  it('m7 counts distinct brewers', () => {
+    const rs = [report({ method: 'filter', roast: undefined, brewer: 'v60' }), report({ method: 'filter', roast: undefined, brewer: 'v60' }), report()]
+    expect(progress('m7', rs)).toBe(1)
+    expect(progress('m7', [...rs, report({ method: 'filter', roast: undefined, brewer: 'aeropress' })])).toBe(2)
+  })
+
+  it('m8 counts timed brews', () => {
+    expect(progress('m8', [report(), report({ timed: true })])).toBe(1)
+  })
+
+  it('m9 counts brews of your own coffees', () => {
+    expect(progress('m9', [report({ lot: 'peru-naranjo-yacu' }), report({ lot: MY })])).toBe(1)
+  })
+
+  it('m10 counts roaster lots with a working recipe; m11 any coffee', () => {
+    const w = { 'espresso-medium': 'a', 'filter-v60|peru-naranjo-yacu': 'b', 'espresso-light|peru-naranjo-yacu': 'c', [`filter-v60|${MY}`]: 'd' }
+    expect(progress('m10', [], w)).toBe(1)
+    expect(progress('m11', [], w)).toBe(2)
+  })
+})
+
 describe('missions', () => {
   it('have unique ids and positive goals', () => {
     expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(MISSIONS.length)
@@ -130,8 +154,10 @@ describe('progressFor', () => {
       report(),
     ]
     const p = progressFor(rs, { 'espresso-light': rs[0].id })
-    expect(p.missions.every((m) => m.done)).toBe(true)
-    expect(p.xp).toBe(5 * REPORT_XP + xpOf(...MISSIONS.map((m) => m.id)))
+    // these reports finish the first six missions; the coffee and brewer ones need more
+    const first = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6']
+    expect(p.missions.filter((m) => m.done).map((m) => m.id)).toEqual(first)
+    expect(p.xp).toBe(5 * REPORT_XP + xpOf(...first))
     expect(p.rank).toEqual(rankFor(p.xp))
   })
 })

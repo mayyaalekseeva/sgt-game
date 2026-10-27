@@ -1,0 +1,1 @@
+ALTER TABLE `reports` ADD `timed` integer DEFAULT false NOT NULL;
