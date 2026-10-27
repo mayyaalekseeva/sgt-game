@@ -1,7 +1,7 @@
 import { RANKS, RECIPES } from '../data'
 import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Card, Display, Label, LinkButton, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
+import { Card, Display, Label, Button, RowButton, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
 import RankCard from './RankCard'
 import RecipePicker from './RecipePicker'
 import RecipeSteps from './RecipeSteps'
@@ -45,12 +45,12 @@ export default function Orders({ go, openTimer, openRecipes }: { go: () => void;
             <RecipeSteps recipe={r} brewer={brew.brewer} />
           </Card>
         )}
-        <div>
-          <p className="text-sm leading-snug text-ink/80">
-            {t('orders.ratio', { r: ratio(r) })}. {t('orders.note')}
-          </p>
-          <LinkButton onClick={openRecipes}>{t('orders.allRecipes')}</LinkButton>
-        </div>
+        <p className="text-sm leading-snug text-ink/80">
+          {t('orders.ratio', { r: ratio(r) })}. {t('orders.note')}
+        </p>
+        <Card className="!py-1">
+          <RowButton label={t('orders.allRecipes')} onClick={openRecipes} />
+        </Card>
 
         <Card>
           <Label>{t('orders.working')}</Label>

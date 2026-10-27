@@ -25,12 +25,15 @@ export function Display({ children, className = '' }: { children: ReactNode; cla
   return <div className={`font-display font-extrabold uppercase leading-none ${className}`}>{children}</div>
 }
 
-// Inline navigation to a sub-screen; 44px tall for touch
-export function LinkButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+// A compact secondary action inside a card ("Use this recipe"); 44px tall for touch
+export function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="mt-1 flex h-11 items-center gap-1 text-[15px] font-semibold text-ink underline underline-offset-4">
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-3 flex h-11 items-center rounded-xl border-2 border-ink bg-cream px-4 text-[15px] font-semibold text-ink active:scale-[0.98]"
+    >
       {children}
-      <span aria-hidden="true">→</span>
     </button>
   )
 }

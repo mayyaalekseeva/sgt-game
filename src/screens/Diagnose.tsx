@@ -4,7 +4,7 @@ import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Button, Card, Chevrons, Display, Label, LinkButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
+import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
 import RecipePicker from './RecipePicker'
 
 export default function Diagnose({ openDiary, openTimer }: { openDiary: () => void; openTimer: () => void }) {
@@ -192,7 +192,9 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
               ))}
             </ul>
           )}
-          <LinkButton onClick={openDiary}>{t('diary.open')}</LinkButton>
+          <Card className="mt-2 !py-1">
+            <RowButton label={t('diary.open')} onClick={openDiary} />
+          </Card>
         </div>
       </div>
     </div>

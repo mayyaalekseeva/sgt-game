@@ -56,6 +56,8 @@ const en = {
   'recipes.hideHistory': 'Hide earlier versions',
   'recipes.use': 'Use this recipe',
   'recipes.inUse': 'In use',
+  'recipes.showArchived': 'Show archived recipes ({n})',
+  'recipes.hideArchived': 'Hide archived recipes',
 
   'diary.open': 'Full diary',
   'diary.title': 'Diary',
@@ -338,6 +340,8 @@ const pt: Record<keyof typeof en, string> = {
   'recipes.hideHistory': 'Esconder versões anteriores',
   'recipes.use': 'Usar esta receita',
   'recipes.inUse': 'Em uso',
+  'recipes.showArchived': 'Mostrar receitas arquivadas ({n})',
+  'recipes.hideArchived': 'Esconder receitas arquivadas',
 
   'diary.open': 'Diário completo',
   'diary.title': 'Diário',

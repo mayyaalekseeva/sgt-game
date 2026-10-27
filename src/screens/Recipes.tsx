@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { loadRecipes, useLoad } from '../api'
 import { BREWERS, METHODS, ROASTS, latestVersion, type RecipeEntry, type RecipeVersion } from '../data'
 import { useStore } from '../store'
-import { Card, Display, Label, LinkButton, ScreenTitle, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
+import { Card, Display, Label, ScreenTitle, SmallButton, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
 import RecipeSteps from './RecipeSteps'
 
 // Brewers in picker order, then roasts; archived per-roast filter recipes sort after the brewers
@@ -22,19 +22,7 @@ export default function Recipes({ use }: { use: () => void }) {
         <>
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
             {METHODS.map((m) => (
-              <section key={m} className="flex flex-col gap-3" aria-label={t(`method.${m}`)}>
-                <Label>{t(`method.${m}`)}</Label>
-                <ul className="flex flex-col gap-3">
-                  {data.recipes
-                    .filter((e) => e.method === m)
-                    .sort((a, b) => order(a) - order(b))
-                    .map((e) => (
-                      <li key={e.slug}>
-                        <RecipeCard entry={e} use={use} />
-                      </li>
-                    ))}
-                </ul>
-              </section>
+              <MethodSection key={m} entries={data.recipes.filter((e) => e.method === m).sort((a, b) => order(a) - order(b))} use={use} />
             ))}
           </div>
           <p className="text-xs text-ink/70">
@@ -44,6 +32,38 @@ export default function Recipes({ use }: { use: () => void }) {
         </>
       )}
     </div>
+  )
+}
+
+// Archived recipes stay out of the way (older reports still show them), behind a toggle at the end
+function MethodSection({ entries, use }: { entries: RecipeEntry[]; use: () => void }) {
+  const { t } = useStore()
+  const [showArchived, setShowArchived] = useState(false)
+  const method = entries[0]?.method
+  if (!method) return null
+  const archived = entries.filter((e) => e.status === 'archived')
+  const shown = showArchived ? entries : entries.filter((e) => e.status !== 'archived')
+  return (
+    <section className="flex flex-col gap-3" aria-label={t(`method.${method}`)}>
+      <Label>{t(`method.${method}`)}</Label>
+      <ul className="flex flex-col gap-3">
+        {shown.map((e) => (
+          <li key={e.slug}>
+            <RecipeCard entry={e} use={use} />
+          </li>
+        ))}
+      </ul>
+      {archived.length > 0 && (
+        <button
+          type="button"
+          aria-expanded={showArchived}
+          onClick={() => setShowArchived(!showArchived)}
+          className="flex h-11 items-center self-start text-sm font-semibold text-muted"
+        >
+          {t(showArchived ? 'recipes.hideArchived' : 'recipes.showArchived', { n: archived.length })}
+        </button>
+      )}
+    </section>
   )
 }
 
@@ -96,9 +116,9 @@ function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
 
       {!archived &&
         (selected ? (
-          <div className="mt-1 flex h-11 items-center text-[15px] font-semibold text-olive-soft">{t('recipes.inUse')}</div>
+          <div className="mt-3 flex h-11 items-center text-[15px] font-semibold text-olive-soft">{t('recipes.inUse')}</div>
         ) : (
-          <LinkButton
+          <SmallButton
             onClick={() => {
               setMethod(entry.method)
               if (entry.brewer) setBrewer(entry.brewer)
@@ -107,7 +127,7 @@ function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
             }}
           >
             {t('recipes.use')}
-          </LinkButton>
+          </SmallButton>
         ))}
     </Card>
   )
