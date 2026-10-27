@@ -1,18 +1,35 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { LangToggle, personIcon } from './account'
 import { initial, useAuth } from './auth'
+import { parseRoute, routeHash, type Route, type Sub, type Tab } from './route'
 import { useStore } from './store'
 import Orders from './screens/Orders'
 import Diagnose from './screens/Diagnose'
 import Recipes from './screens/Recipes'
-import Profile, { type ProfileSub } from './screens/Profile'
+import Profile from './screens/Profile'
 import Missions from './screens/Missions'
 import Dossier from './screens/Dossier'
 import Diary from './screens/Diary'
 import SavedRecipes from './screens/SavedRecipes'
 import { BackButton, Display } from './ui'
 
-type Tab = 'orders' | 'diag' | 'recipes' | 'profile'
+// The current screen, kept in the URL hash. go() adds a history entry; the hashchange listener
+// follows it, and also follows the browser's back and forward buttons.
+function useRoute() {
+  const [route, setRoute] = useState(() => parseRoute(location.hash))
+  useEffect(() => {
+    const follow = () => {
+      setRoute(parseRoute(location.hash))
+      window.scrollTo({ top: 0 })
+    }
+    window.addEventListener('hashchange', follow)
+    return () => window.removeEventListener('hashchange', follow)
+  }, [])
+  const go = (r: Route) => {
+    if (routeHash(r) !== location.hash) location.hash = routeHash(r)
+  }
+  return [route, go] as const
+}
 
 const icon = (d: ReactNode) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -20,7 +37,7 @@ const icon = (d: ReactNode) => (
   </svg>
 )
 
-const TABS: { id: Tab; icon: ReactNode }[] = [
+const NAV: { id: Tab; icon: ReactNode }[] = [
   { id: 'orders', icon: icon(<><path d="M5 4h14v16H5z" /><path d="M9 9h6M9 13h6" /></>) },
   { id: 'diag', icon: icon(<><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></>) },
   { id: 'recipes', icon: icon(<><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z" /><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16" /><path d="M9 3v3M12 3v3" /></>) },
@@ -78,18 +95,10 @@ function SignInFailed() {
 // Desktop (lg): sticky sidebar with brand, nav and language; screens lay out in two columns.
 export default function App() {
   const { t } = useStore()
-  const [tab, setTab] = useState<Tab>('orders')
+  const [{ tab, sub }, go] = useRoute()
+  const select = (id: Tab) => go({ tab: id, sub: null })
   // A sub-screen opens over the current tab, which stays highlighted; back returns to it
-  const [sub, setSub] = useState<ProfileSub | null>(null)
-  const select = (id: Tab) => {
-    setTab(id)
-    setSub(null)
-    window.scrollTo({ top: 0 })
-  }
-  const open = (s: ProfileSub) => {
-    setSub(s)
-    window.scrollTo({ top: 0 })
-  }
+  const open = (s: Sub) => go({ tab, sub: s })
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-[480px] flex-col lg:max-w-[1200px] lg:flex-row lg:gap-12 lg:px-8">
@@ -102,7 +111,7 @@ export default function App() {
         <Brand />
         <nav aria-label="Main">
           <ul className="flex flex-col gap-2">
-            {TABS.map((x) => (
+            {NAV.map((x) => (
               <li key={x.id}>
                 <button
                   type="button"
@@ -127,7 +136,7 @@ export default function App() {
         <SignInFailed />
         {sub ? (
           <>
-            <BackButton label={t(`tab.${tab}`)} onClick={() => setSub(null)} />
+            <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />
             {sub === 'saved' && <SavedRecipes />}
             {sub === 'diary' && <Diary />}
             {sub === 'missions' && <Missions />}
@@ -149,7 +158,7 @@ export default function App() {
         className="safe-bottom fixed bottom-0 left-1/2 z-10 w-full max-w-[480px] -translate-x-1/2 border-t-2 border-ink bg-cream lg:hidden"
       >
         <ul className="flex">
-          {TABS.map((x) => (
+          {NAV.map((x) => (
             <li key={x.id} className="flex-1">
               <button
                 type="button"

@@ -1,14 +1,13 @@
 import { AccountCard, LangToggle } from '../account'
 import { CHAPTERS, METHODS, ROASTS, recipeKey } from '../data'
 import { useReports } from '../reports'
+import type { Sub } from '../route'
 import { useStore } from '../store'
 import { Button, Card, Label, RowButton, ScreenTitle } from '../ui'
 import RankCard from './RankCard'
 
-export type ProfileSub = 'saved' | 'diary' | 'missions' | 'dossier'
-
 // Account, progress and everything that belongs to the player; each row opens a sub-screen
-export default function Profile({ open }: { open: (s: ProfileSub) => void }) {
+export default function Profile({ open }: { open: (s: Sub) => void }) {
   const { t, missions, rank, reset } = useStore()
   const data = useReports()
   const keys = METHODS.flatMap((m) => ROASTS.map((r) => recipeKey(m, r)))
