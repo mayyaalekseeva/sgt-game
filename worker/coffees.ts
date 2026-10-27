@@ -9,12 +9,14 @@ export interface CoffeeIn {
   roast: (typeof ROASTS)[number]
   name: string | null
   archived: boolean
+  roastedOn: string | null
   updatedAt: number
 }
 
 export const MAX_COFFEES = 200
 const ID = /^[0-9a-f]{32}$/
 const MAX_TEXT = 60
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 
@@ -37,6 +39,9 @@ export function parseCoffeeBatch(body: unknown, now = Date.now()): { coffees: Co
     if (!oneOf(ROASTS, c.roast)) return { error: `${at}.roast is invalid` }
     if (c.name != null && c.name !== '' && !text(c.name)) return { error: `${at}.name is invalid` }
     if (c.archived != null && typeof c.archived !== 'boolean') return { error: `${at}.archived is invalid` }
+    if (c.roastedOn != null && (typeof c.roastedOn !== 'string' || !DAY_RE.test(c.roastedOn) || Number.isNaN(Date.parse(`${c.roastedOn}T00:00:00Z`)))) {
+      return { error: `${at}.roastedOn must be YYYY-MM-DD` }
+    }
     if (!Number.isInteger(c.updatedAt) || (c.updatedAt as number) < EARLIEST_TS || (c.updatedAt as number) > now + DAY) {
       return { error: `${at}.updatedAt is out of range` }
     }
@@ -48,6 +53,7 @@ export function parseCoffeeBatch(body: unknown, now = Date.now()): { coffees: Co
       roast: c.roast,
       name: typeof c.name === 'string' && c.name.trim() !== '' ? c.name.trim() : null,
       archived: c.archived === true,
+      roastedOn: typeof c.roastedOn === 'string' ? c.roastedOn : null,
       updatedAt: c.updatedAt as number,
     })
   }
@@ -63,6 +69,7 @@ export const toCoffeeRow = (c: CoffeeIn, userId: string, now: number): typeof co
   roast: c.roast,
   name: c.name,
   archived: c.archived,
+  roastedOn: c.roastedOn,
   updatedAt: c.updatedAt,
   createdAt: now,
 })
@@ -76,6 +83,7 @@ export const toCoffeeOut = (r: typeof coffees.$inferSelect) => ({
   roast: r.roast,
   ...(r.name ? { name: r.name } : {}),
   ...(r.archived ? { archived: true } : {}),
+  ...(r.roastedOn ? { roastedOn: r.roastedOn } : {}),
   updatedAt: r.updatedAt,
 })
 

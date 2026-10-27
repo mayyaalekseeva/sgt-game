@@ -110,7 +110,7 @@ app.put('/working-recipes', requireUser, async (c) => {
   return c.json({ key: workingKey(recipeSlug, lot), reportId })
 })
 
-// D1 binds at most 100 parameters per statement, and a coffee row takes 10
+// D1 binds at most 100 parameters per statement, and a coffee row takes 11
 const COFFEES_PER_INSERT = 9
 
 // Adds or updates the player's coffees. An older copy never overwrites a newer one.
@@ -135,6 +135,7 @@ app.post('/coffees', requireUser, async (c) => {
             roast: sql`excluded.roast`,
             name: sql`excluded.name`,
             archived: sql`excluded.archived`,
+            roastedOn: sql`excluded.roasted_on`,
             updatedAt: sql`excluded.updated_at`,
           },
           setWhere: sql`excluded.updated_at >= ${coffees.updatedAt}`,

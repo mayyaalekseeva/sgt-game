@@ -1,16 +1,23 @@
 import { myRef, type MyCoffee } from '../coffees'
 import { useReports } from '../reports'
+import { localDay } from '../data'
 import { useStore } from '../store'
+import Freshness from './Freshness'
 import { Button, Card, Display, Label, ScreenTitle, SmallButton } from '../ui'
 
 // Your own coffees, opened from Profile. A finished bag leaves the picker but keeps its name in the diary.
 export default function MyCoffees({ add }: { add: () => void }) {
-  const { t } = useStore()
+  const { t, method } = useStore()
   const { coffees, saveCoffee, reports } = useReports()
   const open = coffees.filter((c) => !c.archived)
   const finished = coffees.filter((c) => c.archived)
   const brews = (c: MyCoffee) => reports.filter((r) => r.lot === myRef(c.id)).length
   const toggle = (c: MyCoffee) => saveCoffee({ ...c, archived: !c.archived || undefined, updatedAt: Date.now() })
+  // a new bag of the same coffee: just a new roast date
+  const setRoastedOn = (c: MyCoffee, day: string) => {
+    const { roastedOn: _, ...rest } = c
+    saveCoffee({ ...rest, ...(day ? { roastedOn: day } : {}), updatedAt: Date.now() })
+  }
 
   const row = (c: MyCoffee) => (
     <li key={c.id}>
@@ -22,6 +29,19 @@ export default function MyCoffees({ add }: { add: () => void }) {
         <p className="mt-1 text-sm text-muted">
           {t(`process.${c.process}`)} · {t(`roast.${c.roast}`)} · {t('coffee.brews', { n: brews(c) })}
         </p>
+        {!c.archived && <Freshness coffee={c} method={method} />}
+        {!c.archived && (
+          <label className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold">
+            {t('coffee.roastedOnShort')}
+            <input
+              type="date"
+              value={c.roastedOn ?? ''}
+              max={localDay(Date.now())}
+              onChange={(e) => setRoastedOn(c, e.target.value)}
+              className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[15px] text-ink"
+            />
+          </label>
+        )}
         <SmallButton onClick={() => toggle(c)}>{t(c.archived ? 'coffee.restore' : 'coffee.finish')}</SmallButton>
       </Card>
     </li>

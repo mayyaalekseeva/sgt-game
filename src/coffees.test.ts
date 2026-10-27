@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { forRoast, isMyRef, mergeCoffees, myRef, parseCoffee, parseCoffees, resolvePick, workingKey, coffeeName, type MyCoffee } from './coffees'
+import { freshness, forRoast, isMyRef, mergeCoffees, myRef, parseCoffee, parseCoffees, resolvePick, workingKey, coffeeName, type MyCoffee } from './coffees'
 import { RECIPES } from './data'
 import { currentLots } from './lots'
 
@@ -31,6 +31,7 @@ describe('parseCoffee', () => {
     ['an unknown roast', { roast: 'blonde' }],
     ['a long name', { name: 'x'.repeat(61) }],
     ['no updatedAt', { updatedAt: undefined }],
+    ['a roast date that is not a day', { roastedOn: '20/10/2026' }],
   ])('rejects %s', (_n, over) => {
     expect(parseCoffee({ ...mine(), ...over })).toBeNull()
   })
@@ -119,5 +120,31 @@ describe('forRoast', () => {
   it('keeps the grind inside the scale', () => {
     const fp = RECIPES['filter-frenchpress'] // coarse
     expect(forRoast(fp, 'dark').grind).toBe('coarse')
+  })
+})
+
+describe('freshness', () => {
+  it('is unknown without a date or for a future one', () => {
+    expect(freshness(undefined, '2026-10-27', 'filter')).toBeNull()
+    expect(freshness('2026-10-28', '2026-10-27', 'filter')).toBeNull()
+  })
+
+  it('counts calendar days', () => {
+    expect(freshness('2026-10-27', '2026-10-27', 'filter')?.days).toBe(0)
+    expect(freshness('2026-09-27', '2026-10-27', 'filter')?.days).toBe(30)
+  })
+
+  it('rests 3 days for filter and 7 for espresso', () => {
+    expect(freshness('2026-10-25', '2026-10-27', 'filter')?.stage).toBe('resting')
+    expect(freshness('2026-10-24', '2026-10-27', 'filter')?.stage).toBe('peak')
+    expect(freshness('2026-10-21', '2026-10-27', 'espresso')?.stage).toBe('resting')
+    expect(freshness('2026-10-20', '2026-10-27', 'espresso')?.stage).toBe('peak')
+  })
+
+  it('peaks to day 30, fades to day 60, then is stale', () => {
+    expect(freshness('2026-09-27', '2026-10-27', 'filter')?.stage).toBe('peak')
+    expect(freshness('2026-09-26', '2026-10-27', 'filter')?.stage).toBe('fading')
+    expect(freshness('2026-08-28', '2026-10-27', 'filter')?.stage).toBe('fading')
+    expect(freshness('2026-08-27', '2026-10-27', 'filter')?.stage).toBe('stale')
   })
 })

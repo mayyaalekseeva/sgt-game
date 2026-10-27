@@ -139,6 +139,7 @@ export const coffees = sqliteTable(
     roast: text('roast', { enum: ROASTS }).notNull(),
     name: text('name'),
     archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+    roastedOn: text('roasted_on'), // YYYY-MM-DD from the bag
     updatedAt: integer('updated_at').notNull(),
     createdAt: integer('created_at').notNull(),
   },
