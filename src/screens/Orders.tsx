@@ -75,6 +75,8 @@ export default function Orders({
           ) : (
             <p className="mt-1 text-sm text-muted">{t('orders.noWorking')}</p>
           )}
+          {workingReport?.grinder && <p className="mt-1 text-[15px] font-semibold">{t('saved.grinder', { g: workingReport.grinder })}</p>}
+          {workingReport?.notes && <p className="mt-1 text-[15px] leading-snug">{workingReport.notes}</p>}
         </Card>
 
         {isFilter && <Button onClick={openTimer}>{t('timer.open')}</Button>}

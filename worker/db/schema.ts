@@ -96,6 +96,8 @@ export const reports = sqliteTable(
     diag: text('diag').notNull(),
     recipeVersionId: text('recipe_version_id').references(() => recipeVersions.id),
     lot: text('lot'), // a lot slug from content/lots.json, or `my:<coffee id>`; null on older reports
+    grinder: text('grinder'), // the player's grinder setting, free text
+    notes: text('notes'),
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },

@@ -194,8 +194,13 @@ export interface Report extends Brew {
   taste: Taste
   diag: string
   recipeVersionId?: string // `${slug}@${version}` the brew was diagnosed against; missing on older reports
-  lot?: string // coffee lot slug (src/lots.ts); missing for another coffee and on older reports
+  lot?: string // a lot slug (src/lots.ts) or a my: coffee ref (src/coffees.ts); missing on older reports
+  grinder?: string // the grinder setting as the player writes it ("18 clicks"); with notes, what a saved recipe keeps
+  notes?: string
 }
+
+export const MAX_GRINDER = 30
+export const MAX_NOTES = 280
 
 export const TASTES: Taste[] = ['sour', 'bitter', 'thin', 'balanced']
 
@@ -233,7 +238,9 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         TASTES.includes(r.taste as Taste) &&
         typeof r.diag === 'string' &&
         (r.recipeVersionId == null || typeof r.recipeVersionId === 'string') &&
-        (r.lot == null || typeof r.lot === 'string')
+        (r.lot == null || typeof r.lot === 'string') &&
+        (r.grinder == null || typeof r.grinder === 'string') &&
+        (r.notes == null || typeof r.notes === 'string')
       if (!ok) fail(`reports[${i}] is invalid`)
       return {
         id: r.id as string,
@@ -248,6 +255,8 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         diag: r.diag as string,
         ...(typeof r.recipeVersionId === 'string' ? { recipeVersionId: r.recipeVersionId } : {}),
         ...(typeof r.lot === 'string' ? { lot: r.lot } : {}),
+        ...(typeof r.grinder === 'string' && r.grinder !== '' ? { grinder: r.grinder } : {}),
+        ...(typeof r.notes === 'string' && r.notes !== '' ? { notes: r.notes } : {}),
       }
     }),
     working: Object.fromEntries(
