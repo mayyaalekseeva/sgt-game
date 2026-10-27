@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BREWERS, brewOf, slugOf, type Brew, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { translate, type Key } from './i18n'
+import { lotBySlug } from './lots'
 
 const STORAGE_KEY = 'barista-game:v1'
 
@@ -9,6 +10,7 @@ interface Persisted {
   method: Method
   roast: Roast // espresso
   brewer: Brewer // filter
+  lot: string | null // coffee lot slug; null for another coffee
   reports: Report[]
   working: Record<string, string> // recipe slug -> report id
 }
@@ -18,6 +20,7 @@ const initial = (): Persisted => ({
   method: 'espresso',
   roast: 'medium',
   brewer: 'v60',
+  lot: null,
   reports: [],
   working: {},
 })
@@ -29,7 +32,12 @@ function load(): Persisted {
     if (raw) {
       const saved = { ...base, ...JSON.parse(raw) } as Persisted
       // saved before brewers existed
-      return BREWERS.includes(saved.brewer) ? saved : { ...saved, brewer: base.brewer }
+      // saved before brewers or lots existed, or the lot left the content file
+      return {
+        ...saved,
+        brewer: BREWERS.includes(saved.brewer) ? saved.brewer : base.brewer,
+        lot: lotBySlug(saved.lot) ? saved.lot : null,
+      }
     }
   } catch {
     /* storage unavailable: run in memory */
@@ -45,6 +53,7 @@ interface Store extends Persisted {
   setMethod: (m: Method) => void
   setRoast: (r: Roast) => void
   setBrewer: (b: Brewer) => void
+  setLot: (lot: string | null) => void
   brew: Brew // the picked recipe: espresso + roast or filter + brewer
   slug: string
   addReport: (r: Report) => void
@@ -88,6 +97,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setMethod: (method) => setS((p) => ({ ...p, method })),
       setRoast: (roast) => setS((p) => ({ ...p, roast })),
       setBrewer: (brewer) => setS((p) => ({ ...p, brewer })),
+      setLot: (lot) => setS((p) => ({ ...p, lot })),
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),

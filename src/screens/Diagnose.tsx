@@ -5,10 +5,11 @@ import type { Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
+import { lotBySlug } from '../lots'
 import RecipePicker from './RecipePicker'
 
 export default function Diagnose({ openDiary, openTimer }: { openDiary: () => void; openTimer: () => void }) {
-  const { t, method, brew, slug: key, timed, takeTimed } = useStore()
+  const { t, lang, lot, method, brew, slug: key, timed, takeTimed } = useStore()
   const { rank, addReport, markWorking, working, reports } = useReports()
   const recipe = RECIPES[key]
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
@@ -50,7 +51,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
     if (!taste) return
     const input = { dose, yield: yld, time, taste, bloomed }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
-    const report = addReport({ ...brew, dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
+    const report = addReport({ ...brew, ...(lot ? { lot } : {}), dose, yield: yld, time, taste, diag, recipeVersionId: recipe.id })
     setResult({ report, diag })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -66,7 +67,10 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
         <div className="flex flex-col gap-4">
           <Card className="flex items-center justify-between gap-3">
             <div>
-              <Label>{t('diag.yourBrew')}</Label>
+              <Label>
+                {t('diag.yourBrew')}
+                {lotBySlug(result.report.lot) && ` · ${lotBySlug(result.report.lot)?.name}`}
+              </Label>
               <Display className="mt-1 text-[24px] !normal-case tracking-wide">
                 {fmtNum(result.report.dose)} g → {fmtNum(result.report.yield)} g · {fmtTime(result.report.time, method)}
               </Display>

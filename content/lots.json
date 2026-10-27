@@ -1,0 +1,82 @@
+{
+  "lots": [
+    {
+      "slug": "burundi-mutambu-38",
+      "name": "Mutambu #38",
+      "country": { "en": "Burundi", "pt": "Burundi" },
+      "region": "Rubanda, Migoti Hill",
+      "variety": "Red Bourbon",
+      "process": { "en": "Washed", "pt": "Lavado" },
+      "altitude": [1700, 1900],
+      "notes": { "en": "Cocoa husk and green apple", "pt": "Casca de cacau e maçã verde" },
+      "profile": "fruity_complex",
+      "status": "current",
+      "url": "https://www.sgtmartinho.com/products/cafe-do-burundi-mutambu-38"
+    },
+    {
+      "slug": "rwanda-cume-dos-gorilas",
+      "name": "Cume dos Gorilas",
+      "country": { "en": "Rwanda", "pt": "Ruanda" },
+      "region": "Gakenke, Rubyiniro",
+      "variety": "Red Bourbon",
+      "process": { "en": "Washed, 24 h double fermentation", "pt": "Lavado, 24 h de dupla fermentação" },
+      "altitude": [2200, 2200],
+      "notes": { "en": "Vanilla, cocoa, strawberry jam", "pt": "Baunilha, cacau, geleia de morango" },
+      "profile": "fruity_floral",
+      "status": "current",
+      "url": "https://www.sgtmartinho.com/products/cafe-do-ruanda-cume-dos-gorilas"
+    },
+    {
+      "slug": "peru-naranjo-yacu",
+      "name": "Naranjo Yacu",
+      "country": { "en": "Peru", "pt": "Peru" },
+      "region": "Santo Domingo de la Capilla, Cutervo",
+      "variety": "Caturra, Bourbon and others",
+      "process": { "en": "Washed", "pt": "Lavado" },
+      "altitude": [1700, 1900],
+      "notes": { "en": "Caramel and sweet citrus", "pt": "Caramelo e citrinos doces" },
+      "profile": "classic_complex",
+      "status": "current",
+      "url": "https://www.sgtmartinho.com/products/cafe-da-peru-naranjo-yacu"
+    },
+    {
+      "slug": "brazil-lobo-guara",
+      "name": "Lobo-Guará",
+      "country": { "en": "Brazil", "pt": "Brasil" },
+      "region": "Minas Gerais, Serra da Canastra",
+      "variety": "Catucaí Amarelo 2SL",
+      "process": { "en": "Natural", "pt": "Natural" },
+      "altitude": [1140, 1250],
+      "notes": { "en": "Ripe fruit, dried fruit and rum", "pt": "Fruta madura, frutos secos e rum" },
+      "profile": "classic",
+      "status": "current",
+      "url": "https://www.sgtmartinho.com/products/cafe-do-brasil-lobo-guara-2"
+    },
+    {
+      "slug": "colombia-luz-dos-andes",
+      "name": "Luz dos Andes",
+      "country": { "en": "Colombia", "pt": "Colômbia" },
+      "region": "Quindío, Armenia",
+      "variety": "Caturra",
+      "process": { "en": "Washed", "pt": "Lavado" },
+      "altitude": [1350, 1400],
+      "notes": { "en": "Cocoa, spices and caramel", "pt": "Cacau, especiarias e caramelo" },
+      "profile": "classic_rich",
+      "status": "current",
+      "url": "https://www.sgtmartinho.com/products/cafe-da-colombia-luz-dos-andes"
+    },
+    {
+      "slug": "colombia-la-meseta-decaf",
+      "name": "La Meseta, Decaf",
+      "country": { "en": "Colombia", "pt": "Colômbia" },
+      "region": "Cauca, Popayán",
+      "variety": "Castillo, Caturra and Colombia",
+      "process": { "en": "Washed, sugarcane decaf", "pt": "Lavado, descafeinado de cana-de-açúcar" },
+      "altitude": [1700, 1700],
+      "notes": { "en": "Spices, ginger, juicy acidity", "pt": "Especiarias, gengibre, acidez suculenta" },
+      "profile": "decaf",
+      "status": "current",
+      "url": "https://www.sgtmartinho.com/products/cafe-da-colombia-la-meseta-decaf"
+    }
+  ]
+}

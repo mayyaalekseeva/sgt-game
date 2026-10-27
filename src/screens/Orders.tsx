@@ -3,6 +3,7 @@ import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, Button, RowButton, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
 import RankCard from './RankCard'
+import LotCard from './LotCard'
 import RecipePicker from './RecipePicker'
 import RecipeSteps from './RecipeSteps'
 
@@ -33,6 +34,7 @@ export default function Orders({ go, openTimer, openRecipes }: { go: () => void;
           <Label>{t('orders.recipe')}</Label>
           <RecipePicker />
         </div>
+        <LotCard />
 
         <div className="grid grid-cols-2 gap-3">
           <Stat label={t('recipe.dose')} value={`${fmtNum(r.dose)} g`} />
