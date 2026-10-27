@@ -3,9 +3,9 @@ import { foreignKey, index, integer, primaryKey, real, sqliteTable, text, unique
 // Times are epoch ms. Recipe content comes from content/recipes.json via scripts/seed-recipes.mjs;
 // XP, rank and missions are derived from reports and never stored.
 
-const METHODS = ['espresso', 'filter'] as const
-const ROASTS = ['light', 'medium', 'dark'] as const
-const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
+export const METHODS = ['espresso', 'filter'] as const
+export const ROASTS = ['light', 'medium', 'dark'] as const
+export const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),

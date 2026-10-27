@@ -1,0 +1,101 @@
+import { describe, expect, it } from 'vitest'
+import { MAX_BATCH, isReportId, parseReportBatch, toReportOut, toReportRows, type ReportIn } from './reports'
+
+const NOW = Date.UTC(2026, 9, 27)
+
+const report = (over: Record<string, unknown> = {}) => ({
+  id: '3f6c1a2e-8b1d-4c3e-9f0a-1b2c3d4e5f60',
+  ts: NOW - 60_000,
+  method: 'espresso',
+  roast: 'medium',
+  dose: 18,
+  yield: 36,
+  time: 28,
+  taste: 'balanced',
+  diag: 'balanced',
+  recipeVersionId: 'espresso-medium@1',
+  ...over,
+})
+
+const parse = (body: unknown) => parseReportBatch(body, NOW)
+
+describe('parseReportBatch', () => {
+  it('accepts a valid batch and defaults imported to false', () => {
+    expect(parse({ reports: [report()] })).toEqual({ reports: [report()], imported: false })
+    expect(parse({ reports: [report()], imported: true })).toMatchObject({ imported: true })
+  })
+
+  it('accepts old 8-char ids and reports without a recipe version', () => {
+    const r = report({ id: 'k3x9a0b2', recipeVersionId: undefined })
+    expect(parse({ reports: [r] })).toEqual({ reports: [{ ...r, recipeVersionId: null }], imported: false })
+    expect(parse({ reports: [report({ recipeVersionId: null })] })).not.toHaveProperty('error')
+  })
+
+  it('drops fields it does not know', () => {
+    const out = parse({ reports: [report({ extra: 'x', userId: 'someone-else' })] })
+    expect('reports' in out && out.reports[0]).toEqual(report())
+  })
+
+  it('rejects a missing, empty or oversized batch', () => {
+    expect(parse(null)).toHaveProperty('error')
+    expect(parse({ reports: 'nope' })).toHaveProperty('error')
+    expect(parse({ reports: [] })).toHaveProperty('error')
+    expect(parse({ reports: Array.from({ length: MAX_BATCH + 1 }, (_, i) => report({ id: `r${i}` })) })).toHaveProperty('error')
+    expect(parse({ reports: Array.from({ length: MAX_BATCH }, (_, i) => report({ id: `r${i}` })) })).not.toHaveProperty('error')
+    expect(parse({ reports: [report()], imported: 'yes' })).toHaveProperty('error')
+  })
+
+  it.each([
+    ['id', ''],
+    ['id', 'has space'],
+    ['id', 'x'.repeat(65)],
+    ['ts', NOW + 2 * 24 * 60 * 60 * 1000],
+    ['ts', Date.UTC(2020, 0, 1)],
+    ['ts', 1.5],
+    ['method', 'aeropress'],
+    ['roast', 'blonde'],
+    ['dose', 0],
+    ['dose', Number.NaN],
+    ['yield', '36'],
+    ['time', 12.5],
+    ['time', -1],
+    ['taste', 'sweet'],
+    ['diag', ''],
+    ['recipeVersionId', 'espresso-medium'],
+    ['recipeVersionId', 'espresso-medium@0'],
+  ])('rejects a bad %s (%s) and names the report', (field, value) => {
+    const out = parse({ reports: [report(), report({ [field]: value })] })
+    expect(out).toHaveProperty('error')
+    expect((out as { error: string }).error).toContain('reports[1]')
+  })
+})
+
+describe('isReportId', () => {
+  it('accepts client ids and rejects anything else', () => {
+    expect(isReportId('k3x9a0b2')).toBe(true)
+    expect(isReportId('3f6c1a2e-8b1d-4c3e-9f0a-1b2c3d4e5f60')).toBe(true)
+    expect(isReportId('a/b')).toBe(false)
+    expect(isReportId(42)).toBe(false)
+  })
+})
+
+describe('toReportRows', () => {
+  const batch = [report() as ReportIn, report({ id: 'b', recipeVersionId: 'filter-light@9' }) as ReportIn]
+  const ctx = { userId: 'u1', knownVersions: new Set(['espresso-medium@1']), imported: false, now: NOW }
+
+  it('maps yield to yieldG, sets the owner and keeps known versions only', () => {
+    const rows = toReportRows(batch, ctx)
+    expect(rows[0]).toMatchObject({ userId: 'u1', yieldG: 36, recipeVersionId: 'espresso-medium@1', importedAt: null, createdAt: NOW })
+    expect(rows[0]).not.toHaveProperty('yield')
+    expect(rows[1].recipeVersionId).toBeNull()
+  })
+
+  it('stamps importedAt on imported batches', () => {
+    expect(toReportRows(batch, { ...ctx, imported: true }).every((r) => r.importedAt === NOW)).toBe(true)
+  })
+
+  it('round-trips through toReportOut', () => {
+    const [row] = toReportRows([batch[0]], ctx)
+    expect(toReportOut({ ...row, recipeVersionId: row.recipeVersionId ?? null, importedAt: null })).toEqual(batch[0])
+  })
+})
