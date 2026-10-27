@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RECIPE_CONTENT, parseRecipeContent, parseReportsResponse, type RecipeEntry, type Report } from './data'
+import type { Sender } from './sync'
 
 // Where a screen's data came from: the API, or this browser (bundled recipes, guest reports)
 export type Source = 'api' | 'browser'
@@ -24,19 +25,25 @@ export async function loadRecipes(signal: AbortSignal): Promise<{ recipes: Recip
   }
 }
 
-// 401 means a guest; any other failure also falls back to this browser's reports, so the diary
-// still opens offline.
-export async function loadReports(
-  signal: AbortSignal,
-  local: { reports: Report[]; working: Record<string, string> },
-): Promise<{ reports: Report[]; working: Record<string, string>; source: Source }> {
-  try {
-    return { ...parseReportsResponse(await getJson('/api/reports', signal)), source: 'api' }
-  } catch (err) {
-    if (isAbort(err)) throw err
-    if ((err as { status?: number }).status !== 401) console.warn(err)
-    return { ...local, source: 'browser' }
-  }
+// The signed-in user's reports and working recipes. Throws on any failure (with .status when the API
+// answered); the caller keeps showing its cached copy.
+export async function fetchReports(signal: AbortSignal): Promise<{ reports: Report[]; working: Record<string, string> }> {
+  return parseReportsResponse(await getJson('/api/reports', signal))
+}
+
+async function send(method: 'POST' | 'PUT', path: string, body: unknown) {
+  const res = await fetch(path, {
+    method,
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw Object.assign(new Error(`${method} ${path}: ${res.status}`), { status: res.status })
+}
+
+// Writes for src/sync.ts. Both are safe to repeat: report ids come from the client.
+export const sender: Sender = {
+  postReports: (reports, imported) => send('POST', '/api/reports', { reports, imported }),
+  putWorking: (reportId) => send('PUT', '/api/working-recipes', { reportId }),
 }
 
 // Runs load once on mount; null while loading

@@ -7,7 +7,7 @@ import { Card, Display, Label, ScreenTitle, fmtDate, fmtNum, fmtTime } from '../
 export default function SavedRecipes() {
   const { t, lang } = useStore()
   const data = useReports()
-  const saved = data
+  const saved = !data.loading
     ? METHODS.flatMap((m) => ROASTS.map((r) => recipeKey(m, r)))
         .map((key) => data.reports.find((x) => x.id === data.working[key]))
         .filter((r) => r !== undefined)
@@ -16,7 +16,7 @@ export default function SavedRecipes() {
   return (
     <div className="flex flex-col gap-4 lg:max-w-3xl">
       <ScreenTitle title={t('saved.title')} sub={t('saved.sub')} />
-      {!data ? (
+      {data.loading ? (
         <p className="text-sm text-ink/70" role="status">{t('loading')}</p>
       ) : saved.length === 0 ? (
         <p className="text-sm text-ink/70">{t('orders.noWorking')}</p>

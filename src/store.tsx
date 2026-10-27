@@ -1,13 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import {
-  progressFor,
-  rankFor,
-  recipeKey,
-  type Lang,
-  type Method,
-  type Report,
-  type Roast,
-} from './data'
+import { recipeKey, type Lang, type Method, type Report, type Roast } from './data'
 import { translate, type Key } from './i18n'
 
 const STORAGE_KEY = 'barista-game:v1'
@@ -39,17 +31,16 @@ function load(): Persisted {
   return base
 }
 
+// Settings, plus the guest's reports and working recipes. Screens read reports through useReports
+// (reports.tsx), which picks these or the signed-in account's.
 interface Store extends Persisted {
   t: (key: Key, vars?: Record<string, string | number>) => string
   setLang: (l: Lang) => void
   setMethod: (m: Method) => void
   setRoast: (r: Roast) => void
-  addReport: (r: Omit<Report, 'id' | 'ts'>) => Report
+  addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
   reset: () => void
-  xp: number
-  rank: ReturnType<typeof rankFor>
-  missions: { id: string; xp: number; goal: number; cur: number; done: boolean }[]
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -72,15 +63,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return {
       ...s,
       t,
-      ...progressFor(s.reports, s.working),
       setLang: (lang) => setS((p) => ({ ...p, lang })),
       setMethod: (method) => setS((p) => ({ ...p, method })),
       setRoast: (roast) => setS((p) => ({ ...p, roast })),
-      addReport: (r) => {
-        const report: Report = { ...r, id: Math.random().toString(36).slice(2, 10), ts: Date.now() }
-        setS((p) => ({ ...p, reports: [report, ...p.reports] }))
-        return report
-      },
+      addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),
     }

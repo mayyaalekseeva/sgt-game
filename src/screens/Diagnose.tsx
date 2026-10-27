@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { REPORT_XP, RECIPES, TASTES, recipeKey, type Report, type Taste } from '../data'
 import { diagnose, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
+import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, LinkButton, Stepper, fmtNum, fmtRange, fmtTime } from '../ui'
 import RecipePicker from './RecipePicker'
 
 export default function Diagnose({ openDiary }: { openDiary: () => void }) {
-  const { t, method, roast, rank, addReport, markWorking, working, reports } = useStore()
+  const { t, method, roast } = useStore()
+  const { rank, addReport, markWorking, working, reports } = useReports()
   const key = recipeKey(method, roast)
   const recipe = RECIPES[key]
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)

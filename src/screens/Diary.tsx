@@ -18,7 +18,7 @@ export default function Diary() {
   return (
     <div className="flex flex-col gap-4 lg:max-w-3xl">
       <ScreenTitle title={t('diary.title')} sub={t('diary.sub')} />
-      {!data ? (
+      {data.loading ? (
         <p className="text-sm text-ink/70" role="status">{t('loading')}</p>
       ) : data.reports.length === 0 ? (
         <p className="text-sm text-ink/70">{t('diag.noHistory')}</p>
@@ -39,7 +39,7 @@ export default function Diary() {
           ))}
         </>
       )}
-      {data?.source === 'browser' && <p className="text-xs text-ink/70">{t('diary.local')}</p>}
+      {data.source === 'browser' && <p className="text-xs text-ink/70">{t('diary.local')}</p>}
     </div>
   )
 }
