@@ -238,11 +238,17 @@ export const fmtNum =(n: number) => String(Math.round(n * 10) / 10)
 
 export const ratio = (r: Recipe) => fmtNum(r.yield / r.dose)
 
+// 'other' is still on coffees saved before a process could be written out
+const PROCESS_KEYS = ['washed', 'natural', 'honey', 'anaerobic', 'decaf', 'other']
+
 type T = (key: Key, vars?: Record<string, string | number>) => string
 
 /** "Espresso · Light", "Filter · V60"; filter reports from before brewers keep their roast. */
 export const brewLabel = (t: T, b: Brew) =>
   `${t(`method.${b.method}`)} · ${b.brewer ? t(`brewer.${b.brewer}`) : b.roast ? t(`roast.${b.roast}`) : ''}`
+
+/** A coffee's process: the usual ones translated, the player's own words as written */
+export const processLabel = (t: T, p: string) => (PROCESS_KEYS.includes(p) ? t(`process.${p as 'washed'}`) : p)
 
 // Values the diagnosis texts (d.*.change) can mention
 export const diagVars = (r: Recipe, method: Method) => ({

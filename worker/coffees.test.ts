@@ -20,6 +20,10 @@ describe('parseCoffeeBatch', () => {
     expect(parse({ coffees: [coffee({ name: 'Yirga', archived: true })] })).toMatchObject({ coffees: [{ name: 'Yirga', archived: true }] })
   })
 
+  it('takes a process of your own words', () => {
+    expect(parse({ coffees: [coffee({ process: 'Carbonic maceration' })] })).toMatchObject({ coffees: [{ process: 'Carbonic maceration' }] })
+  })
+
   it('checks the batch', () => {
     expect(parse(null)).toHaveProperty('error')
     expect(parse({ coffees: [] })).toHaveProperty('error')
@@ -30,7 +34,8 @@ describe('parseCoffeeBatch', () => {
     ['id', 'short'],
     ['roaster', ''],
     ['origin', 'x'.repeat(61)],
-    ['process', 'wet-hulled'],
+    ['process', ''],
+    ['process', 'x'.repeat(31)],
     ['roast', 'blonde'],
     ['name', 42],
     ['archived', 'yes'],

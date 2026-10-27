@@ -3,7 +3,7 @@ import { useReports } from '../reports'
 import { localDay } from '../data'
 import { useStore } from '../store'
 import Freshness from './Freshness'
-import { Button, Card, Display, Label, ScreenTitle, SmallButton } from '../ui'
+import { Button, Card, Display, Label, ScreenTitle, SmallButton, processLabel } from '../ui'
 
 // Your own coffees, opened from Profile. A finished bag leaves the picker but keeps its name in the diary.
 export default function MyCoffees({ add }: { add: () => void }) {
@@ -27,7 +27,7 @@ export default function MyCoffees({ add }: { add: () => void }) {
         </Label>
         <Display className="mt-1 text-[26px] tracking-wide">{c.name ?? c.origin}</Display>
         <p className="mt-1 text-sm text-muted">
-          {t(`process.${c.process}`)} · {t(`roast.${c.roast}`)} · {t('coffee.brews', { n: brews(c) })}
+          {processLabel(t, c.process)} · {t(`roast.${c.roast}`)} · {t('coffee.brews', { n: brews(c) })}
         </p>
         {!c.archived && <Freshness coffee={c} method={method} />}
         {!c.archived && (

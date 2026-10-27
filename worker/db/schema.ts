@@ -8,7 +8,8 @@ export const ROASTS = ['light', 'medium', 'dark'] as const
 export const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
 export const BREWERS = ['v60', 'aeropress', 'frenchpress'] as const
 export const GRINDS = ['fine', 'medium_fine', 'medium', 'medium_coarse', 'coarse'] as const
-export const PROCESSES = ['washed', 'natural', 'honey', 'anaerobic', 'decaf', 'other'] as const
+export const PROCESSES = ['washed', 'natural', 'honey', 'anaerobic', 'decaf'] as const
+export const MAX_PROCESS = 30 // or the player's own words, up to this long (src/coffees.ts)
 
 // A filter recipe step (src/data.ts Step), stored as JSON on its version
 export interface StepJson {
@@ -136,7 +137,7 @@ export const coffees = sqliteTable(
     id: text('id').notNull(),
     roaster: text('roaster').notNull(),
     origin: text('origin').notNull(),
-    process: text('process', { enum: PROCESSES }).notNull(),
+    process: text('process').notNull(), // one of PROCESSES, or free text
     roast: text('roast', { enum: ROASTS }).notNull(),
     name: text('name'),
     archived: integer('archived', { mode: 'boolean' }).notNull().default(false),

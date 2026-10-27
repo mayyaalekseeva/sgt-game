@@ -1,18 +1,33 @@
 import { useState } from 'react'
-import { MAX_TEXT, PROCESSES, myRef, type Process } from '../coffees'
+import { MAX_PROCESS, MAX_TEXT, PROCESSES, myRef } from '../coffees'
 import { ROASTS, localDay, type Roast } from '../data'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { newReportId } from '../sync'
 import { Button, Card, Label, ScreenTitle, Segmented, Select } from '../ui'
+import OriginPicker from './OriginPicker'
 
-function Field({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+const OTHER = 'other'
+
+function Field({
+  label,
+  value,
+  onChange,
+  hint,
+  max = MAX_TEXT,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  hint?: string
+  max?: number
+}) {
   return (
     <label className="flex flex-col gap-1">
       <Label>{label}</Label>
       <input
         value={value}
-        maxLength={MAX_TEXT}
+        maxLength={max}
         onChange={(e) => onChange(e.target.value)}
         className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[16px] font-semibold text-ink"
       />
@@ -27,11 +42,13 @@ export default function AddCoffee({ done }: { done: () => void }) {
   const { saveCoffee } = useReports()
   const [roaster, setRoaster] = useState('')
   const [origin, setOrigin] = useState('')
-  const [process, setProcess] = useState<Process | ''>('')
+  const [process, setProcess] = useState('')
+  const [ownProcess, setOwnProcess] = useState('')
   const [roast, setRoast] = useState<Roast | ''>('')
   const [name, setName] = useState('')
   const [roastedOn, setRoastedOn] = useState('')
-  const ready = roaster.trim() !== '' && origin.trim() !== '' && process !== '' && roast !== ''
+  const processValue = process === OTHER ? ownProcess.trim() : process
+  const ready = roaster.trim() !== '' && origin !== '' && processValue !== '' && roast !== ''
 
   const save = () => {
     if (!ready) return
@@ -39,8 +56,8 @@ export default function AddCoffee({ done }: { done: () => void }) {
     saveCoffee({
       id,
       roaster: roaster.trim(),
-      origin: origin.trim(),
-      process,
+      origin,
+      process: processValue,
       roast,
       ...(name.trim() ? { name: name.trim() } : {}),
       ...(roastedOn ? { roastedOn } : {}),
@@ -55,16 +72,26 @@ export default function AddCoffee({ done }: { done: () => void }) {
       <ScreenTitle title={t('coffee.addTitle')} sub={t('coffee.addSub')} />
       <Card className="flex flex-col gap-4">
         <Field label={t('coffee.roaster')} value={roaster} onChange={setRoaster} />
-        <Field label={t('coffee.origin')} value={origin} onChange={setOrigin} hint={t('coffee.originHint')} />
+        <OriginPicker value={origin} onChange={setOrigin} />
         <div className="flex flex-col gap-1">
           <Label>{t('coffee.process')}</Label>
           <Select
             label={t('coffee.process')}
             value={process}
-            onChange={(v) => setProcess(v as Process)}
-            groups={[{ label: '', options: [{ id: '', label: t('coffee.choose') }, ...PROCESSES.map((p) => ({ id: p, label: t(`process.${p}`) }))] }]}
+            onChange={setProcess}
+            groups={[
+              {
+                label: '',
+                options: [
+                  { id: '', label: t('coffee.choose') },
+                  ...PROCESSES.map((p) => ({ id: p, label: t(`process.${p}`) })),
+                  { id: OTHER, label: t('process.other') },
+                ],
+              },
+            ]}
           />
         </div>
+        {process === OTHER && <Field label={t('coffee.processOwn')} value={ownProcess} onChange={setOwnProcess} max={MAX_PROCESS} />}
         <div className="flex flex-col gap-1">
           <Label>{t('label.roast')}</Label>
           <Segmented label={t('label.roast')} value={roast} onChange={setRoast} options={ROASTS.map((r) => ({ id: r, label: t(`roast.${r}`) }))} />
