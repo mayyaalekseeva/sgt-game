@@ -10,7 +10,7 @@ export default function LotCard() {
   if (!lot) return null
   const [lo, hi] = lot.altitude
   return (
-    <Card>
+    <Card key={lot.slug} className="animate-enter">
       <div className="flex items-baseline justify-between gap-2">
         <Label>
           {lot.country[lang]} · {lot.region}

@@ -136,6 +136,8 @@ export default function App() {
       <main className="flex-1 px-4 pb-28 pt-2 lg:min-w-0 lg:px-0 lg:py-8">
         <SignInFailed />
         <ImportOffer />
+        {/* keyed by route, so each screen plays its entrance */}
+        <div key={`${tab}/${sub ?? ''}`} className="animate-enter">
         {sub ? (
           <>
             <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />
@@ -153,6 +155,7 @@ export default function App() {
             {tab === 'profile' && <Profile open={open} />}
           </>
         )}
+        </div>
         <p className="mt-8 text-center text-xs text-ink/70 lg:hidden">{t('footer')}</p>
       </main>
 

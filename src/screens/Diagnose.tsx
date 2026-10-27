@@ -65,7 +65,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
     return (
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
         <div className="flex flex-col gap-4">
-          <Card className="flex items-center justify-between gap-3">
+          <Card className="flex animate-enter items-center justify-between gap-3">
             <div>
               <Label>
                 {t('diag.yourBrew')}
@@ -80,7 +80,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
             </span>
           </Card>
 
-          <div className="rounded-2xl border-2 border-ink bg-olive p-4 text-cream lg:p-6">
+          <div className="animate-stamp rounded-2xl border-2 border-ink bg-olive p-4 text-cream [animation-delay:120ms] lg:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-cream text-olive">
                 <Chevrons n={rank.idx + 1} size={18} />
@@ -109,7 +109,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
             </Card>
           )}
 
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex animate-pop items-center gap-2 text-sm font-semibold [animation-delay:450ms]">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-olive text-cream">
               <Chevrons n={1} size={12} />
             </span>
@@ -169,7 +169,7 @@ export default function Diagnose({ openDiary, openTimer }: { openDiary: () => vo
                 type="button"
                 aria-pressed={taste === x}
                 onClick={() => setTaste(x)}
-                className={`h-14 rounded-xl border-2 border-ink text-[17px] font-semibold ${taste === x ? 'bg-ink text-cream' : 'bg-cream text-ink'}`}
+                className={`h-14 rounded-xl border-2 border-ink text-[17px] font-semibold transition-colors duration-150 active:scale-[0.98] ${taste === x ? 'bg-ink text-cream' : 'bg-cream text-ink'}`}
               >
                 {t(`taste.${x}`)}
               </button>
