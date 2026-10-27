@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { LangToggle, personIcon } from './account'
+import { ImportOffer, LangToggle, personIcon } from './account'
 import { initial, useAuth } from './auth'
 import { parseRoute, routeHash, type Route, type Sub, type Tab } from './route'
 import { useStore } from './store'
@@ -134,6 +134,7 @@ export default function App() {
 
       <main className="flex-1 px-4 pb-28 pt-2 lg:min-w-0 lg:px-0 lg:py-8">
         <SignInFailed />
+        <ImportOffer />
         {sub ? (
           <>
             <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />

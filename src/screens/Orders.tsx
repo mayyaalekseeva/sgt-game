@@ -1,11 +1,13 @@
 import { RANKS, RECIPES, recipeKey } from '../data'
+import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, LinkButton, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
 import RankCard from './RankCard'
 import RecipePicker from './RecipePicker'
 
 export default function Orders({ go, openRecipes }: { go: () => void; openRecipes: () => void }) {
-  const { t, method, roast, reports, working } = useStore()
+  const { t, method, roast } = useStore()
+  const { reports, working } = useReports()
   const key = recipeKey(method, roast)
   const r = RECIPES[key]
   const tip = Math.floor(Date.now() / 86400000) % 5

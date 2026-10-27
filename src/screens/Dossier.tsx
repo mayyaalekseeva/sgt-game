@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { CHAPTERS, RANKS } from '../data'
 import type { Key } from '../i18n'
+import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Chevrons, Display } from '../ui'
 
 export default function Dossier() {
-  const { t, rank } = useStore()
+  const { t } = useStore()
+  const { rank } = useReports()
   const [open, setOpen] = useState<string | null>('c1')
   return (
     <div className="flex flex-col gap-4 lg:max-w-3xl">

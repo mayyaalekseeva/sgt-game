@@ -1,9 +1,11 @@
+import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Chevrons, Display } from '../ui'
 
 // Rank, XP and the way to the next rank (Orders and Profile)
 export default function RankCard() {
-  const { t, rank, xp } = useStore()
+  const { t } = useStore()
+  const { rank, xp } = useReports()
   return (
     <Card className="flex items-center gap-3">
       <div className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-olive text-cream">

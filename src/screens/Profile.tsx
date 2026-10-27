@@ -8,10 +8,11 @@ import RankCard from './RankCard'
 
 // Account, progress and everything that belongs to the player; each row opens a sub-screen
 export default function Profile({ open }: { open: (s: Sub) => void }) {
-  const { t, missions, rank, reset } = useStore()
+  const { t, reset } = useStore()
   const data = useReports()
+  const { missions, rank } = data
   const keys = METHODS.flatMap((m) => ROASTS.map((r) => recipeKey(m, r)))
-  const saved = data ? keys.filter((k) => data.reports.some((x) => x.id === data.working[k])).length : null
+  const saved = data.loading ? null : keys.filter((k) => data.reports.some((x) => x.id === data.working[k])).length
   const done = missions.filter((m) => m.done).length
   const chapters = CHAPTERS.filter((c) => rank.idx >= c.rank).length
 
@@ -29,7 +30,7 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
       <div className="flex flex-col gap-4">
         <Card className="!py-1">
           <RowButton label={t('saved.title')} value={saved === null ? '…' : String(saved)} onClick={() => open('saved')} />
-          <RowButton label={t('diary.title')} value={data ? String(data.reports.length) : '…'} onClick={() => open('diary')} />
+          <RowButton label={t('diary.title')} value={data.loading ? '…' : String(data.reports.length)} onClick={() => open('diary')} />
           <RowButton label={t('m.title')} value={t('m.done', { n: done, total: missions.length })} onClick={() => open('missions')} />
           <RowButton label={t('dos.title')} value={t('profile.chapters', { n: chapters, total: CHAPTERS.length })} onClick={() => open('dossier')} />
         </Card>
@@ -40,14 +41,17 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
           <LangToggle />
         </div>
 
-        <Button
-          variant="ghost"
-          onClick={() => {
-            if (window.confirm(t('m.resetConfirm'))) reset()
-          }}
-        >
-          {t('m.reset')}
-        </Button>
+        {/* erases this browser's guest progress; an account's reports live on the server */}
+        {!data.signedIn && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (window.confirm(t('m.resetConfirm'))) reset()
+            }}
+          >
+            {t('m.reset')}
+          </Button>
+        )}
       </div>
     </div>
   )

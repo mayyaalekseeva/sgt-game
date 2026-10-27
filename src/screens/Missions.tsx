@@ -1,9 +1,11 @@
 import type { Key } from '../i18n'
+import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Chevrons, Display } from '../ui'
 
 export default function Missions() {
-  const { t, missions } = useStore()
+  const { t } = useStore()
+  const { missions } = useReports()
   const done = missions.filter((m) => m.done).length
   return (
     <div className="flex flex-col gap-4">
