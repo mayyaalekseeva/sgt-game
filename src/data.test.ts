@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import content from '../content/recipes.json' with { type: 'json' }
-import { MISSIONS, RANKS, RECIPES, REPORT_XP, parseRecipeContent, progressFor, rankFor, type Report } from './data'
+import {
+  MISSIONS,
+  RANKS,
+  RECIPES,
+  RECIPE_CONTENT,
+  REPORT_XP,
+  diaryDays,
+  parseRecipeContent,
+  parseReportsResponse,
+  progressFor,
+  rankFor,
+  versionOf,
+  type Report,
+} from './data'
 
 const DAY = 24 * 60 * 60 * 1000
 const T0 = Date.UTC(2026, 9, 26, 9, 0)
@@ -177,5 +190,76 @@ describe('rankFor', () => {
     const last = RANKS[RANKS.length - 1]
     expect(rankFor(last.xp)).toMatchObject({ idx: RANKS.length - 1, next: null, pct: 100 })
     expect(rankFor(last.xp * 10).pct).toBe(100)
+  })
+})
+
+describe('parseReportsResponse', () => {
+  const body = (over: Record<string, unknown> = {}) => ({
+    reports: [{ ...report({ id: 'a' }), recipeVersionId: 'espresso-medium@1' }, { ...report({ id: 'b' }), recipeVersionId: null }],
+    working: { 'espresso-medium': 'a' },
+    ...over,
+  })
+
+  it('accepts the API shape; a null recipeVersionId becomes a missing one', () => {
+    const { reports, working } = parseReportsResponse(body())
+    expect(reports.map((r) => r.id)).toEqual(['a', 'b'])
+    expect(reports[0].recipeVersionId).toBe('espresso-medium@1')
+    expect(reports[1]).not.toHaveProperty('recipeVersionId')
+    expect(working).toEqual({ 'espresso-medium': 'a' })
+  })
+
+  it('keeps diag ids it does not know (older or newer builds)', () => {
+    expect(parseReportsResponse(body({ reports: [report({ diag: 'future_id' })] })).reports[0].diag).toBe('future_id')
+  })
+
+  it('drops working entries that are not report ids', () => {
+    expect(parseReportsResponse(body({ working: { 'espresso-medium': 'a', 'filter-dark': 3 } })).working).toEqual({ 'espresso-medium': 'a' })
+  })
+
+  it.each<[string, unknown]>([
+    ['a missing body', null],
+    ['no reports array', { working: {} }],
+    ['no working object', { reports: [] }],
+    ['working as an array', { reports: [], working: [] }],
+    ['an unknown taste', { reports: [{ ...report(), taste: 'salty' }], working: {} }],
+    ['a string dose', { reports: [{ ...report(), dose: '18' }], working: {} }],
+    ['a numeric recipeVersionId', { reports: [{ ...report(), recipeVersionId: 1 }], working: {} }],
+  ])('rejects %s', (_name, raw) => {
+    expect(() => parseReportsResponse(raw)).toThrow(/GET \/api\/reports/)
+  })
+})
+
+describe('diaryDays', () => {
+  const utcDay = (ts: number) => new Date(ts).toISOString().slice(0, 10)
+
+  it('is empty without reports', () => {
+    expect(diaryDays([], utcDay)).toEqual([])
+  })
+
+  it('groups by day, newest day and newest report first, whatever the input order', () => {
+    const a = report({ id: 'a', ts: T0 - DAY })
+    const b = report({ id: 'b', ts: T0 })
+    const c = report({ id: 'c', ts: T0 + 60_000 })
+    const days = diaryDays([a, c, b], utcDay)
+    expect(days.map((d) => d.day)).toEqual(['2026-10-26', '2026-10-25'])
+    expect(days[0].reports.map((r) => r.id)).toEqual(['c', 'b'])
+    expect(days[1].reports.map((r) => r.id)).toEqual(['a'])
+  })
+
+  it('does not reorder the input array', () => {
+    const rs = [report({ id: 'old', ts: T0 }), report({ id: 'new', ts: T0 + 1 })]
+    diaryDays(rs, utcDay)
+    expect(rs.map((r) => r.id)).toEqual(['old', 'new'])
+  })
+})
+
+describe('versionOf', () => {
+  it('finds a version by its slug@version id', () => {
+    expect(versionOf(RECIPE_CONTENT, 'filter-light@1')).toBe(RECIPES['filter-light'])
+  })
+
+  it('is undefined for older reports and unknown ids', () => {
+    expect(versionOf(RECIPE_CONTENT, undefined)).toBeUndefined()
+    expect(versionOf(RECIPE_CONTENT, 'filter-light@99')).toBeUndefined()
   })
 })

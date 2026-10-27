@@ -20,6 +20,23 @@ export type DiagId =
   | 'thin_fast'
   | 'thin_ok'
 
+export const DIAG_IDS: DiagId[] = [
+  'balanced',
+  'balanced_off',
+  'sour_fast',
+  'sour_ok',
+  'sour_long',
+  'bitter_slow',
+  'bitter_ok',
+  'bitter_fast',
+  'thin_yield',
+  'thin_fast',
+  'thin_ok',
+]
+
+// Stored reports (local or from the API) may carry a diag id this build no longer knows
+export const isDiagId = (v: string): v is DiagId => DIAG_IDS.includes(v as DiagId)
+
 export type TimeState = 'short' | 'ok' | 'long'
 
 export function timeState(r: Recipe, time: number): TimeState {

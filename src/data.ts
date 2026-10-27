@@ -36,12 +36,13 @@ const isRange = (v: unknown): v is [number, number] =>
   Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && n > 0) && v[0] <= v[1]
 
 /**
- * Validates content/recipes.json. Published versions are immutable: a change is a new version.
- * Every method x roast must be present, because the picker offers all of them.
+ * Validates content/recipes.json, or the same shape from GET /api/recipes. Published versions are
+ * immutable: a change is a new version. Every method x roast must be present, because the picker
+ * offers all of them.
  */
-export function parseRecipeContent(raw: unknown): RecipeEntry[] {
+export function parseRecipeContent(raw: unknown, source = 'content/recipes.json'): RecipeEntry[] {
   const fail = (msg: string): never => {
-    throw new Error(`content/recipes.json: ${msg}`)
+    throw new Error(`${source}: ${msg}`)
   }
   const list = (raw as { recipes?: unknown })?.recipes
   if (!Array.isArray(list)) fail('expected { recipes: [...] }')
@@ -124,6 +125,76 @@ export interface Report {
   time: number
   taste: Taste
   diag: string
+  recipeVersionId?: string // `${slug}@${version}` the brew was diagnosed against; missing on older reports
+}
+
+export const TASTES: Taste[] = ['sour', 'bitter', 'thin', 'balanced']
+
+/** Validates a GET /api/reports body: { reports, working }. */
+export function parseReportsResponse(raw: unknown): { reports: Report[]; working: Record<string, string> } {
+  const fail = (msg: string): never => {
+    throw new Error(`GET /api/reports: ${msg}`)
+  }
+  const { reports, working } = (raw ?? {}) as { reports?: unknown; working?: unknown }
+  if (!Array.isArray(reports)) fail('expected { reports: [...] }')
+  if (typeof working !== 'object' || working === null || Array.isArray(working)) fail('expected { working: {...} }')
+  const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v)
+  return {
+    reports: (reports as Record<string, unknown>[]).map((r, i): Report => {
+      const ok =
+        typeof r === 'object' &&
+        r !== null &&
+        typeof r.id === 'string' &&
+        num(r.ts) &&
+        METHODS.includes(r.method as Method) &&
+        ROASTS.includes(r.roast as Roast) &&
+        num(r.dose) &&
+        num(r.yield) &&
+        num(r.time) &&
+        TASTES.includes(r.taste as Taste) &&
+        typeof r.diag === 'string' &&
+        (r.recipeVersionId == null || typeof r.recipeVersionId === 'string')
+      if (!ok) fail(`reports[${i}] is invalid`)
+      return {
+        id: r.id as string,
+        ts: r.ts as number,
+        method: r.method as Method,
+        roast: r.roast as Roast,
+        dose: r.dose as number,
+        yield: r.yield as number,
+        time: r.time as number,
+        taste: r.taste as Taste,
+        diag: r.diag as string,
+        ...(typeof r.recipeVersionId === 'string' ? { recipeVersionId: r.recipeVersionId } : {}),
+      }
+    }),
+    working: Object.fromEntries(
+      Object.entries(working as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string'),
+    ),
+  }
+}
+
+// Calendar day in the viewer's time zone, YYYY-MM-DD
+export const localDay = (ts: number) => {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Diary: reports grouped by day, newest day first and newest report first within a day. */
+export function diaryDays(reports: Report[], dayOf: (ts: number) => string = localDay) {
+  const days = new Map<string, Report[]>()
+  for (const r of [...reports].sort((a, b) => b.ts - a.ts)) {
+    const k = dayOf(r.ts)
+    days.set(k, [...(days.get(k) ?? []), r])
+  }
+  return [...days].map(([day, rs]) => ({ day, reports: rs }))
+}
+
+/** The version a report was diagnosed against; undefined for older reports and unknown ids. */
+export function versionOf(entries: RecipeEntry[], id: string | undefined) {
+  if (!id) return undefined
+  for (const e of entries) for (const v of e.versions) if (v.id === id) return v
+  return undefined
 }
 
 export interface MissionDef {
