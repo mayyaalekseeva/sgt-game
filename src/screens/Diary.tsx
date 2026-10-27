@@ -1,15 +1,15 @@
-import { loadReports, useLoad } from '../api'
 import { RECIPES, RECIPE_CONTENT, diaryDays, localDay, recipeKey, versionOf, type Report } from '../data'
 import { isDiagId } from '../diagnose'
+import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Card, Label, SubHeader, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
+import { Card, Label, ScreenTitle, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
 
 // Every report, grouped by day. Signed-in users read the API; guests read this browser.
-export default function Diary({ back }: { back: () => void }) {
-  const { t, lang, reports, working } = useStore()
-  const data = useLoad((signal) => loadReports(signal, { reports, working }))
+export default function Diary() {
+  const { t, lang } = useStore()
+  const data = useReports()
 
   const today = localDay(Date.now())
   const yesterday = localDay(Date.now() - DAY)
@@ -17,7 +17,7 @@ export default function Diary({ back }: { back: () => void }) {
 
   return (
     <div className="flex flex-col gap-4 lg:max-w-3xl">
-      <SubHeader title={t('diary.title')} sub={t('diary.sub')} back={t('tab.diag')} onBack={back} />
+      <ScreenTitle title={t('diary.title')} sub={t('diary.sub')} />
       {!data ? (
         <p className="text-sm text-ink/70" role="status">{t('loading')}</p>
       ) : data.reports.length === 0 ? (

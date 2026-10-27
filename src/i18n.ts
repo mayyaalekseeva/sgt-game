@@ -3,8 +3,18 @@ import type { Lang } from './data'
 const en = {
   'tab.orders': 'Orders',
   'tab.diag': 'Diagnosis',
-  'tab.missions': 'Missions',
-  'tab.dossier': 'Dossier',
+  'tab.recipes': 'Recipes',
+  'tab.profile': 'Profile',
+
+  'profile.title': 'Profile',
+  'profile.sub': 'Your rank, saved recipes and every brew you reported.',
+  'profile.guest': 'You are playing as a guest. Your progress is saved on this device only.',
+  'profile.language': 'Language',
+  'profile.chapters': '{n} of {total} open',
+
+  'saved.title': 'Saved recipes',
+  'saved.sub': 'The brews you marked as your working recipe, one per recipe.',
+  'saved.from': 'Brewed {date}',
 
   'rank.recruta': 'Recruta',
   'rank.cabo': 'Cabo',
@@ -172,8 +182,18 @@ const en = {
 const pt: Record<keyof typeof en, string> = {
   'tab.orders': 'Ordens',
   'tab.diag': 'Diagnóstico',
-  'tab.missions': 'Missões',
-  'tab.dossier': 'Dossiê',
+  'tab.recipes': 'Receitas',
+  'tab.profile': 'Perfil',
+
+  'profile.title': 'Perfil',
+  'profile.sub': 'A tua patente, as receitas guardadas e todas as extrações que reportaste.',
+  'profile.guest': 'Estás a jogar como convidado. O teu progresso fica guardado apenas neste dispositivo.',
+  'profile.language': 'Idioma',
+  'profile.chapters': '{n} de {total} abertos',
+
+  'saved.title': 'Receitas guardadas',
+  'saved.sub': 'As extrações que marcaste como receita de trabalho, uma por receita.',
+  'saved.from': 'Extraída a {date}',
 
   'rank.recruta': 'Recruta',
   'rank.cabo': 'Cabo',

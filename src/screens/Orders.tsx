@@ -1,10 +1,11 @@
 import { RANKS, RECIPES, recipeKey } from '../data'
 import { useStore } from '../store'
-import { Card, Chevrons, Display, Label, LinkButton, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
+import { Card, Display, Label, LinkButton, Button, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
+import RankCard from './RankCard'
 import RecipePicker from './RecipePicker'
 
 export default function Orders({ go, openRecipes }: { go: () => void; openRecipes: () => void }) {
-  const { t, rank, xp, method, roast, reports, working } = useStore()
+  const { t, method, roast, reports, working } = useStore()
   const key = recipeKey(method, roast)
   const r = RECIPES[key]
   const tip = Math.floor(Date.now() / 86400000) % 5
@@ -13,23 +14,7 @@ export default function Orders({ go, openRecipes }: { go: () => void; openRecipe
   return (
     <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
       <div className="flex flex-col gap-4">
-        <Card className="flex items-center gap-3">
-          <div className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-olive text-cream">
-            <Chevrons n={rank.idx + 1} size={22} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <Display className="text-2xl tracking-wider">{t(`rank.${rank.cur.id}`)}</Display>
-              <div className="text-sm text-muted">{xp} {t('xp')}</div>
-            </div>
-            <div className="mt-2 h-2 rounded bg-line">
-              <div className="h-2 rounded bg-olive-soft transition-all" style={{ width: `${Math.max(rank.pct, 4)}%` }} />
-            </div>
-            <div className="mt-1 text-xs text-muted">
-              {rank.next ? t('rank.toNext', { xp: rank.next.xp - xp, rank: t(`rank.${rank.next.id}`) }) : t('rank.max')}
-            </div>
-          </div>
-        </Card>
+        <RankCard />
 
         <div className="rounded-2xl border-2 border-ink bg-olive p-4 text-cream">
           <div className="flex items-center gap-3">

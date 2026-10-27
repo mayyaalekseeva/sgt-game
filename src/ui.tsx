@@ -34,17 +34,37 @@ export function LinkButton({ children, onClick }: { children: ReactNode; onClick
   )
 }
 
-// Title row for sub-screens (Recipes, Diary) with a way back to the tab they were opened from
-export function SubHeader({ title, sub, back, onBack }: { title: string; sub: string; back: string; onBack: () => void }) {
+export function ScreenTitle({ title, sub }: { title: string; sub: string }) {
   return (
     <div>
-      <button type="button" onClick={onBack} className="-ml-1 flex h-11 items-center gap-1 px-1 text-[15px] font-semibold text-ink">
-        <span aria-hidden="true">←</span>
-        {back}
-      </button>
       <Display className="text-[40px] tracking-wide">{title}</Display>
       <p className="mt-1 text-[15px] text-ink/80">{sub}</p>
     </div>
+  )
+}
+
+// Above every sub-screen: back to the tab it was opened from
+export function BackButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="-ml-1 flex h-11 items-center gap-1 px-1 text-[15px] font-semibold text-ink">
+      <span aria-hidden="true">←</span>
+      {label}
+    </button>
+  )
+}
+
+// A tappable row in a list card (Profile): label, a short status on the right, chevron
+export function RowButton({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-14 w-full items-center gap-3 border-b border-line px-1 text-left last:border-b-0"
+    >
+      <span className="flex-1 text-[17px] font-semibold">{label}</span>
+      {value && <span className="text-sm text-muted">{value}</span>}
+      <span aria-hidden="true" className="text-xl text-ink">›</span>
+    </button>
   )
 }
 

@@ -1,9 +1,9 @@
 import type { Key } from '../i18n'
 import { useStore } from '../store'
-import { Button, Card, Chevrons, Display } from '../ui'
+import { Card, Chevrons, Display } from '../ui'
 
 export default function Missions() {
-  const { t, missions, reset } = useStore()
+  const { t, missions } = useStore()
   const done = missions.filter((m) => m.done).length
   return (
     <div className="flex flex-col gap-4">
@@ -39,14 +39,6 @@ export default function Missions() {
           </li>
         ))}
       </ul>
-      <Button
-        variant="ghost"
-        onClick={() => {
-          if (window.confirm(t('m.resetConfirm'))) reset()
-        }}
-      >
-        {t('m.reset')}
-      </Button>
     </div>
   )
 }

@@ -2,16 +2,16 @@ import { Fragment, useState } from 'react'
 import { loadRecipes, useLoad } from '../api'
 import { METHODS, ROASTS, latestVersion, type RecipeEntry, type RecipeVersion } from '../data'
 import { useStore } from '../store'
-import { Card, Display, Label, LinkButton, SubHeader, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
+import { Card, Display, Label, LinkButton, ScreenTitle, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
 
-// All recipes with their version history. Opened from Orders; "Use" picks it there.
-export default function Recipes({ back }: { back: () => void }) {
+// All recipes with their version history. "Use" picks one and opens Orders.
+export default function Recipes({ use }: { use: () => void }) {
   const { t } = useStore()
   const data = useLoad(loadRecipes)
 
   return (
     <div className="flex flex-col gap-4">
-      <SubHeader title={t('recipes.title')} sub={t('recipes.sub')} back={t('tab.orders')} onBack={back} />
+      <ScreenTitle title={t('recipes.title')} sub={t('recipes.sub')} />
       {!data ? (
         <p className="text-sm text-ink/70" role="status">{t('loading')}</p>
       ) : (
@@ -26,7 +26,7 @@ export default function Recipes({ back }: { back: () => void }) {
                     .sort((a, b) => ROASTS.indexOf(a.roast) - ROASTS.indexOf(b.roast))
                     .map((e) => (
                       <li key={e.slug}>
-                        <RecipeCard entry={e} back={back} />
+                        <RecipeCard entry={e} use={use} />
                       </li>
                     ))}
                 </ul>
@@ -43,7 +43,7 @@ export default function Recipes({ back }: { back: () => void }) {
   )
 }
 
-function RecipeCard({ entry, back }: { entry: RecipeEntry; back: () => void }) {
+function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
   const { t, lang, method, roast, setMethod, setRoast } = useStore()
   const [open, setOpen] = useState(false)
   const cur = latestVersion(entry)
@@ -93,7 +93,7 @@ function RecipeCard({ entry, back }: { entry: RecipeEntry; back: () => void }) {
             onClick={() => {
               setMethod(entry.method)
               setRoast(entry.roast)
-              back()
+              use()
             }}
           >
             {t('recipes.use')}
