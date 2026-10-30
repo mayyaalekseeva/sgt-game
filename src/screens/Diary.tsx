@@ -7,7 +7,7 @@ import { useReports } from '../reports'
 import { useStore } from '../store'
 import Feed from './Feed'
 import PhotoControl from './PhotoControl'
-import { Card, Label, ScreenTitle, Segmented, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
+import { Label, ScreenTitle, Segmented, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -45,13 +45,11 @@ export default function Diary({ view, show, fileReport }: { view: 'diary' | 'fee
           {diaryDays(data.reports).map(({ day, reports: rs }) => (
             <section key={day} className="flex flex-col gap-2" aria-label={dayLabel(day)}>
               <Label>{dayLabel(day)}</Label>
-              <Card className="!py-1">
-                <ul>
-                  {rs.map((r) => (
-                    <Entry key={r.id} r={r} isWorking={data.working[workingKey(r)] === r.id} />
-                  ))}
-                </ul>
-              </Card>
+              <ul className="flex flex-col gap-3">
+                {rs.map((r) => (
+                  <Entry key={r.id} r={r} isWorking={data.working[workingKey(r)] === r.id} />
+                ))}
+              </ul>
             </section>
           ))}
         </>
@@ -70,7 +68,7 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   const recipe = v ?? RECIPES[slugOf(r)]
   const thumb = signedIn && !editing ? r.photo : undefined
   return (
-    <li className="flex flex-col gap-1 border-b border-line py-3 last:border-b-0">
+    <li className="flex flex-col gap-1 rounded-xl border-2 border-ink bg-cream p-4">
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold">
           {brewLabel(t, r)}
