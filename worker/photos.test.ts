@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { disallowedSegment, etagMatches, isJpeg, isNonce, newNonce, nonceOf, photoEtag, photoKey } from './photos'
+import { disallowedSegment, stripDisallowed, etagMatches, isJpeg, isNonce, newNonce, nonceOf, photoEtag, photoKey } from './photos'
 
 // A JPEG header: SOI, the given segments, then SOS and a little scan data
 const seg = (marker: number, payload: number[] = [0, 0]) => [0xff, marker, 0, payload.length + 2, ...payload]
@@ -41,6 +41,32 @@ describe('disallowedSegment', () => {
     expect(disallowedSegment(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 1]))).toBe('malformed header')
     expect(disallowedSegment(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]))).toBe('no image data')
     expect(disallowedSegment(new Uint8Array(ascii('\x89PNG\r\n')))).toBe('not a JPEG')
+  })
+})
+
+describe('stripDisallowed', () => {
+  const EXIF = seg(0xe1, [...ascii('Exif'), 0, 0, 1, 2])
+
+  it('drops a Safari-style Exif block and keeps the rest byte for byte', () => {
+    const out = stripDisallowed(jpeg(APP0, EXIF, APP2, DQT, SOF0))
+    expect(out).toEqual(jpeg(APP0, APP2, DQT, SOF0))
+    expect(disallowedSegment(out)).toBeNull()
+  })
+
+  it('drops every refused APPn, past fill bytes too', () => {
+    const out = stripDisallowed(jpeg(APP0, [0xff, ...seg(0xe1)], seg(0xed), seg(0xef), DQT))
+    expect(out).toEqual(jpeg(APP0, DQT))
+  })
+
+  it('leaves a clean JPEG alone', () => {
+    expect(stripDisallowed(jpeg(APP0, APP2, DQT, SOF0))).toEqual(jpeg(APP0, APP2, DQT, SOF0))
+  })
+
+  it('returns malformed input unchanged, for the server to refuse', () => {
+    const bad = new Uint8Array([0xff, 0xd8, 0xff, 0xe1, 0, 1])
+    expect(stripDisallowed(bad)).toBe(bad)
+    const png = new Uint8Array(ascii('\x89PNG\r\n'))
+    expect(stripDisallowed(png)).toBe(png)
   })
 })
 

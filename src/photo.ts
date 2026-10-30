@@ -1,6 +1,8 @@
 // Report photos are resized and re-encoded here before upload: a canvas re-encode keeps only the pixels,
 // so Exif (location, device) never leaves the phone. The server refuses any JPEG that still has metadata.
 
+import { stripDisallowed } from '../worker/photos'
+
 export const MAX_EDGE = 1600
 // Larger files are refused before decoding: a phone tab can run out of memory on the full-size bitmap
 export const MAX_INPUT_BYTES = 30 * 1024 * 1024
@@ -78,8 +80,10 @@ export async function compressPhoto(file: Blob): Promise<Blob> {
     const blob = await encodeWithin(
       (q) => new Promise<Blob>((done, fail) => canvas.toBlob((b) => (b ? done(b) : fail(new PhotoError('unreadable'))), 'image/jpeg', q)),
     )
-    if (blob.size > MAX_UPLOAD_BYTES) throw new PhotoError('too_big')
-    return blob
+    // Safari adds an Exif block (colour space and size only) that the server would refuse
+    const clean = new Blob([stripDisallowed(new Uint8Array(await blob.arrayBuffer()))], { type: 'image/jpeg' })
+    if (clean.size > MAX_UPLOAD_BYTES) throw new PhotoError('too_big')
+    return clean
   } finally {
     img.close()
   }
