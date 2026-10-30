@@ -31,7 +31,7 @@ export default function Missions() {
                   <p className="mt-1 text-[15px] leading-snug">{t(`m.${m.id}.d` as Key)}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <div className="h-2 flex-1 rounded bg-line">
-                      <div className="h-2 rounded bg-olive-soft" style={{ width: `${(m.cur / m.goal) * 100}%` }} />
+                      <div className="h-2 origin-left animate-grow rounded bg-olive-soft" style={{ width: `${(m.cur / m.goal) * 100}%` }} />
                     </div>
                     <span className="text-xs text-muted">{m.cur}/{m.goal}</span>
                   </div>

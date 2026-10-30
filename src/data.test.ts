@@ -7,6 +7,7 @@ import {
   RECIPE_CONTENT,
   REPORT_XP,
   diaryDays,
+  gainsFor,
   parseRecipeContent,
   parseReportsResponse,
   progressFor,
@@ -159,6 +160,35 @@ describe('progressFor', () => {
     expect(p.missions.filter((m) => m.done).map((m) => m.id)).toEqual(first)
     expect(p.xp).toBe(5 * REPORT_XP + xpOf(...first))
     expect(p.rank).toEqual(rankFor(p.xp))
+  })
+})
+
+describe('gainsFor', () => {
+  it('finds nothing when nothing changed', () => {
+    const p = progressFor([report()], {})
+    expect(gainsFor(p, p)).toEqual({ xp: 0, rankUp: null, missions: [] })
+  })
+
+  it('lists the missions a report finishes', () => {
+    const before = progressFor([], {})
+    const after = progressFor([report()], {})
+    expect(gainsFor(before, after)).toEqual({ xp: after.xp, rankUp: null, missions: ['m1', 'm2'] })
+  })
+
+  it('counts a working recipe marked after filing', () => {
+    const r = report()
+    const g = gainsFor(progressFor([r], {}), progressFor([r], { 'espresso-medium': r.id }))
+    expect(g.missions).toEqual(['m5'])
+  })
+
+  it('names the new rank when XP crosses a boundary', () => {
+    // one espresso is still Recruta; a filter one adds the second method mission and crosses into Cabo
+    const rs = [report(), report({ method: 'filter', roast: 'medium' })]
+    const before = progressFor(rs.slice(0, 1), {})
+    const after = progressFor(rs, {})
+    expect(before.rank.idx).toBe(0)
+    expect(after.xp).toBeGreaterThanOrEqual(RANKS[1].xp)
+    expect(gainsFor(before, after).rankUp).toBe('cabo')
   })
 })
 
