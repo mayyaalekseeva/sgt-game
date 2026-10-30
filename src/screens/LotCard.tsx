@@ -35,7 +35,6 @@ export default function LotCard({ openLots }: { openLots: () => void }) {
           <LotTasting lot={lot} />
         </div>
       </div>
-      <BuyLink lot={lot} />
       <p className="mt-2 text-xs text-ink/70">{t('lot.recipeSoon')}</p>
       <div className="mt-2 border-t border-line">
         <RowButton label={t('lots.all')} onClick={openLots} />
@@ -86,22 +85,5 @@ export function LotTasting({ lot }: { lot: Lot }) {
         {lot.process[lang]} · {lot.variety} · {lo === hi ? `${lo} m` : `${lo}–${hi} m`}
       </p>
     </>
-  )
-}
-
-// The product page on the roaster's shop, in a new tab
-export function BuyLink({ lot }: { lot: Lot }) {
-  const { t } = useStore()
-  return (
-    <a
-      href={lot.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-3 inline-flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-ink bg-cream px-4 text-[15px] font-semibold text-ink active:scale-[0.98]"
-    >
-      {t('lots.buy')}
-      <span aria-hidden="true" className="text-terracotta">↗</span>
-      <span className="sr-only">{t('lots.newTab')}</span>
-    </a>
   )
 }
