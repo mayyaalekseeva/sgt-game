@@ -199,6 +199,7 @@ export interface Report extends Brew {
   notes?: string
   timed?: true // brewed with the brew timer
   photo?: string // the current photo's nonce (worker/photos.ts); signed-in reports only
+  editedAt?: number // grinder or notes changed after filing; the numbers never change
 }
 
 export const MAX_GRINDER = 30
@@ -247,7 +248,8 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         (r.grinder == null || typeof r.grinder === 'string') &&
         (r.notes == null || typeof r.notes === 'string') &&
         (r.timed == null || typeof r.timed === 'boolean') &&
-        (r.photo == null || isPhotoNonce(r.photo))
+        (r.photo == null || isPhotoNonce(r.photo)) &&
+        (r.editedAt == null || num(r.editedAt))
       if (!ok) fail(`reports[${i}] is invalid`)
       return {
         id: r.id as string,
@@ -266,6 +268,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         ...(typeof r.notes === 'string' && r.notes !== '' ? { notes: r.notes } : {}),
         ...(r.timed === true ? { timed: true as const } : {}),
         ...(isPhotoNonce(r.photo) ? { photo: r.photo } : {}),
+        ...(num(r.editedAt) ? { editedAt: r.editedAt as number } : {}),
       }
     }),
     working: Object.fromEntries(

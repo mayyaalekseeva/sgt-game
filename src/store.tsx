@@ -3,6 +3,7 @@ import { isMyRef, mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
 import { BREWERS, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { translate, type Key } from './i18n'
 import { lotBySlug } from './lots'
+import { withEdit } from './sync'
 
 const STORAGE_KEY = 'barista-game:v1'
 
@@ -62,6 +63,8 @@ interface Store extends Persisted {
   setSound: (on: boolean) => void
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
+  editReport: (id: string, fields: { grinder?: string; notes?: string }) => void
+  deleteReport: (id: string) => void
   reset: () => void
   saveCoffee: (c: MyCoffee) => void
   // after the guest data went to an account at first sign-in
@@ -106,6 +109,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setSound: (sound) => setS((p) => ({ ...p, sound })),
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
+      editReport: (id, fields) =>
+        setS((p) => {
+          const edit = { grinder: fields.grinder?.trim(), notes: fields.notes?.trim(), editedAt: Date.now() }
+          return { ...p, reports: p.reports.map((r) => (r.id === id ? withEdit(r, edit) : r)) }
+        }),
+      deleteReport: (id) =>
+        setS((p) => ({
+          ...p,
+          reports: p.reports.filter((r) => r.id !== id),
+          working: Object.fromEntries(Object.entries(p.working).filter(([, r]) => r !== id)),
+        })),
       reset: () => setS((p) => ({ ...p, reports: [], working: {} })),
       saveCoffee: (c) => setS((p) => ({ ...p, coffees: mergeCoffees(p.coffees, [c]) })),
       clearGuest: () => setS((p) => ({ ...p, reports: [], working: {}, coffees: [] })),

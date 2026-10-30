@@ -33,20 +33,25 @@ export async function fetchReports(signal: AbortSignal): Promise<{ reports: Repo
   return { ...parseReportsResponse(raw), coffees: parseCoffees((raw as { coffees?: unknown }).coffees) }
 }
 
-async function send(method: 'POST' | 'PUT', path: string, body: unknown) {
+async function send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) {
   const res = await fetch(path, {
     method,
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   })
   if (!res.ok) throw Object.assign(new Error(`${method} ${path}: ${res.status}`), { status: res.status })
 }
 
-// Writes for src/sync.ts. All are safe to repeat: report and coffee ids come from the client.
+const reportPath = (id: string) => `/api/reports/${encodeURIComponent(id)}`
+
+// Writes for src/sync.ts. All are safe to repeat: report and coffee ids come from the client, an older edit
+// loses to a newer one, and deleting twice is a no-op.
 export const sender: Sender = {
   postReports: (reports, imported) => send('POST', '/api/reports', { reports, imported }),
   putWorking: (reportId) => send('PUT', '/api/working-recipes', { reportId }),
   postCoffees: (coffees) => send('POST', '/api/coffees', { coffees }),
+  patchReport: (id, edit) => send('PATCH', reportPath(id), { grinder: edit.grinder ?? null, notes: edit.notes ?? null, editedAt: edit.editedAt }),
+  deleteReport: (id) => send('DELETE', reportPath(id)),
 }
 
 // Report photos (worker/photos.ts). Owner-only: the session cookie goes along like with any same-origin request.
