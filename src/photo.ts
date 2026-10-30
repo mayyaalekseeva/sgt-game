@@ -32,15 +32,34 @@ export async function encodeWithin(encode: (quality: number) => Promise<Blob>, q
   return blob
 }
 
+// HEIF brands (ISO/IEC 23008-12) for HEVC-coded photos, as iPhones write them. AVIF is left out: browsers
+// decode it themselves, and the decoder below is built without AV1.
+const HEIC_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1'])
+
+/** Whether a file's first bytes are a HEIC/HEIF photo: an ftyp box naming a HEIF brand, major or compatible. */
+export function isHeicHeader(b: Uint8Array) {
+  const text = (at: number) => String.fromCharCode(b[at], b[at + 1], b[at + 2], b[at + 3])
+  if (b.length < 16 || text(4) !== 'ftyp') return false
+  const size = Math.min(((b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]) >>> 0, b.length)
+  const major = text(8)
+  if (major === 'avif' || major === 'avis') return false // AVIF also lists mif1
+  if (HEIC_BRANDS.has(major)) return true
+  // after the major brand and its minor version, the compatible brands run to the end of the box
+  for (let at = 16; at + 4 <= size; at += 4) if (HEIC_BRANDS.has(text(at))) return true
+  return false
+}
+
 type Decoded = { source: CanvasImageSource; width: number; height: number; close: () => void }
 
+const fromBitmap = (bitmap: ImageBitmap): Decoded => ({ source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() })
+
 // createImageBitmap applies the Exif rotation with imageOrientation 'from-image'. Browsers that refuse the
-// option, or the file, get a second try through <img>, which also honours the rotation.
+// option, or the file, get a second try through <img>, which also honours the rotation. An iPhone's HEIC that
+// the browser cannot open (Chrome on Windows or Android) is decoded by libheif, loaded only then.
 async function decode(file: Blob): Promise<Decoded> {
   if (typeof createImageBitmap === 'function') {
     try {
-      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-      return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() }
+      return fromBitmap(await createImageBitmap(file, { imageOrientation: 'from-image' }))
     } catch {
       /* try <img> */
     }
@@ -52,10 +71,19 @@ async function decode(file: Blob): Promise<Decoded> {
     await img.decode()
     return { source: img, width: img.naturalWidth, height: img.naturalHeight, close: () => {} }
   } catch {
-    // HEIC on Android, for one
-    throw new PhotoError('unreadable')
+    /* try HEIC */
   } finally {
     URL.revokeObjectURL(url)
+  }
+  if (!isHeicHeader(new Uint8Array(await file.slice(0, 64).arrayBuffer()))) throw new PhotoError('unreadable')
+  try {
+    // the build without eval, so a Content-Security-Policy cannot break it; about 3 MB, in its own chunk
+    const { heicTo } = await import('heic-to/csp')
+    // libheif applies the photo's rotation and mirroring itself
+    return fromBitmap(await heicTo({ blob: file, type: 'bitmap' }))
+  } catch (err) {
+    console.warn(err)
+    throw new PhotoError('unreadable')
   }
 }
 
