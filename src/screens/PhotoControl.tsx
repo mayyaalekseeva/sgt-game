@@ -34,7 +34,7 @@ function useObjectUrl(blob: Blob | null) {
 }
 
 const buttonClass =
-  'flex h-11 cursor-pointer items-center justify-center rounded-lg bg-line px-4 text-[15px] font-semibold text-ink active:scale-[0.98] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-terracotta'
+  'flex h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg bg-line px-4 text-[15px] font-semibold text-ink active:scale-[0.98] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-terracotta'
 
 // A file input dressed as a button; the input keeps focus, so the label shows the global focus ring (index.css). capture opens the camera straight away; without it the phone offers
 // its library (and usually the camera too).
@@ -198,12 +198,12 @@ export default function PhotoControl({ report, initial, compact = false }: { rep
   const src = preview ?? (report.photo ? photoUrl(report.id, report.photo) : null)
   const alt = t('photo.alt', { date: new Date(report.ts).toLocaleDateString(lang === 'pt' ? 'pt-PT' : 'en-GB') })
   const retry = error && pending && busy === null && (
-    <button type="button" onClick={() => void upload(pending)} className="h-11 text-[15px] font-semibold text-ink underline">
+    <button type="button" onClick={() => void upload(pending)} className="h-11 whitespace-nowrap text-[15px] font-semibold text-ink underline">
       {t('photo.retry')}
     </button>
   )
   const removeButton = report.photo && !pending && (
-    <button type="button" onClick={() => void remove()} disabled={busy !== null} className="h-11 text-[15px] font-semibold text-ink underline disabled:opacity-50">
+    <button type="button" onClick={() => void remove()} disabled={busy !== null} className="h-11 whitespace-nowrap text-[15px] font-semibold text-ink underline disabled:opacity-50">
       {t('photo.remove')}
     </button>
   )
@@ -213,11 +213,14 @@ export default function PhotoControl({ report, initial, compact = false }: { rep
       <div className="flex flex-col gap-1 pt-1">
         <div className="flex items-center gap-3">
           {src && <img src={src} alt={alt} loading="lazy" decoding="async" className={`${frame} !w-16 aspect-square flex-none`} />}
-          <FileButton onFile={(f) => void pick(f)} disabled={busy !== null}>
-            {t(src ? 'photo.change' : 'photo.add')}
-          </FileButton>
-          {removeButton}
-          {retry}
+          {/* On a narrow phone Remove wraps under Change rather than either label breaking */}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4">
+            <FileButton onFile={(f) => void pick(f)} disabled={busy !== null}>
+              {t(src ? 'photo.change' : 'photo.add')}
+            </FileButton>
+            {removeButton}
+            {retry}
+          </div>
         </div>
         <Status busy={busy} error={error} />
       </div>
