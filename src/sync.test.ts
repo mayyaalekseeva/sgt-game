@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MyCoffee } from './coffees'
 import type { Report } from './data'
-import { BATCH, applySent, chunks, emptyCache, flush, importGuest, newReportId, parseAccountCache, view, withPhoto, withServer, type Sender } from './sync'
+import { BATCH, applySent, chunks, emptyCache, flush, importGuest, newReportId, parseAccountCache, queueDelete, queueEdit, view, withPhoto, withServer, type Sender } from './sync'
 
 const rep = (id: string, ts = 1_000, over: Partial<Report> = {}): Report => ({
   id,
@@ -29,7 +29,7 @@ const coffee = (tag: string, updatedAt = 1): MyCoffee => ({
 const status = (n: number) => Object.assign(new Error(String(n)), { status: n })
 
 // Records calls; `fail` decides per call whether (and how) it throws
-function fakeSender(fail: (kind: 'post' | 'put' | 'coffees', arg: unknown) => Error | null = () => null) {
+function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete', arg: unknown) => Error | null = () => null) {
   const calls: [string, unknown, boolean?][] = []
   const send: Sender = {
     postReports: async (reports, imported) => {
@@ -45,6 +45,16 @@ function fakeSender(fail: (kind: 'post' | 'put' | 'coffees', arg: unknown) => Er
     postCoffees: async (coffees) => {
       calls.push(['coffees', coffees.map((c) => c.id)])
       const e = fail('coffees', coffees)
+      if (e) throw e
+    },
+    patchReport: async (id, edit) => {
+      calls.push(['patch', [id, edit.editedAt]])
+      const e = fail('patch', id)
+      if (e) throw e
+    },
+    deleteReport: async (id) => {
+      calls.push(['delete', id])
+      const e = fail('delete', id)
       if (e) throw e
     },
   }
@@ -240,5 +250,123 @@ describe('newReportId', () => {
     const a = newReportId()
     expect(a).toMatch(/^[0-9a-f]{32}$/)
     expect(newReportId()).not.toBe(a)
+  })
+})
+
+describe('editing and deleting', () => {
+  const T = 5_000
+  // a: on the server; q: filed offline, still queued
+  const base = () => ({
+    ...emptyCache(),
+    reports: [rep('a', 1, { grinder: '12', notes: 'old' })],
+    working: { 'espresso-medium': 'a' },
+    outbox: { reports: [rep('q', 2)], working: { 'filter-v60': 'q' } },
+  })
+
+  describe('queueEdit', () => {
+    it('queues an edit for a report the server has, and shows it at once, marked as edited', () => {
+      const c = queueEdit(base(), 'a', { grinder: ' 14 ', notes: '' }, T)
+      expect(c.outbox.edits).toEqual({ a: { grinder: '14', editedAt: T } })
+      const a = view(c).reports.find((r) => r.id === 'a')!
+      expect(a).toMatchObject({ grinder: '14', editedAt: T, dose: 18 })
+      expect(a).not.toHaveProperty('notes')
+    })
+
+    it('changes a queued report in place, without an edited mark', () => {
+      const c = queueEdit(base(), 'q', { grinder: '9', notes: 'fresh' }, T)
+      expect(c.outbox.edits).toBeUndefined()
+      expect(c.outbox.reports[0]).toEqual(rep('q', 2, { grinder: '9', notes: 'fresh' }))
+    })
+
+    it('keeps only the latest edit of a report', () => {
+      const c = queueEdit(queueEdit(base(), 'a', { notes: 'one' }, T), 'a', { notes: 'two' }, T + 1)
+      expect(c.outbox.edits).toEqual({ a: { notes: 'two', editedAt: T + 1 } })
+    })
+
+    it('does not undo a newer edit made on another device', () => {
+      const c = queueEdit(base(), 'a', { notes: 'mine' }, T)
+      const later = { ...c, reports: [rep('a', 1, { notes: 'theirs', editedAt: T + 10 })] }
+      expect(view(later).reports.find((r) => r.id === 'a')!.notes).toBe('theirs')
+    })
+  })
+
+  describe('queueDelete', () => {
+    it('hides the report and its working recipe at once', () => {
+      const v = view(queueDelete(base(), 'a'))
+      expect(v.reports.map((r) => r.id)).toEqual(['q'])
+      expect(v.working).toEqual({ 'filter-v60': 'q' })
+    })
+
+    it('drops what was still queued for that report', () => {
+      const edited = queueEdit(base(), 'a', { notes: 'x' }, T)
+      expect(queueDelete(edited, 'a').outbox.edits).toEqual({})
+      const c = queueDelete(base(), 'q')
+      expect(c.outbox.reports).toEqual([])
+      expect(c.outbox.working).toEqual({})
+      expect(c.outbox.deletes).toEqual(['q'])
+    })
+
+    it('queues each id once', () => {
+      expect(queueDelete(queueDelete(base(), 'a'), 'a').outbox.deletes).toEqual(['a'])
+    })
+  })
+
+  describe('flush and applySent', () => {
+    it('sends reports, edits, working recipes, then deletes', async () => {
+      const c = queueDelete(queueEdit(base(), 'a', { notes: 'x' }, T), 'zz')
+      const { send, calls } = fakeSender()
+      await flush(c.outbox, send)
+      expect(calls.map((x) => x[0])).toEqual(['post', 'patch', 'put', 'delete'])
+    })
+
+    it('stops before the deletes when a working recipe fails for now', async () => {
+      const c = queueDelete(base(), 'a')
+      const { send } = fakeSender((kind) => (kind === 'put' ? status(503) : null))
+      expect((await flush(c.outbox, send)).deletes).toBeUndefined()
+    })
+
+    it('drops an edit the server refuses (the report was deleted elsewhere)', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const c = queueEdit(base(), 'a', { notes: 'x' }, T)
+      const { send } = fakeSender((kind) => (kind === 'patch' ? status(404) : null))
+      const sent = await flush(c.outbox, send)
+      expect(applySent(c, sent).outbox.edits).toBeUndefined()
+    })
+
+    it('moves sent edits and deletes into the copy', async () => {
+      const c = queueDelete(queueEdit(base(), 'a', { notes: 'x' }, T), 'q')
+      const { send } = fakeSender()
+      const after = applySent(c, await flush(c.outbox, send))
+      expect(after.outbox).toEqual({ reports: [], working: {} })
+      // the edit cleared the grinder: only notes were sent
+      const { grinder: _grinder, ...a } = rep('a', 1, { notes: 'x', editedAt: T })
+      expect(after.reports).toEqual([a])
+    })
+
+    it('keeps an edit made while the older one was being sent', async () => {
+      const c = queueEdit(base(), 'a', { notes: 'one' }, T)
+      const { send } = fakeSender()
+      const sent = await flush(c.outbox, send)
+      const meanwhile = queueEdit(c, 'a', { notes: 'two' }, T + 1)
+      expect(applySent(meanwhile, sent).outbox.edits).toEqual({ a: { notes: 'two', editedAt: T + 1 } })
+    })
+
+    it('forgets a deleted report as working recipe once sent', async () => {
+      const c = queueDelete(base(), 'a')
+      const { send } = fakeSender()
+      const after = applySent(c, await flush(c.outbox, send))
+      expect(after.working).toEqual({ 'filter-v60': 'q' })
+      expect(after.reports.map((r) => r.id)).toEqual(['q'])
+    })
+  })
+
+  it('keeps queued edits and deletes through localStorage, dropping malformed ones', () => {
+    const c = queueDelete(queueEdit(base(), 'a', { grinder: '14' }, T), 'b')
+    const raw = JSON.parse(JSON.stringify(c))
+    raw.outbox.edits.bad = { notes: 5 }
+    raw.outbox.deletes.push(7)
+    const back = parseAccountCache(raw)
+    expect(back.outbox.edits).toEqual({ a: { grinder: '14', editedAt: T } })
+    expect(back.outbox.deletes).toEqual(['b'])
   })
 })

@@ -1,10 +1,10 @@
-import { and, asc, count, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { requireUser } from './auth'
 import { auth } from './auth-routes'
 import { db, rowsPerInsert } from './db/client'
 import { logError } from './log'
-import { coffees, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
+import { coffees, deletedReports, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
 import { parseCoffeeBatch, toCoffeeOut, toCoffeeRow, workingKey } from './coffees'
 import { toRecipeContent } from './recipes'
 import {
@@ -18,7 +18,7 @@ import {
   photoEtag,
   photoKey,
 } from './photos'
-import { isReportId, parseReportBatch, toReportOut, toReportRows } from './reports'
+import { isReportId, parseReportBatch, parseReportEdit, toReportOut, toReportRows } from './reports'
 
 export const app = new Hono<{ Bindings: Env }>().basePath('/api')
 
@@ -69,6 +69,18 @@ app.get('/reports', requireUser, async (c) => {
   })
 })
 
+const invalid = (message: string) => ({ error: { code: 'invalid', message } })
+const reportNotFound = { error: { code: 'not_found', message: 'Report not found' } }
+
+// The report's current photo key: undefined when the report is not the caller's, null when it has no photo
+async function currentPhotoKey(env: Env, userId: string, reportId: string) {
+  const [row] = await db(env)
+    .select({ photoKey: reports.photoKey })
+    .from(reports)
+    .where(and(eq(reports.userId, userId), eq(reports.id, reportId)))
+  return row ? row.photoKey : undefined
+}
+
 const ROWS_PER_INSERT = rowsPerInsert(reports)
 
 // Ids come from the client, so a repeated or retried report is ignored: never duplicated, never overwritten.
@@ -77,9 +89,17 @@ app.post('/reports', requireUser, async (c) => {
   const parsed = parseReportBatch(await c.req.json().catch(() => null))
   if ('error' in parsed) return c.json({ error: { code: 'invalid', message: parsed.error } }, 400)
   const d = db(c.env)
-  const known = await d.select({ id: recipeVersions.id }).from(recipeVersions)
-  const rows = toReportRows(parsed.reports, {
-    userId: c.var.userId,
+  const userId = c.var.userId
+  const [known, deleted] = await d.batch([
+    d.select({ id: recipeVersions.id }).from(recipeVersions),
+    d.select({ id: deletedReports.id }).from(deletedReports).where(eq(deletedReports.userId, userId)),
+  ])
+  // a retry that arrives after the report was deleted must not bring it back
+  const gone = new Set(deleted.map((r) => r.id))
+  const live = parsed.reports.filter((r) => !gone.has(r.id))
+  if (live.length === 0) return c.json({ saved: 0 })
+  const rows = toReportRows(live, {
+    userId,
     knownVersions: new Set(known.map((v) => v.id)),
     imported: parsed.imported,
     now: Date.now(),
@@ -93,6 +113,41 @@ app.post('/reports', requireUser, async (c) => {
   const [first, ...rest] = inserts
   const results = await d.batch([first, ...rest])
   return c.json({ saved: results.reduce((n, r) => n + r.length, 0) })
+})
+
+// Grinder and notes only; the later edit wins, so an old edit sent late changes nothing
+app.patch('/reports/:id', requireUser, async (c) => {
+  const reportId = c.req.param('id')
+  if (!isReportId(reportId)) return c.json(invalid('report id is invalid'), 400)
+  const edit = parseReportEdit(await c.req.json().catch(() => null))
+  if ('error' in edit) return c.json(invalid(edit.error), 400)
+  const d = db(c.env)
+  const mine = and(eq(reports.userId, c.var.userId), eq(reports.id, reportId))
+  const updated = await d
+    .update(reports)
+    .set(edit)
+    .where(and(mine, or(isNull(reports.editedAt), lte(reports.editedAt, edit.editedAt))))
+    .returning({ id: reports.id })
+  if (updated.length > 0) return c.json({ applied: true })
+  const [exists] = await d.select({ id: reports.id }).from(reports).where(mine)
+  return exists ? c.json({ applied: false }) : c.json(reportNotFound, 404)
+})
+
+// Removes the report, its working-recipe link and its photo. Repeating it is harmless; the id is kept so
+// the report is not filed again by a late retry.
+app.delete('/reports/:id', requireUser, async (c) => {
+  const reportId = c.req.param('id')
+  if (!isReportId(reportId)) return c.json(invalid('report id is invalid'), 400)
+  const userId = c.var.userId
+  const photo = await currentPhotoKey(c.env, userId, reportId)
+  const d = db(c.env)
+  await d.batch([
+    d.insert(deletedReports).values({ userId, id: reportId, deletedAt: Date.now() }).onConflictDoNothing(),
+    d.delete(workingRecipes).where(and(eq(workingRecipes.userId, userId), eq(workingRecipes.reportId, reportId))),
+    d.delete(reports).where(and(eq(reports.userId, userId), eq(reports.id, reportId))),
+  ])
+  if (photo) c.executionCtx.waitUntil(c.env.PHOTOS.delete(photo).catch((err) => logError('photo.delete', err)))
+  return c.body(null, 204)
 })
 
 // A report is the working recipe for its own recipe (method + roast, or filter + brewer) and coffee, so both come
@@ -119,18 +174,6 @@ app.put('/working-recipes', requireUser, async (c) => {
     })
   return c.json({ key: workingKey(recipeSlug, lot), reportId })
 })
-
-const invalid = (message: string) => ({ error: { code: 'invalid', message } })
-const reportNotFound = { error: { code: 'not_found', message: 'Report not found' } }
-
-// The report's current photo key: undefined when the report is not the caller's, null when it has no photo
-async function currentPhotoKey(env: Env, userId: string, reportId: string) {
-  const [row] = await db(env)
-    .select({ photoKey: reports.photoKey })
-    .from(reports)
-    .where(and(eq(reports.userId, userId), eq(reports.id, reportId)))
-  return row ? row.photoKey : undefined
-}
 
 // Adds or replaces a report's photo. The body is the JPEG itself, already resized and stripped by the client.
 // A new key per upload: the old object is deleted only once the report points at the new one.

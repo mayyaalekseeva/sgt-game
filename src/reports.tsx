@@ -11,6 +11,8 @@ import {
   importGuest,
   newReportId,
   parseAccountCache,
+  queueDelete,
+  queueEdit,
   view,
   withPhoto,
   withServer,
@@ -57,7 +59,12 @@ function openAccount(userId: string): Account {
   return { userId, cache: cache ?? emptyCache(), cached: cache !== null, server: 'loading' }
 }
 
-const pending = (o: Outbox) => o.reports.length > 0 || Object.keys(o.working).length > 0 || (o.coffees?.length ?? 0) > 0
+const pending = (o: Outbox) =>
+  o.reports.length > 0 ||
+  Object.keys(o.working).length > 0 ||
+  (o.coffees?.length ?? 0) > 0 ||
+  Object.keys(o.edits ?? {}).length > 0 ||
+  (o.deletes?.length ?? 0) > 0
 
 type ImportStatus = 'idle' | 'busy' | 'failed'
 
@@ -71,6 +78,10 @@ interface Reports extends ReturnType<typeof progressFor> {
   saveCoffee: (c: MyCoffee) => void
   addReport: (r: Omit<Report, 'id' | 'ts'>) => Report
   markWorking: (key: string, reportId: string) => void
+  // Grinder and notes only; empty clears them. The numbers and taste stay as filed.
+  editReport: (id: string, fields: { grinder?: string; notes?: string }) => void
+  // Removes the report (and its photo); XP, rank and missions recount from what is left
+  deleteReport: (id: string) => void
   // Signed in only. Uploads a resized JPEG (src/photo.ts), or removes the photo with null. Throws with .status.
   setPhoto: (reportId: string, jpeg: Blob | null) => Promise<void>
   // This browser's guest reports and coffees, offered to the account once; null when there is nothing to ask
@@ -225,6 +236,14 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
       markWorking: (key, reportId) => {
         if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, working: { ...c.outbox.working, [key]: reportId } } }))
         else guest.markWorking(key, reportId)
+      },
+      editReport: (id, fields) => {
+        if (account) updateCache(account.userId, (c) => queueEdit(c, id, fields, Date.now()))
+        else guest.editReport(id, fields)
+      },
+      deleteReport: (id) => {
+        if (account) updateCache(account.userId, (c) => queueDelete(c, id))
+        else guest.deleteReport(id)
       },
       saveCoffee: (c) => {
         if (account) {
