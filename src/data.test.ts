@@ -7,7 +7,6 @@ import {
   RECIPE_CONTENT,
   REPORT_XP,
   diaryDays,
-  feedReports,
   parseRecipeContent,
   parseReportsResponse,
   progressFor,
@@ -327,21 +326,6 @@ describe('parseReportsResponse', () => {
     ['an unknown brewer', { reports: [{ ...report({ method: 'filter' }), brewer: 'chemex' }], working: {} }],
   ])('rejects %s', (_name, raw) => {
     expect(() => parseReportsResponse(raw)).toThrow(/GET \/api\/reports/)
-  })
-})
-
-describe('feedReports', () => {
-  it('keeps reports with a photo, newest first, without touching the input', () => {
-    const old = report({ id: 'old', ts: T0 - DAY, photo: '0000000000000001' })
-    const none = report({ id: 'none', ts: T0 })
-    const now = report({ id: 'now', ts: T0 + 1, photo: '0000000000000002' })
-    const input = [old, none, now]
-    expect(feedReports(input).map((r) => r.id)).toEqual(['now', 'old'])
-    expect(input.map((r) => r.id)).toEqual(['old', 'none', 'now'])
-  })
-
-  it('is empty when no report has a photo', () => {
-    expect(feedReports([report()])).toEqual([])
   })
 })
 

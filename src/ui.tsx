@@ -236,7 +236,10 @@ export const fmtClock = (ts: number, lang: Lang) =>
 
 export const fmtNum =(n: number) => String(Math.round(n * 10) / 10)
 
-export const ratio = (r: Recipe) => fmtNum(r.yield / r.dose)
+export const ratio = (r: { dose: number; yield: number }) => fmtNum(r.yield / r.dose)
+
+// A change between two numbers: +2 g, −3 s
+export const signed = (n: number, unit: string) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${fmtNum(Math.abs(n))}${unit}`
 
 // 'other' is still on coffees saved before a process could be written out
 const PROCESS_KEYS = ['washed', 'natural', 'honey', 'anaerobic', 'decaf', 'other']

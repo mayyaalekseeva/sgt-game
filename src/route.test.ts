@@ -14,7 +14,10 @@ describe('parseRoute', () => {
   it('reads a sub-screen over the tab it was opened from', () => {
     expect(parseRoute('#/profile/diary')).toEqual({ tab: 'profile', sub: 'diary' })
     expect(parseRoute('#/diag/diary')).toEqual({ tab: 'diag', sub: 'diary' })
-    expect(parseRoute('#/profile/feed')).toEqual({ tab: 'profile', sub: 'feed' })
+  })
+
+  it('opens the tab for the old Feed link (the Diary is one timeline now)', () => {
+    expect(parseRoute('#/profile/feed')).toEqual({ tab: 'profile', sub: null })
   })
 
   it('keeps the tab when the sub-screen is unknown', () => {
