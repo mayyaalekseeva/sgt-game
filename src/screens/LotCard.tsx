@@ -28,7 +28,7 @@ export default function LotCard({ openLots }: { openLots: () => void }) {
   if (!lot) return null
   return (
     <Card key={lot.slug} className="animate-enter">
-      <LotPhoto lot={lot} className={`h-36 object-[50%_40%] ${BANNER}`} />
+      <LotPhoto lot={lot} className={BANNER} />
       <LotHead lot={lot} />
       <LotTasting lot={lot} />
       <p className="mt-2 text-xs text-ink/70">{t('lot.recipeSoon')}</p>
@@ -39,8 +39,8 @@ export default function LotCard({ openLots }: { openLots: () => void }) {
   )
 }
 
-// A photo across the top of a Card, edge to edge inside its padding and border
-export const BANNER = '-mx-4 -mt-4 mb-3 block w-[calc(100%+2rem)] max-w-none rounded-t-[10px] border-b-2 border-ink'
+// A photo across the top of a Card, edge to edge inside its padding and border, whole and at its own shape
+export const BANNER = '-mx-4 -mt-4 mb-3 block h-auto w-[calc(100%+2rem)] max-w-none rounded-t-[10px] border-b-2 border-ink'
 
 // The roaster's bag photo, copied from its shop; nothing for a lot without one. The caller sets its frame.
 export function LotPhoto({ lot, className = '' }: { lot: Lot; className?: string }) {
@@ -52,7 +52,7 @@ export function LotPhoto({ lot, className = '' }: { lot: Lot; className?: string
       src={src}
       alt={t('lots.photoAlt', { name: lot.name })}
       loading="lazy"
-      className={`bg-line object-cover ${className}`}
+      className={`bg-line ${className}`}
     />
   )
 }

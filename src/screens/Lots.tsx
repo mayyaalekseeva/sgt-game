@@ -15,7 +15,7 @@ export default function Lots({ brew }: { brew: () => void }) {
         {currentLots().map((lot) => (
           <li key={lot.slug}>
             <Card>
-              <LotPhoto lot={lot} className={`aspect-[4/3] ${BANNER}`} />
+              <LotPhoto lot={lot} className={BANNER} />
               <LotHead lot={lot} />
               <LotTasting lot={lot} />
               <div className="mt-4 flex flex-col gap-1">
