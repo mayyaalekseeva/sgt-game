@@ -22,7 +22,8 @@ export interface Lot {
   notes: Text
   profile: Profile
   status: 'current' | 'retired' // retired lots stay for older reports, out of the picker
-  url: string
+  url: string // the product page on the roaster's shop, where it is bought
+  photo?: string // the bag photo on the shop's CDN; the app shows the copy in public/lots/ (npm run lots:photos)
 }
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
@@ -49,6 +50,9 @@ export function parseLotContent(raw: unknown, source = 'content/lots.json'): Lot
     if (!PROFILES.includes(l.profile as Profile)) fail(`${at}: profile must be one of ${PROFILES.join(', ')}`)
     if (l.status !== 'current' && l.status !== 'retired') fail(`${at}: status must be current or retired`)
     if (typeof l.url !== 'string' || !l.url.startsWith('https://')) fail(`${at}: url must be https`)
+    if (l.photo !== undefined && (typeof l.photo !== 'string' || !l.photo.startsWith('https://cdn.shopify.com/'))) {
+      fail(`${at}: photo must be a https://cdn.shopify.com/ image`)
+    }
     return {
       slug: l.slug as string,
       name: l.name as string,
@@ -61,6 +65,7 @@ export function parseLotContent(raw: unknown, source = 'content/lots.json'): Lot
       profile: l.profile as Profile,
       status: l.status as Lot['status'],
       url: l.url as string,
+      ...(l.photo ? { photo: l.photo as string } : {}),
     }
   })
   const slugs = lots.map((l) => l.slug)
@@ -72,6 +77,9 @@ export function parseLotContent(raw: unknown, source = 'content/lots.json'): Lot
 export const LOTS = parseLotContent(lotContent)
 
 export const lotBySlug = (slug: string | null | undefined) => (slug ? LOTS.find((l) => l.slug === slug) : undefined)
+
+// The local copy of the bag photo, served from public/lots/
+export const lotPhoto = (lot: Lot) => (lot.photo ? `./lots/${lot.slug}.webp` : undefined)
 
 // The ones the picker offers
 export const currentLots = () => LOTS.filter((l) => l.status === 'current')

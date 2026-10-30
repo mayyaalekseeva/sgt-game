@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react'
 import { loadRecipes, useLoad } from '../api'
 import { BREWERS, METHODS, ROASTS, latestVersion, type RecipeEntry, type RecipeVersion } from '../data'
+import { LOT_ROAST } from '../coffees'
 import { usePick } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, ScreenTitle, SmallButton, fmtDate, fmtNum, fmtRange, ratio } from '../ui'
@@ -28,7 +29,8 @@ export default function Recipes({ use }: { use: () => void }) {
                 <Label>{t(`method.${m}`)}</Label>
                 <ul className="flex flex-col gap-3">
                   {data.recipes
-                    .filter((e) => e.method === m && e.status !== 'archived')
+                    // one espresso recipe until the roaster says each lot's roast; the others stay for older reports
+                    .filter((e) => e.method === m && e.status !== 'archived' && (!e.roast || e.roast === LOT_ROAST))
                     .sort((a, b) => order(a) - order(b))
                     .map((e) => (
                       <li key={e.slug}>
@@ -60,7 +62,7 @@ function RecipeCard({ entry, use }: { entry: RecipeEntry; use: () => void }) {
   return (
     <Card>
       <div className="flex items-baseline justify-between gap-2">
-        <Display className="text-[26px] tracking-wide">{entry.brewer ? t(`brewer.${entry.brewer}`) : t(`roast.${entry.roast ?? 'medium'}`)}</Display>
+        <Display className="text-[26px] tracking-wide">{entry.brewer ? t(`brewer.${entry.brewer}`) : t(`method.${entry.method}`)}</Display>
         <span className="whitespace-nowrap text-xs text-muted">
           {t('recipes.version', { n: cur.version, date: fmtDate(cur.publishedAt, lang) })}
         </span>

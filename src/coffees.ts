@@ -95,13 +95,16 @@ export interface Pick {
  * falls back to the first current lot. Your own coffee knows its roast, so for espresso it sets the
  * roast; the roaster's lots leave the roast to the picker.
  */
+/** The roast a roaster lot is brewed as, until the roaster says each lot's roast. The roast picker is hidden. */
+export const LOT_ROAST: Roast = 'medium'
+
 export function resolvePick(
   s: { method: Method; roast: Roast; brewer: Brewer; lot: string | null },
   coffees: MyCoffee[],
 ): Pick {
   const mine = findMine(coffees, s.lot)
   const lot = mine || (s.lot && lotBySlug(s.lot)?.status === 'current') ? (s.lot as string) : currentLots()[0].slug
-  const roast = mine ? mine.roast : s.roast
+  const roast = mine ? mine.roast : LOT_ROAST
   const brew = brewOf(s.method, roast, s.brewer)
   return { lot, ...(mine ? { mine } : {}), brew, slug: slugOf(brew), key: workingKey({ ...brew, lot }) }
 }

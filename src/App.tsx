@@ -7,6 +7,7 @@ import Orders from './screens/Orders'
 import AddCoffee from './screens/AddCoffee'
 import BrewTimer from './screens/BrewTimer'
 import MyCoffees from './screens/MyCoffees'
+import Lots from './screens/Lots'
 import Diagnose from './screens/Diagnose'
 import Recipes from './screens/Recipes'
 import Profile from './screens/Profile'
@@ -150,10 +151,11 @@ export default function App() {
             {sub === 'timer' && <BrewTimer done={() => select('diag')} />}
             {sub === 'coffee' && <AddCoffee done={() => select(tab)} />}
             {sub === 'coffees' && <MyCoffees add={() => open('coffee')} />}
+            {sub === 'lots' && <Lots brew={() => select('orders')} />}
           </>
         ) : (
           <>
-            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} addCoffee={() => open('coffee')} />}
+            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} openLots={() => open('lots')} addCoffee={() => open('coffee')} />}
             {tab === 'diag' && <Diagnose openDiary={() => open('diary')} openTimer={() => open('timer')} addCoffee={() => open('coffee')} />}
             {tab === 'recipes' && <Recipes use={() => select('orders')} />}
             {tab === 'profile' && <Profile open={open} />}
