@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { myRef } from '../coffees'
 import { BREWERS, METHODS } from '../data'
 import { currentLots } from '../lots'
@@ -9,7 +10,8 @@ const ADD = '__add'
 
 // The coffee, then the method. Espresso of your own coffee shows its roast; a roaster lot brews the medium
 // recipe (LOT_ROAST). Filter is picked by brewer. Every brew is of a known coffee: a roaster lot or one you added.
-export default function RecipePicker({ addCoffee }: { addCoffee: () => void }) {
+// coffee: shown right under the coffee select (Orders puts the picked coffee's card there)
+export default function RecipePicker({ addCoffee, coffee }: { addCoffee: () => void; coffee?: ReactNode }) {
   const { t, lang, method, brewer, setLot, setMethod, setBrewer } = useStore()
   const { coffees } = useReports()
   const { lot, mine } = usePick()
@@ -29,6 +31,7 @@ export default function RecipePicker({ addCoffee }: { addCoffee: () => void }) {
           { label: '', options: [{ id: ADD, label: t('coffee.add') }] },
         ]}
       />
+      {coffee}
       <Segmented
         label={t('label.method')}
         value={method}
