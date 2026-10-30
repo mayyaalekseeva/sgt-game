@@ -212,9 +212,9 @@ export default function PhotoControl({ report, initial, compact = false }: { rep
     return (
       <div className="flex flex-col gap-1 pt-1">
         <div className="flex items-center gap-3">
-          {src && <img src={src} alt={alt} loading="lazy" decoding="async" className={`${frame} !w-16 aspect-square flex-none`} />}
-          {/* On a narrow phone Remove wraps under Change rather than either label breaking */}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4">
+          {/* The thumbnail is as tall as the two stacked actions (2 × h-11 + gap-2) */}
+          {src && <img src={src} alt={alt} loading="lazy" decoding="async" className={`${frame} !w-24 aspect-square flex-none`} />}
+          <div className="flex min-w-0 flex-col items-start gap-2">
             <FileButton onFile={(f) => void pick(f)} disabled={busy !== null}>
               {t(src ? 'photo.change' : 'photo.add')}
             </FileButton>
