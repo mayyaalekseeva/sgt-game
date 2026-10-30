@@ -17,6 +17,7 @@ const report = (over: Record<string, unknown> = {}) => ({
   recipeVersionId: 'espresso-medium@1',
   lot: null,
   grinder: null,
+  grinderModel: null,
   notes: null,
   timed: false,
   ...over,
@@ -64,6 +65,18 @@ describe('parseReportBatch', () => {
     const r = report({ grinder: '18 clicks', notes: 'Fresh bag' })
     expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
     expect(parse({ reports: [report({ grinder: '', notes: '' })] })).toEqual({ reports: [report()], imported: false })
+  })
+
+  it('keeps a well-formed grinder id, listed or not, and nothing else', () => {
+    const r = report({ grinderModel: 'comandante-c40' })
+    expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
+    expect(parse({ reports: [report({ grinderModel: 'some-new-grinder' })] })).not.toHaveProperty('error')
+    // older clients leave it out
+    const { grinderModel: _, ...none } = report()
+    expect(parse({ reports: [none] })).toEqual({ reports: [report()], imported: false })
+    for (const bad of ['Comandante C40', 'x'.repeat(41), 5, '']) {
+      expect(parse({ reports: [report({ grinderModel: bad })] })).toEqual({ error: 'reports[0].grinderModel is invalid' })
+    }
   })
 
   it('accepts a lot slug, and no lot from older clients', () => {
@@ -132,7 +145,7 @@ describe('toReportRows', () => {
     expect(toReportRows(batch, { ...ctx, imported: true }).every((r) => r.importedAt === NOW)).toBe(true)
   })
 
-  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
+  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, grinderModel: row.grinderModel ?? null, notes: row.notes ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
@@ -157,6 +170,14 @@ describe('parseReportEdit', () => {
 
   it('accepts grinder and notes, trimmed', () => {
     expect(edit({ grinder: ' 18 clicks ' })).toEqual({ grinder: '18 clicks', notes: 'Fresh bag', editedAt: NOW })
+  })
+
+  it('sets or clears the grinder, and leaves it alone when an older build leaves it out', () => {
+    expect(edit({ grinderModel: 'niche-zero' })).toMatchObject({ grinderModel: 'niche-zero' })
+    expect(edit({ grinderModel: '' })).toMatchObject({ grinderModel: null })
+    expect(edit({ grinderModel: null })).toMatchObject({ grinderModel: null })
+    expect(edit()).not.toHaveProperty('grinderModel')
+    expect(edit({ grinderModel: 'Niche Zero' })).toEqual({ error: 'grinderModel is invalid' })
   })
 
   it('clears a field sent empty, blank or null', () => {

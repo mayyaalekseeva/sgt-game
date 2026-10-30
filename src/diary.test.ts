@@ -80,6 +80,14 @@ describe('brewChanges', () => {
     expect(brewChanges(prev, rep('c', 2))).toEqual([])
     expect(brewChanges(rep('p', 1), rep('c', 2, { grinder: '13' }))).toEqual([])
   })
+
+  it('compares settings on the same grinder only; on another one, names the new grinder', () => {
+    const c40 = rep('p', 1, { grinderModel: 'comandante-c40', grinder: '20' })
+    expect(brewChanges(c40, rep('c', 2, { grinderModel: 'comandante-c40', grinder: '18' }))).toEqual([{ field: 'grinder', from: '20', to: '18' }])
+    expect(brewChanges(c40, rep('c', 2, { grinderModel: 'niche-zero', grinder: '12' }))).toEqual([{ field: 'grinderModel', from: 'comandante-c40', to: 'niche-zero' }])
+    // one brew without a grinder chosen: the settings still compare, as before grinders were listed
+    expect(brewChanges(prev, rep('c', 2, { grinderModel: 'niche-zero', grinder: '13 clicks' }))).toEqual([{ field: 'grinder', from: '14 clicks', to: '13 clicks' }])
+  })
 })
 
 describe('diarySummary and lastWeek', () => {

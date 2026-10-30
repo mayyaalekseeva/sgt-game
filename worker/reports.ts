@@ -16,6 +16,7 @@ export interface ReportIn {
   recipeVersionId: string | null
   lot: string | null
   grinder: string | null
+  grinderModel: string | null
   notes: string | null
   timed: boolean
 }
@@ -30,6 +31,9 @@ const LOT = /^([a-z0-9]+(-[a-z0-9]+)*|my:[0-9a-f]{32})$/
 // Same limits as the client (src/data.ts MAX_GRINDER, MAX_NOTES)
 const MAX_GRINDER = 30
 const MAX_NOTES = 280
+// A grinder id (src/grinders.ts isGrinderModel). Any well-formed one is kept, so a grinder added to the list needs no
+// server change.
+const isGrinderModel = (v: unknown): v is string => typeof v === 'string' && v.length <= 40 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v)
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 
@@ -81,6 +85,7 @@ export function parseReportBatch(
     }
     if (r.lot != null && (typeof r.lot !== 'string' || r.lot.length > 64 || !LOT.test(r.lot))) return { error: `${at}.lot is invalid` }
     if (r.grinder != null && (typeof r.grinder !== 'string' || r.grinder.length > MAX_GRINDER)) return { error: `${at}.grinder is invalid` }
+    if (r.grinderModel != null && !isGrinderModel(r.grinderModel)) return { error: `${at}.grinderModel is invalid` }
     if (r.notes != null && (typeof r.notes !== 'string' || r.notes.length > MAX_NOTES)) return { error: `${at}.notes is invalid` }
     if (r.timed != null && typeof r.timed !== 'boolean') return { error: `${at}.timed is invalid` }
     out.push({
@@ -96,6 +101,7 @@ export function parseReportBatch(
       recipeVersionId: (r.recipeVersionId as string | null | undefined) ?? null,
       lot: (r.lot as string | null | undefined) ?? null,
       grinder: (r.grinder as string | null | undefined) || null,
+      grinderModel: (r.grinderModel as string | null | undefined) ?? null,
       notes: (r.notes as string | null | undefined) || null,
       timed: r.timed === true,
     })
@@ -103,21 +109,29 @@ export function parseReportBatch(
   return { reports: out, imported }
 }
 
-// The only fields that change after filing: the player's own words. The numbers, taste and diagnosis stay as filed.
+// The only fields that change after filing: the player's grinder and own words. The numbers, taste and diagnosis
+// stay as filed.
 export interface ReportEdit {
   grinder: string | null
+  grinderModel?: string | null // missing: left as it is (an older build's edit, which never showed it)
   notes: string | null
   editedAt: number
 }
 
-/** Validates a PATCH /api/reports/:id body: { grinder, notes, editedAt }. Empty text clears the field. */
+/** Validates a PATCH /api/reports/:id body: { grinder, grinderModel, notes, editedAt }. Empty text or null clears a field. */
 export function parseReportEdit(body: unknown, now = Date.now()): ReportEdit | { error: string } {
   if (typeof body !== 'object' || body === null) return { error: 'expected { grinder, notes, editedAt }' }
-  const { grinder, notes, editedAt } = body as Record<string, unknown>
+  const { grinder, grinderModel, notes, editedAt } = body as Record<string, unknown>
   if (grinder != null && (typeof grinder !== 'string' || grinder.length > MAX_GRINDER)) return { error: 'grinder is invalid' }
+  if (grinderModel != null && grinderModel !== '' && !isGrinderModel(grinderModel)) return { error: 'grinderModel is invalid' }
   if (notes != null && (typeof notes !== 'string' || notes.length > MAX_NOTES)) return { error: 'notes is invalid' }
   if (!isInt(editedAt, EARLIEST_TS, now + DAY)) return { error: 'editedAt is out of range' }
-  return { grinder: (grinder as string | null | undefined)?.trim() || null, notes: (notes as string | null | undefined)?.trim() || null, editedAt }
+  return {
+    grinder: (grinder as string | null | undefined)?.trim() || null,
+    ...(grinderModel !== undefined ? { grinderModel: (grinderModel as string | null) || null } : {}),
+    notes: (notes as string | null | undefined)?.trim() || null,
+    editedAt,
+  }
 }
 
 /**
@@ -155,6 +169,7 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     recipeVersionId: r.recipeVersionId,
     lot: r.lot,
     grinder: r.grinder,
+    grinderModel: r.grinderModel,
     notes: r.notes,
     ...(r.timed ? { timed: true } : {}),
     ...(photo ? { photo } : {}),

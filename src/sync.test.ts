@@ -278,6 +278,15 @@ describe('editing and deleting', () => {
       expect(c.outbox.reports[0]).toEqual(rep('q', 2, { grinder: '9', notes: 'fresh' }))
     })
 
+    it('sets or clears the grinder with the rest, ignoring a malformed id', () => {
+      const set = queueEdit(base(), 'a', { grinder: '14', grinderModel: 'niche-zero' }, T)
+      expect(set.outbox.edits).toEqual({ a: { grinder: '14', grinderModel: 'niche-zero', editedAt: T } })
+      expect(view(set).reports.find((r) => r.id === 'a')).toMatchObject({ grinder: '14', grinderModel: 'niche-zero' })
+      const withModel = { ...base(), reports: [rep('a', 1, { grinderModel: 'niche-zero' })] }
+      expect(view(queueEdit(withModel, 'a', { grinderModel: '' }, T)).reports.find((r) => r.id === 'a')).not.toHaveProperty('grinderModel')
+      expect(queueEdit(base(), 'a', { grinderModel: 'Niche Zero' }, T).outbox.edits).toEqual({ a: { editedAt: T } })
+    })
+
     it('keeps only the latest edit of a report', () => {
       const c = queueEdit(queueEdit(base(), 'a', { notes: 'one' }, T), 'a', { notes: 'two' }, T + 1)
       expect(c.outbox.edits).toEqual({ a: { notes: 'two', editedAt: T + 1 } })

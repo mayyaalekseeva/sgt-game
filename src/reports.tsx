@@ -17,6 +17,7 @@ import {
   withPhoto,
   withServer,
   type AccountCache,
+  type EditFields,
   type Outbox,
 } from './sync'
 
@@ -78,8 +79,8 @@ interface Reports extends ReturnType<typeof progressFor> {
   saveCoffee: (c: MyCoffee) => void
   addReport: (r: Omit<Report, 'id' | 'ts'>) => Report
   markWorking: (key: string, reportId: string) => void
-  // Grinder and notes only; empty clears them. The numbers and taste stay as filed.
-  editReport: (id: string, fields: { grinder?: string; notes?: string }) => void
+  // Grinder, its setting and notes only; empty clears them. The numbers and taste stay as filed.
+  editReport: (id: string, fields: EditFields) => void
   // Removes the report (and its photo); XP, rank and missions recount from what is left
   deleteReport: (id: string) => void
   // Signed in only. Uploads a resized JPEG (src/photo.ts), or removes the photo with null. Throws with .status.

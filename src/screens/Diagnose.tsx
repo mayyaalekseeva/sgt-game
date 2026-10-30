@@ -6,6 +6,8 @@ import { coffeeName, forRoast } from '../coffees'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime, signed } from '../ui'
+import { lastGrinderModel } from '../grinders'
+import GrinderSelect from './GrinderSelect'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
 
@@ -26,6 +28,8 @@ export default function Diagnose({
   // your working recipe for this coffee comes first: start from its dose and yield
   const workingReport = reports.find((x) => x.id === working[key])
   const start = workingReport ?? recipe
+  // the working recipe's grinder, else the one you last brewed with
+  const startModel = workingReport?.grinderModel ?? lastGrinderModel(reports) ?? ''
 
   const [dose, setDose] = useState(start.dose)
   const [yld, setYld] = useState(start.yield)
@@ -33,6 +37,7 @@ export default function Diagnose({
   const [taste, setTaste] = useState<Taste | null>(null)
   const [bloomed, setBloomed] = useState(true)
   const [grinder, setGrinder] = useState(workingReport?.grinder ?? '')
+  const [grinderModel, setGrinderModel] = useState(startModel)
   const [notes, setNotes] = useState('')
   const [fromTimer, setFromTimer] = useState(false)
   const [photo, setPhoto] = useState<Blob | null>(null) // prepared, uploaded once the report is filed
@@ -46,6 +51,7 @@ export default function Diagnose({
     setTaste(null)
     setBloomed(true)
     setGrinder(workingReport?.grinder ?? '')
+    setGrinderModel(startModel)
     setNotes('')
     setFromTimer(false)
     setPhoto(null)
@@ -80,6 +86,7 @@ export default function Diagnose({
       diag,
       recipeVersionId: recipe.id,
       ...(grinder.trim() ? { grinder: grinder.trim() } : {}),
+      ...(grinderModel ? { grinderModel } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
       ...(fromTimer ? { timed: true as const } : {}),
     })
@@ -195,6 +202,7 @@ export default function Diagnose({
         </Card>
 
         <Card className="flex flex-col gap-3">
+          <GrinderSelect value={grinderModel} onChange={setGrinderModel} />
           <label className="flex flex-col gap-1">
             <Label>{t('diag.grinder')}</Label>
             <input

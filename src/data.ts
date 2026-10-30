@@ -1,4 +1,5 @@
 import recipeContent from '../content/recipes.json' with { type: 'json' }
+import { isGrinderModel } from './grinders'
 
 export type Lang = 'en' | 'pt'
 export type Method = 'espresso' | 'filter'
@@ -196,10 +197,11 @@ export interface Report extends Brew {
   recipeVersionId?: string // `${slug}@${version}` the brew was diagnosed against; missing on older reports
   lot?: string // a lot slug (src/lots.ts) or a my: coffee ref (src/coffees.ts); missing on older reports
   grinder?: string // the grinder setting as the player writes it ("18 clicks"); with notes, what a saved recipe keeps
+  grinderModel?: string // which grinder (src/grinders.ts id); the setting only means something on it
   notes?: string
   timed?: true // brewed with the brew timer
   photo?: string // the current photo's nonce (worker/photos.ts); signed-in reports only
-  editedAt?: number // grinder or notes changed after filing; the numbers never change
+  editedAt?: number // grinder, its setting or notes changed after filing; the numbers never change
 }
 
 export const MAX_GRINDER = 30
@@ -246,6 +248,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         (r.recipeVersionId == null || typeof r.recipeVersionId === 'string') &&
         (r.lot == null || typeof r.lot === 'string') &&
         (r.grinder == null || typeof r.grinder === 'string') &&
+        (r.grinderModel == null || isGrinderModel(r.grinderModel)) &&
         (r.notes == null || typeof r.notes === 'string') &&
         (r.timed == null || typeof r.timed === 'boolean') &&
         (r.photo == null || isPhotoNonce(r.photo)) &&
@@ -265,6 +268,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         ...(typeof r.recipeVersionId === 'string' ? { recipeVersionId: r.recipeVersionId } : {}),
         ...(typeof r.lot === 'string' ? { lot: r.lot } : {}),
         ...(typeof r.grinder === 'string' && r.grinder !== '' ? { grinder: r.grinder } : {}),
+        ...(isGrinderModel(r.grinderModel) ? { grinderModel: r.grinderModel } : {}),
         ...(typeof r.notes === 'string' && r.notes !== '' ? { notes: r.notes } : {}),
         ...(r.timed === true ? { timed: true as const } : {}),
         ...(isPhotoNonce(r.photo) ? { photo: r.photo } : {}),

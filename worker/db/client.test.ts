@@ -22,6 +22,7 @@ const report = (i: number): ReportIn => ({
   recipeVersionId: 'espresso-medium@1',
   lot: 'some-lot',
   grinder: '12',
+  grinderModel: 'comandante-c40',
   notes: 'ok',
   timed: true,
 })
