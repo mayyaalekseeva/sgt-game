@@ -30,15 +30,23 @@ export function previousBrews(reports: Report[]): Map<string, Report> {
 export type BrewChange =
   | { field: 'dose' | 'yield' | 'time'; delta: number }
   | { field: 'grinder'; from: string; to: string }
+  | { field: 'grinderModel'; from: string; to: string }
 
-/** What changed from one brew to the next: the numbers, and the grinder when both brews name it. Empty: the same recipe. */
+/**
+ * What changed from one brew to the next: the numbers, and the grinder when both brews name it. A setting is only
+ * compared on the same grinder: on another one, the new grinder is the change. Empty: the same recipe.
+ */
 export function brewChanges(prev: Report, cur: Report): BrewChange[] {
   const changes: BrewChange[] = []
   for (const field of ['dose', 'yield', 'time'] as const) {
     const delta = Math.round((cur[field] - prev[field]) * 10) / 10
     if (delta !== 0) changes.push({ field, delta })
   }
-  if (prev.grinder && cur.grinder && prev.grinder !== cur.grinder) changes.push({ field: 'grinder', from: prev.grinder, to: cur.grinder })
+  if (prev.grinderModel && cur.grinderModel && prev.grinderModel !== cur.grinderModel) {
+    changes.push({ field: 'grinderModel', from: prev.grinderModel, to: cur.grinderModel })
+  } else if (prev.grinder && cur.grinder && prev.grinder !== cur.grinder) {
+    changes.push({ field: 'grinder', from: prev.grinder, to: cur.grinder })
+  }
   return changes
 }
 

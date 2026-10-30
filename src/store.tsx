@@ -3,7 +3,7 @@ import { isMyRef, mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
 import { BREWERS, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { translate, type Key } from './i18n'
 import { lotBySlug } from './lots'
-import { withEdit } from './sync'
+import { withEdit, type EditFields } from './sync'
 
 const STORAGE_KEY = 'barista-game:v1'
 
@@ -63,7 +63,7 @@ interface Store extends Persisted {
   setSound: (on: boolean) => void
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
-  editReport: (id: string, fields: { grinder?: string; notes?: string }) => void
+  editReport: (id: string, fields: EditFields) => void
   deleteReport: (id: string) => void
   reset: () => void
   saveCoffee: (c: MyCoffee) => void
@@ -111,7 +111,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       editReport: (id, fields) =>
         setS((p) => {
-          const edit = { grinder: fields.grinder?.trim(), notes: fields.notes?.trim(), editedAt: Date.now() }
+          const edit = { grinder: fields.grinder?.trim(), grinderModel: fields.grinderModel || undefined, notes: fields.notes?.trim(), editedAt: Date.now() }
           return { ...p, reports: p.reports.map((r) => (r.id === id ? withEdit(r, edit) : r)) }
         }),
       deleteReport: (id) =>

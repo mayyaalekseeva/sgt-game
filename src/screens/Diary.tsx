@@ -6,6 +6,8 @@ import { brewChanges, diaryCoffees, diarySummary, lastWeek, previousBrews } from
 import { photoUrl } from '../api'
 import { useReports } from '../reports'
 import { useStore } from '../store'
+import { grinderName, grinderText } from '../grinders'
+import GrinderSelect from './GrinderSelect'
 import PhotoControl from './PhotoControl'
 import { Button, Label, ScreenTitle, brewLabel, diagVars, field, fmtClock, fmtDate, fmtNum, fmtTime, ratio, signed } from '../ui'
 
@@ -115,7 +117,9 @@ function SinceLast({ prev, r }: { prev: Report; r: Report }) {
   const parts = changes.map((c) =>
     c.field === 'grinder'
       ? t('diary.grinderChange', { from: c.from, to: c.to })
-      : `${name[c.field].toLocaleLowerCase(lang)} ${signed(c.delta, c.field === 'time' ? ' s' : ' g')}`,
+      : c.field === 'grinderModel'
+        ? t('diary.grinderModelChange', { to: grinderName(c.to) })
+        : `${name[c.field].toLocaleLowerCase(lang)} ${signed(c.delta, c.field === 'time' ? ' s' : ' g')}`,
   )
   return <p className="text-sm font-semibold text-ink">{t('diary.sinceLast', { changes: parts.join(', ') })}</p>
 }
@@ -171,10 +175,10 @@ function Entry({ r, prev, isWorking }: { r: Report; prev?: Report; isWorking: bo
             {isDiagId(r.diag) && <p className="text-sm leading-snug text-ink/80">{t(`d.${r.diag}.change`, diagVars(recipe, r.method))}</p>}
           </div>
           {prev && <SinceLast prev={prev} r={r} />}
-          {(r.grinder || r.notes) && (
+          {(grinderText(r) || r.notes) && (
             <p className="text-sm leading-snug text-ink/80">
-              {r.grinder && <span className="font-semibold text-ink">{t('saved.grinder', { g: r.grinder })}</span>}
-              {r.grinder && r.notes && ' · '}
+              {grinderText(r) && <span className="font-semibold text-ink">{t('saved.grinder', { g: grinderText(r) })}</span>}
+              {grinderText(r) && r.notes && ' · '}
               {r.notes}
             </p>
           )}
@@ -215,9 +219,10 @@ function EditEntry({ r, done }: { r: Report; done: () => void }) {
   const { t } = useStore()
   const { editReport, deleteReport, signedIn } = useReports()
   const [grinder, setGrinder] = useState(r.grinder ?? '')
+  const [grinderModel, setGrinderModel] = useState(r.grinderModel ?? '')
   const [notes, setNotes] = useState(r.notes ?? '')
   const save = () => {
-    editReport(r.id, { grinder, notes })
+    editReport(r.id, { grinder, grinderModel, notes })
     done()
   }
   const remove = () => {
@@ -225,6 +230,7 @@ function EditEntry({ r, done }: { r: Report; done: () => void }) {
   }
   return (
     <div className="mt-2 flex flex-col gap-3">
+      <GrinderSelect value={grinderModel} onChange={setGrinderModel} gap="gap-1" />
       <label className="flex flex-col gap-1">
         <Label>{t('diag.grinder')}</Label>
         <input value={grinder} maxLength={MAX_GRINDER} placeholder={t('diag.grinderHint')} onChange={(e) => setGrinder(e.target.value)} className={`${field} h-11 font-semibold placeholder:font-normal`} />

@@ -1,5 +1,6 @@
 import { RANKS, RECIPES } from '../data'
 import { forRoast } from '../coffees'
+import { grinderText } from '../grinders'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, Button, RowButton, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
@@ -76,7 +77,7 @@ export default function Orders({
           ) : (
             <p className="mt-1 text-sm text-muted">{t('orders.noWorking')}</p>
           )}
-          {workingReport?.grinder && <p className="mt-1 text-[15px] font-semibold">{t('saved.grinder', { g: workingReport.grinder })}</p>}
+          {workingReport && grinderText(workingReport) && <p className="mt-1 text-[15px] font-semibold">{t('saved.grinder', { g: grinderText(workingReport) })}</p>}
           {workingReport?.notes && <p className="mt-1 text-[15px] leading-snug">{workingReport.notes}</p>}
         </Card>
 

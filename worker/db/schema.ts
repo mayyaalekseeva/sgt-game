@@ -99,11 +99,12 @@ export const reports = sqliteTable(
     recipeVersionId: text('recipe_version_id').references(() => recipeVersions.id),
     lot: text('lot'), // a lot slug from content/lots.json, or `my:<coffee id>`; null on older reports
     grinder: text('grinder'), // the player's grinder setting, free text
+    grinderModel: text('grinder_model'), // which grinder, an id from src/grinders.ts; null when not chosen
     notes: text('notes'),
     timed: integer('timed', { mode: 'boolean' }).notNull().default(false), // brewed with the brew timer
     photoKey: text('photo_key'), // R2 key photos/<userId>/<reportId>/<nonce>.jpg (worker/photos.ts); null without a photo
     visibility: text('visibility', { enum: VISIBILITIES }).notNull().default('private'), // for later sharing; unused yet
-    editedAt: integer('edited_at'), // last edit of grinder or notes, by the client's clock; the later edit wins
+    editedAt: integer('edited_at'), // last edit of grinder, setting or notes, by the client's clock; the later edit wins
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },
