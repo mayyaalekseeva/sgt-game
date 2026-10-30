@@ -9,6 +9,9 @@ import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, 
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
 
+// Text fields sit inside a card, so a soft fill marks them instead of a second ink border
+const field = 'rounded-lg bg-line/60 px-3 text-[16px] text-ink placeholder:text-muted'
+
 export default function Diagnose({
   openDiary,
   openTimer,
@@ -194,18 +197,18 @@ export default function Diagnose({
           )}
         </Card>
 
-        <Card className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1">
+        <Card className="flex flex-col gap-4">
+          <label className="flex flex-col gap-2">
             <Label>{t('diag.grinder')}</Label>
             <input
               value={grinder}
               maxLength={MAX_GRINDER}
               placeholder={t('diag.grinderHint')}
               onChange={(e) => setGrinder(e.target.value)}
-              className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[16px] font-semibold text-ink placeholder:font-normal placeholder:text-muted"
+              className={`h-11 ${field} font-semibold placeholder:font-normal`}
             />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-2">
             <Label>{t('diag.notes')}</Label>
             <textarea
               value={notes}
@@ -213,12 +216,13 @@ export default function Diagnose({
               rows={2}
               placeholder={t('diag.notesHint')}
               onChange={(e) => setNotes(e.target.value)}
-              className="rounded-xl border-2 border-ink bg-cream px-3 py-2 text-[16px] text-ink placeholder:text-muted"
+              className={`${field} resize-none py-2`}
             />
           </label>
+          <div className="border-t border-line pt-4">
+            {signedIn ? <PhotoPicker value={photo} onChange={setPhoto} /> : <SignInForPhotos />}
+          </div>
         </Card>
-
-        {signedIn ? <PhotoPicker value={photo} onChange={setPhoto} /> : <SignInForPhotos />}
       </div>
 
       <div className="flex flex-col gap-4">
