@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { requireUser } from './auth'
 import { auth } from './auth-routes'
-import { db } from './db/client'
+import { db, rowsPerInsert } from './db/client'
 import { logError } from './log'
 import { coffees, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
 import { parseCoffeeBatch, toCoffeeOut, toCoffeeRow, workingKey } from './coffees'
@@ -69,8 +69,7 @@ app.get('/reports', requireUser, async (c) => {
   })
 })
 
-// D1 binds at most 100 parameters per statement, and a report row takes 13
-const ROWS_PER_INSERT = 7
+const ROWS_PER_INSERT = rowsPerInsert(reports)
 
 // Ids come from the client, so a repeated or retried report is ignored: never duplicated, never overwritten.
 // `imported: true` marks reports brought over from this browser at first sign-in.
@@ -221,8 +220,7 @@ app.get('/reports/:id/photo/:nonce', requireUser, async (c) => {
   return c.body(object.body, 200, { ...headers, 'Content-Length': String(object.size) })
 })
 
-// D1 binds at most 100 parameters per statement, and a coffee row takes 11
-const COFFEES_PER_INSERT = 9
+const COFFEES_PER_INSERT = rowsPerInsert(coffees)
 
 // Adds or updates the player's coffees. An older copy never overwrites a newer one.
 app.post('/coffees', requireUser, async (c) => {
