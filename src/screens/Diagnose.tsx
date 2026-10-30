@@ -5,7 +5,7 @@ import type { Key } from '../i18n'
 import { coffeeName, forRoast } from '../coffees'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
-import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
+import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime, signed } from '../ui'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
 
@@ -266,5 +266,3 @@ export default function Diagnose({
     </div>
   )
 }
-
-const signed = (n: number, unit: string) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${fmtNum(Math.abs(n))}${unit}`
