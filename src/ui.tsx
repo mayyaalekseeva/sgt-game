@@ -25,13 +25,16 @@ export function Display({ children, className = '' }: { children: ReactNode; cla
   return <div className={`font-display font-extrabold uppercase leading-none ${className}`}>{children}</div>
 }
 
+// A text or date field inside a card: a soft fill marks it, so it does not add a second ink border
+export const field = 'rounded-lg bg-line/60 px-3 text-[16px] text-ink placeholder:text-muted'
+
 // A compact secondary action inside a card ("Use this recipe"); 44px tall for touch
 export function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="mt-3 flex h-11 items-center rounded-xl border-2 border-ink bg-cream px-4 text-[15px] font-semibold text-ink active:scale-[0.98]"
+      className="mt-3 flex h-11 items-center rounded-lg bg-line px-4 text-[15px] font-semibold text-ink active:scale-[0.98]"
     >
       {children}
     </button>
@@ -105,14 +108,16 @@ export function Segmented<T extends string>({
   options,
   onChange,
   label,
+  inCard = false,
 }: {
   value: T
   options: { id: T; label: string }[]
   onChange: (v: T) => void
   label: string
+  inCard?: boolean // inside a card: filled like a field instead of outlined
 }) {
   return (
-    <div role="group" aria-label={label} className="flex overflow-hidden rounded-xl border-2 border-ink bg-cream">
+    <div role="group" aria-label={label} className={`flex overflow-hidden ${inCard ? 'rounded-lg bg-line/60' : 'rounded-xl border-2 border-ink bg-cream'}`}>
       {options.map((o) => (
         <button
           key={o.id}
@@ -136,11 +141,13 @@ export function Select({
   groups,
   onChange,
   label,
+  inCard = false,
 }: {
   value: string
   groups: { label: string; options: { id: string; label: string }[] }[]
   onChange: (v: string) => void
   label: string
+  inCard?: boolean
 }) {
   const opts = (o: { id: string; label: string }[]) =>
     o.map((x) => (
@@ -154,7 +161,7 @@ export function Select({
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full appearance-none rounded-xl border-2 border-ink bg-cream pl-3 pr-10 text-[15px] font-semibold text-ink"
+        className={`h-11 w-full appearance-none pl-3 pr-10 text-[15px] font-semibold text-ink ${inCard ? 'rounded-lg bg-line/60' : 'rounded-xl border-2 border-ink bg-cream'}`}
       >
         {groups.map((g, i) =>
           g.label ? (

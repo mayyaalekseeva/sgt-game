@@ -34,7 +34,7 @@ function useObjectUrl(blob: Blob | null) {
 }
 
 const buttonClass =
-  'flex h-11 cursor-pointer items-center justify-center rounded-xl border-2 border-ink bg-cream px-4 text-[15px] font-semibold text-ink active:scale-[0.98] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-terracotta'
+  'flex h-11 cursor-pointer items-center justify-center rounded-lg bg-line px-4 text-[15px] font-semibold text-ink active:scale-[0.98] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-terracotta'
 
 // A file input dressed as a button; the input keeps focus, so the label shows the global focus ring (index.css). capture opens the camera straight away; without it the phone offers
 // its library (and usually the camera too).
@@ -75,9 +75,9 @@ function Status({ busy, error }: { busy: Key | null; error: Key | null }) {
   return null
 }
 
-const frame = 'w-full rounded-xl border-2 border-ink bg-line object-cover'
+const frame = 'w-full rounded-lg bg-line object-cover'
 
-/** Diagnose form: picks and prepares a photo before the report exists. The upload happens once it is filed. */
+/** Diagnose form: picks and prepares a photo before the report exists. The upload happens once it is filed. Sits inside the form's notes card. */
 export function PhotoPicker({ value, onChange }: { value: Blob | null; onChange: (jpeg: Blob | null) => void }) {
   const { t } = useStore()
   const preview = useObjectUrl(value)
@@ -96,10 +96,10 @@ export function PhotoPicker({ value, onChange }: { value: Blob | null; onChange:
     }
   }
   return (
-    <Card className="flex flex-col gap-3">
-      <div>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <Label>{t('photo.label')}</Label>
-        <p className="mt-1 text-sm text-ink/70">{t('photo.hint')}</p>
+        <span className="text-sm text-muted">{t('photo.hint')}</span>
       </div>
       {preview && <img src={preview} alt={t('photo.preview')} className={`${frame} aspect-[4/3]`} />}
       <CameraOrGallery onFile={(f) => void pick(f)} disabled={busy} />
@@ -109,7 +109,7 @@ export function PhotoPicker({ value, onChange }: { value: Blob | null; onChange:
         </button>
       )}
       <Status busy={busy ? 'photo.preparing' : null} error={error} />
-    </Card>
+    </div>
   )
 }
 
@@ -117,13 +117,13 @@ export function PhotoPicker({ value, onChange }: { value: Blob | null; onChange:
 export function SignInForPhotos() {
   const { t } = useStore()
   return (
-    <Card className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
       <Label>{t('photo.label')}</Label>
       <p className="text-sm text-ink/80">
         {t('photo.guest')}{' '}
         <a href={SIGN_IN_URL} className="font-semibold text-ink underline">{t('auth.signIn')}</a>
       </p>
-    </Card>
+    </div>
   )
 }
 

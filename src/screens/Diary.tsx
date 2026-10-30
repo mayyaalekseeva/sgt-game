@@ -7,7 +7,7 @@ import { photoUrl } from '../api'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import PhotoControl from './PhotoControl'
-import { Button, Label, ScreenTitle, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime, ratio, signed } from '../ui'
+import { Button, Label, ScreenTitle, brewLabel, diagVars, field, fmtClock, fmtDate, fmtNum, fmtTime, ratio, signed } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
 // Cards come a page at a time: a card can hold a photo
@@ -191,7 +191,7 @@ function Entry({ r, prev, isWorking }: { r: Report; prev?: Report; isWorking: bo
               alt={t('photo.alt', { date: fmtClock(r.ts, lang) })}
               loading="lazy"
               decoding="async"
-              className="mt-1 aspect-[4/3] w-full max-w-md rounded-lg border-2 border-ink bg-line object-cover"
+              className="mt-1 aspect-[4/3] w-full max-w-md rounded-lg bg-line object-cover"
             />
           )}
         </>
@@ -208,8 +208,6 @@ function Pencil() {
     </svg>
   )
 }
-
-const field = 'rounded-xl border-2 border-ink bg-cream px-3 text-[16px] text-ink placeholder:text-muted'
 
 // Grinder, notes and photo. The numbers and taste are what was brewed and diagnosed, so they stay as filed;
 // a wrong number is fixed by deleting the report and filing it again.
@@ -233,7 +231,7 @@ function EditEntry({ r, done }: { r: Report; done: () => void }) {
       </label>
       <label className="flex flex-col gap-1">
         <Label>{t('diag.notes')}</Label>
-        <textarea value={notes} maxLength={MAX_NOTES} rows={2} placeholder={t('diag.notesHint')} onChange={(e) => setNotes(e.target.value)} className={`${field} py-2`} />
+        <textarea value={notes} maxLength={MAX_NOTES} rows={2} placeholder={t('diag.notesHint')} onChange={(e) => setNotes(e.target.value)} className={`${field} resize-none py-2`} />
       </label>
       {signedIn && (
         <div className="flex flex-col gap-1">

@@ -3,7 +3,7 @@ import { useReports } from '../reports'
 import { localDay } from '../data'
 import { useStore } from '../store'
 import Freshness from './Freshness'
-import { Button, Card, Display, Label, ScreenTitle, SmallButton, processLabel } from '../ui'
+import { Button, Card, Display, Label, ScreenTitle, SmallButton, field, processLabel } from '../ui'
 
 // Your own coffees, opened from Profile. A finished bag leaves the picker but keeps its name in the diary.
 export default function MyCoffees({ add }: { add: () => void }) {
@@ -38,7 +38,7 @@ export default function MyCoffees({ add }: { add: () => void }) {
               value={c.roastedOn ?? ''}
               max={localDay(Date.now())}
               onChange={(e) => setRoastedOn(c, e.target.value)}
-              className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[15px] text-ink"
+              className={`h-11 ${field}`}
             />
           </label>
         )}
