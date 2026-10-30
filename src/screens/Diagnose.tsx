@@ -7,6 +7,7 @@ import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, field, fmtNum, fmtRange, fmtTime, signed } from '../ui'
 import { lastGrinderModel } from '../grinders'
+import EspressoChecklist from './EspressoChecklist'
 import Gains from './Gains'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
@@ -43,6 +44,7 @@ export default function Diagnose({
   const [fromTimer, setFromTimer] = useState(false)
   const [photo, setPhoto] = useState<Blob | null>(null) // prepared, uploaded once the report is filed
   const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null; before: ReturnType<typeof progressFor> } | null>(null)
+  const [round, setRound] = useState(0) // each "Brew again" starts the checklist clean
 
   // when the recipe or coffee changes, reset the form to its starting point
   useEffect(() => {
@@ -158,7 +160,7 @@ export default function Diagnose({
           <Gains before={result.before} />
 
           <div className="flex flex-col gap-2">
-            <Button onClick={() => { setResult(null); setTaste(null) }}>{t('diag.again')}</Button>
+            <Button onClick={() => { setResult(null); setTaste(null); setRound((r) => r + 1) }}>{t('diag.again')}</Button>
             <Button
               variant="secondary"
               disabled={isWorking}
@@ -182,6 +184,19 @@ export default function Diagnose({
       <div className="flex flex-col gap-4">
         <RecipePicker addCoffee={addCoffee} />
         {style && <Button variant="secondary" onClick={openTimer}>{t('timer.open')}</Button>}
+        {!isFilter && (
+          <EspressoChecklist
+            key={`${key}:${round}`}
+            recipe={recipe}
+            dose={dose}
+            yld={yld}
+            grinder={grinder}
+            onTime={(s) => {
+              setTime(s)
+              setFromTimer(true)
+            }}
+          />
+        )}
 
         <Card className="!py-2">
           <Stepper label={t('recipe.dose')} value={dose} step={0.5} min={5} max={40} display={`${fmtNum(dose)} g`} onChange={setDose} />
