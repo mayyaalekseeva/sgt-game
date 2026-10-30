@@ -17,7 +17,7 @@ export default function RankCard() {
           <div className="text-sm text-muted">{xp} {t('xp')}</div>
         </div>
         <div className="mt-2 h-2 rounded bg-line">
-          <div className="h-2 rounded bg-olive-soft transition-all" style={{ width: `${Math.max(rank.pct, 4)}%` }} />
+          <div className="h-2 origin-left animate-grow rounded bg-olive-soft transition-all" style={{ width: `${Math.max(rank.pct, 4)}%` }} />
         </div>
         <div className="mt-1 text-xs text-muted">
           {rank.next ? t('rank.toNext', { xp: rank.next.xp - xp, rank: t(`rank.${rank.next.id}`) }) : t('rank.max')}

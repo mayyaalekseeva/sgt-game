@@ -340,6 +340,18 @@ export function progressFor(reports: Report[], working: Record<string, string>) 
   return { xp, rank: rankFor(xp), missions }
 }
 
+type Progress = ReturnType<typeof progressFor>
+
+/** What changed between two progress snapshots: XP gained, a new rank, missions newly done (the debrief shows them). */
+export function gainsFor(before: Progress, after: Progress) {
+  const was = new Set(before.missions.filter((m) => m.done).map((m) => m.id))
+  return {
+    xp: after.xp - before.xp,
+    rankUp: after.rank.idx > before.rank.idx ? after.rank.cur.id : null,
+    missions: after.missions.filter((m) => m.done && !was.has(m.id)).map((m) => m.id),
+  }
+}
+
 export const CHAPTERS:{ id: string; rank: number }[] = [
   { id: 'c1', rank: 0 },
   { id: 'c2', rank: 1 },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MAX_GRINDER, MAX_NOTES, REPORT_XP, RECIPES, STYLE_OF, TASTES, type Report, type Taste } from '../data'
+import { MAX_GRINDER, MAX_NOTES, RECIPES, STYLE_OF, TASTES, progressFor, type Report, type Taste } from '../data'
 import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
 import { coffeeName, forRoast } from '../coffees'
@@ -7,6 +7,7 @@ import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, field, fmtNum, fmtRange, fmtTime, signed } from '../ui'
 import { lastGrinderModel } from '../grinders'
+import Gains from './Gains'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
@@ -41,7 +42,7 @@ export default function Diagnose({
   const [notes, setNotes] = useState('')
   const [fromTimer, setFromTimer] = useState(false)
   const [photo, setPhoto] = useState<Blob | null>(null) // prepared, uploaded once the report is filed
-  const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null } | null>(null)
+  const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null; before: ReturnType<typeof progressFor> } | null>(null)
 
   // when the recipe or coffee changes, reset the form to its starting point
   useEffect(() => {
@@ -76,6 +77,8 @@ export default function Diagnose({
     if (!taste) return
     const input = { dose, yield: yld, time, taste, bloomed }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
+    // progress before this report, so the debrief can show what it earned
+    const before = progressFor(reports, working)
     const report = addReport({
       ...brew,
       lot,
@@ -90,7 +93,7 @@ export default function Diagnose({
       ...(notes.trim() ? { notes: notes.trim() } : {}),
       ...(fromTimer ? { timed: true as const } : {}),
     })
-    setResult({ report, diag, photo: signedIn ? photo : null })
+    setResult({ report, diag, photo: signedIn ? photo : null, before })
     setPhoto(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -152,12 +155,7 @@ export default function Diagnose({
 
           {signedIn && <PhotoControl report={filed} initial={result.photo} />}
 
-          <div className="flex animate-pop items-center gap-2 text-sm font-semibold [animation-delay:450ms]">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-olive text-cream">
-              <Chevrons n={1} size={12} />
-            </span>
-            {t('diag.filed', { xp: REPORT_XP })}
-          </div>
+          <Gains before={result.before} />
 
           <div className="flex flex-col gap-2">
             <Button onClick={() => { setResult(null); setTaste(null) }}>{t('diag.again')}</Button>
