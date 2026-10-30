@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { fetchReports, sender, type Source } from './api'
+import { deletePhoto, fetchReports, putPhoto, sender, type Source } from './api'
 import { useAuth } from './auth'
 import { resolvePick, type MyCoffee, type Pick } from './coffees'
 import { progressFor, type Report } from './data'
@@ -12,6 +12,7 @@ import {
   newReportId,
   parseAccountCache,
   view,
+  withPhoto,
   withServer,
   type AccountCache,
   type Outbox,
@@ -70,6 +71,8 @@ interface Reports extends ReturnType<typeof progressFor> {
   saveCoffee: (c: MyCoffee) => void
   addReport: (r: Omit<Report, 'id' | 'ts'>) => Report
   markWorking: (key: string, reportId: string) => void
+  // Signed in only. Uploads a resized JPEG (src/photo.ts), or removes the photo with null. Throws with .status.
+  setPhoto: (reportId: string, jpeg: Blob | null) => Promise<void>
   // This browser's guest reports and coffees, offered to the account once; null when there is nothing to ask
   importOffer: { count: number; status: ImportStatus } | null
   acceptImport: () => void
@@ -172,6 +175,31 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     }
   }, [guest, updateCache])
 
+  // Photos are not queued: they need the network now. A report filed a moment ago may still be in the outbox,
+  // so a 404 sends it first (a repeat is a no-op on the server) and tries once more.
+  const setPhoto = useCallback(
+    async (reportId: string, jpeg: Blob | null) => {
+      const a = accountRef.current
+      if (!a) throw new Error('setPhoto: not signed in')
+      let photo: string | null = null
+      try {
+        if (jpeg) photo = await putPhoto(reportId, jpeg)
+        else await deletePhoto(reportId)
+      } catch (err) {
+        const status = (err as { status?: number }).status
+        // read again: a report filed in the same render reaches accountRef only after this started
+        const queued = accountRef.current?.cache.outbox.reports.find((r) => r.id === reportId)
+        // 409: it changed elsewhere meanwhile; show what the server has now
+        if (status === 409) setReload((n) => n + 1)
+        if (status !== 404 || !queued || !jpeg) throw err
+        await sender.postReports([queued], false)
+        photo = await putPhoto(reportId, jpeg)
+      }
+      updateCache(a.userId, (c) => withPhoto(c, reportId, photo))
+    },
+    [updateCache],
+  )
+
   const declineImport = useCallback(() => {
     if (account) updateCache(account.userId, (c) => ({ ...c, importDecided: true }))
   }, [account, updateCache])
@@ -206,11 +234,12 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
           }))
         } else guest.saveCoffee(c)
       },
+      setPhoto,
       importOffer: offer ? { count: guestItems, status: importStatus } : null,
       acceptImport: () => void acceptImport(),
       declineImport,
     }
-  }, [account, confirmedId, guest, user, importStatus, updateCache, acceptImport, declineImport])
+  }, [account, confirmedId, guest, user, importStatus, updateCache, acceptImport, declineImport, setPhoto])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

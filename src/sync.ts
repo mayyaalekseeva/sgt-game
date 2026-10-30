@@ -122,6 +122,20 @@ export function applySent(c: AccountCache, sent: Outbox): AccountCache {
 }
 
 /**
+ * After a photo upload or removal: the report shows the new photo (or none) wherever it is, the copy or the
+ * outbox. Photos are not queued; the server already has this one.
+ */
+export function withPhoto(c: AccountCache, reportId: string, photo: string | null): AccountCache {
+  const set = (rs: Report[]) =>
+    rs.map((r) => {
+      if (r.id !== reportId) return r
+      const { photo: _old, ...rest } = r
+      return photo ? { ...rest, photo } : rest
+    })
+  return { ...c, reports: set(c.reports), outbox: { ...c.outbox, reports: set(c.outbox.reports) } }
+}
+
+/**
  * First sign-in: sends this browser's guest coffees, then its reports marked as imported, and its
  * working recipes for the recipes the account has none for yet. Returns what went through, for
  * applySent. Throws if a batch does not go through; sending again is safe, the ids make it a no-op.

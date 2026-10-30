@@ -50,6 +50,13 @@
       "when": 1793119092082,
       "tag": "0006_report_timed",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793358386919,
+      "tag": "0007_report_photo",
+      "breakpoints": true
     }
   ]
 }

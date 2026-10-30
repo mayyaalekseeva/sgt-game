@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MyCoffee } from './coffees'
 import type { Report } from './data'
-import { BATCH, applySent, chunks, emptyCache, flush, importGuest, newReportId, parseAccountCache, view, withServer, type Sender } from './sync'
+import { BATCH, applySent, chunks, emptyCache, flush, importGuest, newReportId, parseAccountCache, view, withPhoto, withServer, type Sender } from './sync'
 
 const rep = (id: string, ts = 1_000, over: Partial<Report> = {}): Report => ({
   id,
@@ -75,6 +75,31 @@ describe('withServer', () => {
     const c = { ...emptyCache(), reports: [rep('old')], importDecided: true, outbox: { reports: [rep('q')], working: {} } }
     const next = withServer(c, { reports: [rep('s')], working: { 'espresso-medium': 's' } })
     expect(next).toEqual({ ...c, reports: [rep('s')], working: { 'espresso-medium': 's' } })
+  })
+})
+
+describe('withPhoto', () => {
+  const P = '0123456789abcdef'
+  const c = { ...emptyCache(), reports: [rep('a'), rep('b', 2, { photo: P })], outbox: { reports: [rep('q')], working: {} } }
+
+  it('sets the photo on a report in the copy or in the outbox', () => {
+    expect(withPhoto(c, 'a', P).reports[0]).toEqual(rep('a', 1_000, { photo: P }))
+    expect(withPhoto(c, 'q', P).outbox.reports[0]).toEqual(rep('q', 1_000, { photo: P }))
+  })
+
+  it('removes it, leaving no photo key behind', () => {
+    const b = withPhoto(c, 'b', null).reports[1]
+    expect(b).not.toHaveProperty('photo')
+  })
+
+  it('leaves other reports and an unknown id alone', () => {
+    expect(withPhoto(c, 'a', P).reports[1]).toBe(c.reports[1])
+    expect(withPhoto(c, 'zzz', P)).toEqual(c)
+  })
+
+  it('survives the localStorage round trip', () => {
+    const saved = withPhoto(c, 'a', P)
+    expect(parseAccountCache(JSON.parse(JSON.stringify(saved))).reports[0].photo).toBe(P)
   })
 })
 

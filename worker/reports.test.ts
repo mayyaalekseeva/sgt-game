@@ -132,11 +132,22 @@ describe('toReportRows', () => {
     expect(toReportRows(batch, { ...ctx, imported: true }).every((r) => r.importedAt === NOW)).toBe(true)
   })
 
+  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, importedAt: null })
+
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
-    expect(toReportOut({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, timed: row.timed ?? false, importedAt: null })).toEqual({
+    expect(toReportOut(selected(row))).toEqual({
       ...batch[0],
       timed: undefined,
     })
+  })
+
+  it('gives the photo nonce, never the R2 key or visibility', () => {
+    const [row] = toReportRows([batch[0]], ctx)
+    const out = toReportOut({ ...selected(row), photoKey: `photos/u1/${row.id}/0123456789abcdef.jpg` })
+    expect(out).toMatchObject({ photo: '0123456789abcdef' })
+    expect(out).not.toHaveProperty('photoKey')
+    expect(out).not.toHaveProperty('visibility')
+    expect(toReportOut(selected(row))).not.toHaveProperty('photo')
   })
 })

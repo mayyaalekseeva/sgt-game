@@ -144,7 +144,7 @@ export default function App() {
           <>
             <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />
             {sub === 'saved' && <SavedRecipes />}
-            {sub === 'diary' && <Diary />}
+            {(sub === 'diary' || sub === 'feed') && <Diary view={sub} show={open} fileReport={() => select('diag')} />}
             {sub === 'missions' && <Missions />}
             {sub === 'dossier' && <Dossier />}
             {sub === 'timer' && <BrewTimer done={() => select('diag')} />}

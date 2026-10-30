@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RECIPE_CONTENT, parseRecipeContent, parseReportsResponse, type RecipeEntry, type Report } from './data'
+import { RECIPE_CONTENT, isPhotoNonce, parseRecipeContent, parseReportsResponse, type RecipeEntry, type Report } from './data'
 import { parseCoffees, type MyCoffee } from './coffees'
 import type { Sender } from './sync'
 
@@ -47,6 +47,25 @@ export const sender: Sender = {
   postReports: (reports, imported) => send('POST', '/api/reports', { reports, imported }),
   putWorking: (reportId) => send('PUT', '/api/working-recipes', { reportId }),
   postCoffees: (coffees) => send('POST', '/api/coffees', { coffees }),
+}
+
+// Report photos (worker/photos.ts). Owner-only: the session cookie goes along like with any same-origin request.
+export const photoUrl = (reportId: string, photo: string) => `/api/reports/${encodeURIComponent(reportId)}/photo/${photo}`
+
+/** Uploads an already resized JPEG (src/photo.ts) and returns the new photo's nonce. Throws with .status. */
+export async function putPhoto(reportId: string, jpeg: Blob): Promise<string> {
+  const path = `/api/reports/${encodeURIComponent(reportId)}/photo`
+  const res = await fetch(path, { method: 'PUT', headers: { Accept: 'application/json', 'Content-Type': 'image/jpeg' }, body: jpeg })
+  if (!res.ok) throw Object.assign(new Error(`PUT ${path}: ${res.status}`), { status: res.status })
+  const { photo } = (await res.json()) as { photo?: unknown }
+  if (!isPhotoNonce(photo)) throw new Error(`PUT ${path}: no photo in the answer`)
+  return photo
+}
+
+export async function deletePhoto(reportId: string) {
+  const path = `/api/reports/${encodeURIComponent(reportId)}/photo`
+  const res = await fetch(path, { method: 'DELETE', headers: { Accept: 'application/json' } })
+  if (!res.ok) throw Object.assign(new Error(`DELETE ${path}: ${res.status}`), { status: res.status })
 }
 
 // Runs load once on mount; null while loading

@@ -3,12 +3,15 @@ import { isDiagId } from '../diagnose'
 import { coffeeName, workingKey } from '../coffees'
 import { useReports } from '../reports'
 import { useStore } from '../store'
-import { Card, Label, ScreenTitle, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
+import Feed from './Feed'
+import PhotoControl from './PhotoControl'
+import { Card, Label, ScreenTitle, Segmented, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
 
-// Every report, grouped by day. Signed-in users read the API; guests read this browser.
-export default function Diary() {
+// Every report, grouped by day (diary), or the ones with a photo as cards (feed). Signed-in users read the API;
+// guests read this browser.
+export default function Diary({ view, show, fileReport }: { view: 'diary' | 'feed'; show: (v: 'diary' | 'feed') => void; fileReport: () => void }) {
   const { t, lang } = useStore()
   const data = useReports()
 
@@ -18,8 +21,19 @@ export default function Diary() {
 
   return (
     <div className="flex flex-col gap-4 lg:max-w-3xl">
-      <ScreenTitle title={t('diary.title')} sub={t('diary.sub')} />
-      {data.loading ? (
+      <ScreenTitle title={t('diary.title')} sub={t(view === 'feed' ? 'feed.sub' : 'diary.sub')} />
+      <Segmented
+        label={t('diary.view')}
+        value={view}
+        options={[
+          { id: 'diary', label: t('diary.list') },
+          { id: 'feed', label: t('diary.feed') },
+        ]}
+        onChange={show}
+      />
+      {view === 'feed' ? (
+        <Feed fileReport={fileReport} />
+      ) : data.loading ? (
         <p className="text-sm text-ink/70" role="status">{t('loading')}</p>
       ) : data.reports.length === 0 ? (
         <p className="text-sm text-ink/70">{t('diag.noHistory')}</p>
@@ -40,14 +54,14 @@ export default function Diary() {
           ))}
         </>
       )}
-      {data.source === 'browser' && <p className="text-xs text-ink/70">{t('diary.local')}</p>}
+      {view === 'diary' && data.source === 'browser' && <p className="text-xs text-ink/70">{t('diary.local')}</p>}
     </div>
   )
 }
 
 function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   const { t, lang } = useStore()
-  const { coffees } = useReports()
+  const { coffees, signedIn } = useReports()
   const coffee = coffeeName(r.lot, coffees)
   const v = versionOf(RECIPE_CONTENT, r.recipeVersionId)
   const recipe = v ?? RECIPES[slugOf(r)]
@@ -83,6 +97,7 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
           )}
         </div>
       )}
+      {signedIn && <PhotoControl report={r} compact />}
     </li>
   )
 }
