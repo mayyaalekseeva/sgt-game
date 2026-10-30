@@ -1,5 +1,6 @@
 import recipeContent from '../content/recipes.json' with { type: 'json' }
-import { isGrinderModel } from './grinders'
+// scripts/seed-recipes.mjs loads this file in plain Node, so relative runtime imports need the .ts extension
+import { isGrinderModel } from './grinders.ts'
 
 export type Lang = 'en' | 'pt'
 export type Method = 'espresso' | 'filter'
