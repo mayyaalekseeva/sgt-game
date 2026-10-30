@@ -91,4 +91,10 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 
 ## Next
 
-Verify recipes/thresholds, real Dossier texts from the roaster, syncing reports to D1 for signed-in users (the Diary reads `GET /api/reports` once it exists).
+Waiting on the roaster:
+- Per-lot recipes: a lot is picked and stored with each report, but the recipe doesn't change yet (one placeholder recipe per brewer/roast)
+- Which roasts (espresso, filter or both) each lot in `content/lots.json` has
+- Real Dossier texts, and a check of the recipe ranges and diagnosis thresholds
+
+Can be done now:
+- More filter brewers: Kalita, Chemex, Clever
