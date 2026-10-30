@@ -41,7 +41,7 @@ function SignedIn({ user }: { user: User }) {
       <button
         type="button"
         onClick={signOut}
-        className="mt-3 h-11 w-full rounded-lg border-2 border-ink bg-cream text-[15px] font-semibold text-ink"
+        className="mt-3 h-11 w-full rounded-lg bg-line text-[15px] font-semibold text-ink"
       >
         {t('auth.signOut')}
       </button>

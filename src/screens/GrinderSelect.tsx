@@ -3,14 +3,16 @@ import { useStore } from '../store'
 import { Label, Select } from '../ui'
 
 // Which grinder, for Diagnose and the Diary's edit form. '' is not chosen.
-export default function GrinderSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+// gap: the space under the label, as the form's other fields have it
+export default function GrinderSelect({ value, onChange, gap = 'gap-2' }: { value: string; onChange: (v: string) => void; gap?: string }) {
   const { t } = useStore()
   // an id this build does not list (a newer one added it) still shows, so saving does not drop it
   const unknown = value && !GRINDERS.some((g) => g.id === value) ? [{ label: '', options: [{ id: value, label: grinderName(value) }] }] : []
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col ${gap}`}>
       <Label>{t('diag.grinderModel')}</Label>
       <Select
+        inCard
         label={t('diag.grinderModel')}
         value={value}
         onChange={onChange}
