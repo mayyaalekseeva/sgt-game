@@ -25,5 +25,13 @@
       "database_name": "barista-game",
       "migrations_dir": "migrations"
     }
+  ],
+  // Report photos (worker/photos.ts). Private: served only through /api/reports/:id/photo/:nonce to the owner.
+  // Before the first deploy that needs it: create the bucket (README, "Before merging").
+  "r2_buckets": [
+    {
+      "binding": "PHOTOS",
+      "bucket_name": "barista-photos"
+    }
   ]
 }

@@ -9,6 +9,7 @@ export const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
 export const BREWERS = ['v60', 'aeropress', 'frenchpress'] as const
 export const GRINDS = ['fine', 'medium_fine', 'medium', 'medium_coarse', 'coarse'] as const
 export const PROCESSES = ['washed', 'natural', 'honey', 'anaerobic', 'decaf'] as const
+export const VISIBILITIES = ['private', 'public'] as const
 export const MAX_PROCESS = 30 // or the player's own words, up to this long (src/coffees.ts)
 
 // A filter recipe step (src/data.ts Step), stored as JSON on its version
@@ -100,6 +101,8 @@ export const reports = sqliteTable(
     grinder: text('grinder'), // the player's grinder setting, free text
     notes: text('notes'),
     timed: integer('timed', { mode: 'boolean' }).notNull().default(false), // brewed with the brew timer
+    photoKey: text('photo_key'), // R2 key photos/<userId>/<reportId>/<nonce>.jpg (worker/photos.ts); null without a photo
+    visibility: text('visibility', { enum: VISIBILITIES }).notNull().default('private'), // for later sharing; unused yet
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },

@@ -1,4 +1,5 @@
 import { BREWERS, METHODS, ROASTS, TASTES, type reports } from './db/schema'
+import { nonceOf } from './photos'
 
 // A report as the client stores it (src/data.ts Report); `yield` is yield_g in the table
 export interface ReportIn {
@@ -122,6 +123,7 @@ export function toReportRows(
 
 // GET /api/reports row -> the client's Report (src/data.ts parseReportsResponse)
 export function toReportOut(r: typeof reports.$inferSelect) {
+  const photo = nonceOf(r.photoKey)
   return {
     id: r.id,
     ts: r.ts,
@@ -138,5 +140,6 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     grinder: r.grinder,
     notes: r.notes,
     ...(r.timed ? { timed: true } : {}),
+    ...(photo ? { photo } : {}),
   }
 }
