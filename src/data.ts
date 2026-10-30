@@ -281,6 +281,10 @@ export const localDay = (ts: number) => {
 }
 
 /** Diary: reports grouped by day, newest day first and newest report first within a day. */
+/** Feed: the reports with a photo, newest first. */
+export const feedReports = (reports: Report[]) =>
+  reports.filter((r): r is Report & { photo: string } => !!r.photo).sort((a, b) => b.ts - a.ts)
+
 export function diaryDays(reports: Report[], dayOf: (ts: number) => string = localDay) {
   const days = new Map<string, Report[]>()
   for (const r of [...reports].sort((a, b) => b.ts - a.ts)) {

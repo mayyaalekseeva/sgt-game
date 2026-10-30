@@ -95,7 +95,7 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 - `src/api.ts`: reads the API, falling back to the browser (bundled recipes, guest reports in localStorage); `src/reports.tsx` loads the reports once for Profile, Diary and Saved recipes
 - `src/account.tsx`: account card and language switch
 - `src/route.ts`: the current screen in the URL hash (`#/profile/diary`), so back, refresh and links work
-- `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary, Missions and Dossier
+- `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary (as a list, or as the photo Feed at `#/profile/feed`), Missions and Dossier
 - `public/brand/`: logo and photos (used with the roaster's permission)
 
 ## Next

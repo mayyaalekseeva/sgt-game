@@ -116,6 +116,16 @@ const en = {
   'diary.local': 'Saved on this device only.',
   'diary.recipeV': 'Recipe v{n}',
   'diary.working': 'Working recipe',
+  'diary.view': 'Show the diary as',
+  'diary.list': 'List',
+  'diary.feed': 'Feed',
+
+  'feed.sub': 'Your brews with a photo, newest first.',
+  'feed.count': 'Photos: {n}',
+  'feed.more': 'Show more',
+  'feed.empty': 'No photos yet. Add one when you file a report, or to any report in the list.',
+  'feed.file': 'File a report',
+  'feed.guest': 'Photos need an account. Sign in to add them to your reports.',
 
   'photo.label': 'Photo',
   'photo.hint': 'Optional. Only you can see it.',
@@ -485,6 +495,16 @@ const pt: Record<keyof typeof en, string> = {
   'diary.local': 'Guardado apenas neste dispositivo.',
   'diary.recipeV': 'Receita v{n}',
   'diary.working': 'Receita de trabalho',
+  'diary.view': 'Mostrar o diário como',
+  'diary.list': 'Lista',
+  'diary.feed': 'Feed',
+
+  'feed.sub': 'As tuas extrações com foto, da mais recente para a mais antiga.',
+  'feed.count': 'Fotos: {n}',
+  'feed.more': 'Mostrar mais',
+  'feed.empty': 'Ainda sem fotos. Junta uma ao entregar um relatório, ou a qualquer relatório da lista.',
+  'feed.file': 'Entregar um relatório',
+  'feed.guest': 'As fotos precisam de uma conta. Entra para as juntar aos teus relatórios.',
 
   'photo.label': 'Foto',
   'photo.hint': 'Opcional. Só tu a vês.',
