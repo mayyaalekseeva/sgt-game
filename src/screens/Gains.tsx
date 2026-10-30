@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { gainsFor, type progressFor } from '../data'
+import { gainsFor, type Progress } from '../progress'
 import type { Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
@@ -7,7 +7,7 @@ import { Chevrons, Display } from '../ui'
 
 // The debrief's reward: XP gained since filing, a promotion, missions just done.
 // Compared with live progress, so marking the working recipe here adds its mission too.
-export default function Gains({ before }: { before: ReturnType<typeof progressFor> }) {
+export default function Gains({ before }: { before: Progress }) {
   const { t } = useStore()
   const now = useReports()
   const g = gainsFor(before, now)
@@ -60,6 +60,19 @@ export default function Gains({ before }: { before: ReturnType<typeof progressFo
             <Chevrons n={1} size={12} />
           </span>
           {t('diag.missionDone', { m: t(`m.${id}.t` as Key) })}
+        </div>
+      ))}
+
+      {g.tasks.map((id, i) => (
+        <div
+          key={id}
+          className="flex animate-pop items-center gap-2 text-sm font-semibold"
+          style={{ animationDelay: `${700 + (g.missions.length + i) * 150}ms` }}
+        >
+          <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-olive text-cream">
+            <Chevrons n={1} size={12} />
+          </span>
+          {t('diag.taskDone', { d: t(`drill.${id}.t` as Key) })}
         </div>
       ))}
     </div>

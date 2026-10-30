@@ -23,6 +23,14 @@ describe('parseRoute', () => {
   it('keeps the tab when the sub-screen is unknown', () => {
     expect(parseRoute('#/profile/settings')).toEqual({ tab: 'profile', sub: null })
   })
+
+  it('reads one drill under drills, and nothing deeper elsewhere', () => {
+    expect(parseRoute('#/orders/drills/extraction')).toEqual({ tab: 'orders', sub: 'drills', id: 'extraction' })
+    expect(parseRoute('#/profile/drills')).toEqual({ tab: 'profile', sub: 'drills' })
+    expect(parseRoute('#/profile/drills/')).toEqual({ tab: 'profile', sub: 'drills' })
+    expect(parseRoute('#/profile/diary/extraction')).toEqual(HOME)
+    expect(parseRoute('#/profile/drills/Bad_Id')).toEqual(HOME)
+  })
 })
 
 describe('routeHash', () => {
@@ -36,5 +44,11 @@ describe('routeHash', () => {
   it('writes #/tab and #/tab/sub', () => {
     expect(routeHash({ tab: 'recipes', sub: null })).toBe('#/recipes')
     expect(routeHash({ tab: 'profile', sub: 'saved' })).toBe('#/profile/saved')
+  })
+
+  it('writes and reads back a drill', () => {
+    const r = { tab: 'orders', sub: 'drills', id: 'ratio' } as const
+    expect(routeHash(r)).toBe('#/orders/drills/ratio')
+    expect(parseRoute(routeHash(r))).toEqual(r)
   })
 })

@@ -8,7 +8,7 @@ import { Card, Chevrons, Display } from '../ui'
 export default function Dossier() {
   const { t } = useStore()
   const { rank } = useReports()
-  const [open, setOpen] = useState<string | null>('c1')
+  const [open, setOpen] = useState<string | null>(CHAPTERS[0].id)
   return (
     <div className="flex flex-col gap-4 lg:max-w-3xl">
       <div>
@@ -65,7 +65,7 @@ export default function Dossier() {
   )
 }
 
-function LockIcon() {
+export function LockIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="5" y="11" width="14" height="9" rx="2" />
