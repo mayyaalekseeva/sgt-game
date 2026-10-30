@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import content from '../content/recipes.json' with { type: 'json' }
 import {
+  CHECK_PHASES,
+  ESPRESSO_STEPS,
   MISSIONS,
   RANKS,
   RECIPES,
@@ -398,5 +400,22 @@ describe('versionOf', () => {
   it('is undefined for older reports and unknown ids', () => {
     expect(versionOf(RECIPE_CONTENT, undefined)).toBeUndefined()
     expect(versionOf(RECIPE_CONTENT, 'filter-light@99')).toBeUndefined()
+  })
+})
+
+describe('espresso checklist', () => {
+  it('has unique steps', () => {
+    const ids = ESPRESSO_STEPS.map((s) => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('runs prep, then the shot, then clean-up', () => {
+    const order = ESPRESSO_STEPS.map((s) => CHECK_PHASES.indexOf(s.phase))
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    expect(new Set(ESPRESSO_STEPS.map((s) => s.phase))).toEqual(new Set(CHECK_PHASES))
+  })
+
+  it('has one shot step, the one with the stopwatch', () => {
+    expect(ESPRESSO_STEPS.filter((s) => s.phase === 'shot').map((s) => s.id)).toEqual(['pull'])
   })
 })

@@ -210,6 +210,24 @@ export const MAX_NOTES = 280
 
 export const TASTES: Taste[] = ['sour', 'bitter', 'thin', 'balanced']
 
+// One espresso shot, from puck prep to clean-up. A guide only: ticks are not stored. The shot step has a stopwatch.
+export type CheckPhase = 'prep' | 'shot' | 'clean'
+export type CheckStep = 'flush' | 'dry' | 'dose' | 'grind' | 'distribute' | 'tamp' | 'lockin' | 'pull' | 'knock' | 'rinse' | 'wipe'
+export const CHECK_PHASES: CheckPhase[] = ['prep', 'shot', 'clean']
+export const ESPRESSO_STEPS: { phase: CheckPhase; id: CheckStep }[] = [
+  { phase: 'prep', id: 'flush' },
+  { phase: 'prep', id: 'dry' },
+  { phase: 'prep', id: 'dose' },
+  { phase: 'prep', id: 'grind' },
+  { phase: 'prep', id: 'distribute' },
+  { phase: 'prep', id: 'tamp' },
+  { phase: 'prep', id: 'lockin' },
+  { phase: 'shot', id: 'pull' },
+  { phase: 'clean', id: 'knock' },
+  { phase: 'clean', id: 'rinse' },
+  { phase: 'clean', id: 'wipe' },
+]
+
 /** Espresso has a roast; filter a brewer, or a roast on reports from before brewers. null counts as absent. */
 export function isBrew(r: { method?: unknown; roast?: unknown; brewer?: unknown }) {
   const roast = r.roast ?? undefined
