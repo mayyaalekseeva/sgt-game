@@ -63,3 +63,43 @@ export function disallowedSegment(b: Uint8Array): string | null {
   }
   return 'truncated header'
 }
+
+/**
+ * The same walk, dropping the segments disallowedSegment refuses. Safari's canvas encoder writes an Exif APP1
+ * (colour space, pixel size) into every JPEG, so the client runs this before upload. Malformed input is returned
+ * as it is, for the server to refuse.
+ */
+export function stripDisallowed(b: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
+  if (!isJpeg(b)) return b
+  const kept = [b.subarray(0, 2)]
+  let i = 2
+  while (i < b.length) {
+    if (b[i] !== 0xff) return b
+    const start = i
+    while (b[i] === 0xff) i++
+    if (i >= b.length) return b
+    const marker = b[i]
+    i++
+    if (marker === 0xda || marker === 0xd9) {
+      kept.push(b.subarray(start))
+      break
+    }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      kept.push(b.subarray(start, i))
+      continue
+    }
+    if (i + 2 > b.length) return b
+    const length = (b[i] << 8) | b[i + 1]
+    if (length < 2) return b
+    i += length
+    if (marker >= 0xe0 && marker <= 0xef && marker !== 0xe0 && marker !== 0xe2) continue
+    kept.push(b.subarray(start, i))
+  }
+  const out = new Uint8Array(kept.reduce((n, k) => n + k.length, 0))
+  let o = 0
+  for (const k of kept) {
+    out.set(k, o)
+    o += k.length
+  }
+  return out
+}
