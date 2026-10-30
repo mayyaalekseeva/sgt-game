@@ -103,6 +103,23 @@ export function parseReportBatch(
   return { reports: out, imported }
 }
 
+// The only fields that change after filing: the player's own words. The numbers, taste and diagnosis stay as filed.
+export interface ReportEdit {
+  grinder: string | null
+  notes: string | null
+  editedAt: number
+}
+
+/** Validates a PATCH /api/reports/:id body: { grinder, notes, editedAt }. Empty text clears the field. */
+export function parseReportEdit(body: unknown, now = Date.now()): ReportEdit | { error: string } {
+  if (typeof body !== 'object' || body === null) return { error: 'expected { grinder, notes, editedAt }' }
+  const { grinder, notes, editedAt } = body as Record<string, unknown>
+  if (grinder != null && (typeof grinder !== 'string' || grinder.length > MAX_GRINDER)) return { error: 'grinder is invalid' }
+  if (notes != null && (typeof notes !== 'string' || notes.length > MAX_NOTES)) return { error: 'notes is invalid' }
+  if (!isInt(editedAt, EARLIEST_TS, now + DAY)) return { error: 'editedAt is out of range' }
+  return { grinder: (grinder as string | null | undefined)?.trim() || null, notes: (notes as string | null | undefined)?.trim() || null, editedAt }
+}
+
 /**
  * Rows to insert. A version the database does not know (seed not run yet) is stored as null rather
  * than rejected: the foreign key would fail the whole batch, and the client would retry it forever.
@@ -141,5 +158,6 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     notes: r.notes,
     ...(r.timed ? { timed: true } : {}),
     ...(photo ? { photo } : {}),
+    ...(r.editedAt ? { editedAt: r.editedAt } : {}),
   }
 }

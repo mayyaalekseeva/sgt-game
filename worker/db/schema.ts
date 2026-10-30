@@ -103,10 +103,24 @@ export const reports = sqliteTable(
     timed: integer('timed', { mode: 'boolean' }).notNull().default(false), // brewed with the brew timer
     photoKey: text('photo_key'), // R2 key photos/<userId>/<reportId>/<nonce>.jpg (worker/photos.ts); null without a photo
     visibility: text('visibility', { enum: VISIBILITIES }).notNull().default('private'), // for later sharing; unused yet
+    editedAt: integer('edited_at'), // last edit of grinder or notes, by the client's clock; the later edit wins
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] }), index('reports_user_ts_idx').on(t.userId, t.ts)],
+)
+
+// Ids of deleted reports, nothing else: the report itself is gone, and a late retry of its POST is ignored
+export const deletedReports = sqliteTable(
+  'deleted_reports',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id').notNull(),
+    deletedAt: integer('deleted_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.id] })],
 )
 
 // One per recipe and coffee. lot is '' for working recipes from before coffees (part of the key, so not null)

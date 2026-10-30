@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_BATCH, isReportId, parseReportBatch, toReportOut, toReportRows, type ReportIn } from './reports'
+import { MAX_BATCH, isReportId, parseReportBatch, parseReportEdit, toReportOut, toReportRows, type ReportIn } from './reports'
 
 const NOW = Date.UTC(2026, 9, 27)
 
@@ -132,7 +132,7 @@ describe('toReportRows', () => {
     expect(toReportRows(batch, { ...ctx, imported: true }).every((r) => r.importedAt === NOW)).toBe(true)
   })
 
-  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, importedAt: null })
+  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, notes: row.notes ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
@@ -149,5 +149,31 @@ describe('toReportRows', () => {
     expect(out).not.toHaveProperty('photoKey')
     expect(out).not.toHaveProperty('visibility')
     expect(toReportOut(selected(row))).not.toHaveProperty('photo')
+  })
+})
+
+describe('parseReportEdit', () => {
+  const edit = (over: Record<string, unknown> = {}) => parseReportEdit({ grinder: '18 clicks', notes: 'Fresh bag', editedAt: NOW, ...over }, NOW)
+
+  it('accepts grinder and notes, trimmed', () => {
+    expect(edit({ grinder: ' 18 clicks ' })).toEqual({ grinder: '18 clicks', notes: 'Fresh bag', editedAt: NOW })
+  })
+
+  it('clears a field sent empty, blank or null', () => {
+    expect(edit({ grinder: '', notes: '   ' })).toEqual({ grinder: null, notes: null, editedAt: NOW })
+    expect(edit({ grinder: null, notes: undefined })).toMatchObject({ grinder: null, notes: null })
+  })
+
+  it('refuses long text, wrong types and a bad editedAt', () => {
+    expect(edit({ grinder: 'x'.repeat(31) })).toEqual({ error: 'grinder is invalid' })
+    expect(edit({ notes: 'x'.repeat(281) })).toEqual({ error: 'notes is invalid' })
+    expect(edit({ notes: 5 })).toEqual({ error: 'notes is invalid' })
+    expect(edit({ editedAt: NOW + 2 * 24 * 3600_000 })).toEqual({ error: 'editedAt is out of range' })
+    expect(edit({ editedAt: '1' })).toEqual({ error: 'editedAt is out of range' })
+    expect(parseReportEdit(null, NOW)).toEqual({ error: 'expected { grinder, notes, editedAt }' })
+  })
+
+  it('never takes numbers or taste', () => {
+    expect(edit({ dose: 99, taste: 'sour' })).not.toHaveProperty('dose')
   })
 })
