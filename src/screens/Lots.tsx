@@ -1,7 +1,7 @@
 import { currentLots, type Lot } from '../lots'
 import { useStore } from '../store'
 import { Button, Card, ScreenTitle } from '../ui'
-import { LotHead, LotPhoto, LotTasting } from './LotCard'
+import { BANNER, LotHead, LotPhoto, LotTasting } from './LotCard'
 
 // The roaster's coffees with their bag photos, opened from Profile or the Orders lot card.
 // "Brew this" picks the lot and opens Orders; the shop link buys a bag.
@@ -15,7 +15,7 @@ export default function Lots({ brew }: { brew: () => void }) {
         {currentLots().map((lot) => (
           <li key={lot.slug}>
             <Card>
-              <LotPhoto lot={lot} className="mb-3 aspect-[4/3] w-full" />
+              <LotPhoto lot={lot} className={`aspect-[4/3] ${BANNER}`} />
               <LotHead lot={lot} />
               <LotTasting lot={lot} />
               <div className="mt-4 flex flex-col gap-1">
