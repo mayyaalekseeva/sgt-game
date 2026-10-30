@@ -5,12 +5,9 @@ import type { Key } from '../i18n'
 import { coffeeName, forRoast } from '../coffees'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
-import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime, signed } from '../ui'
+import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, field, fmtNum, fmtRange, fmtTime, signed } from '../ui'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
-
-// Text fields sit inside a card, so a soft fill marks them instead of a second ink border
-const field = 'rounded-lg bg-line/60 px-3 text-[16px] text-ink placeholder:text-muted'
 
 export default function Diagnose({
   openDiary,

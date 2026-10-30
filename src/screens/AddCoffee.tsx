@@ -4,7 +4,7 @@ import { ROASTS, localDay, type Roast } from '../data'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { newReportId } from '../sync'
-import { Button, Card, Label, ScreenTitle, Segmented, Select } from '../ui'
+import { Button, Card, Label, ScreenTitle, Segmented, Select, field } from '../ui'
 import OriginPicker from './OriginPicker'
 
 const OTHER = 'other'
@@ -29,7 +29,7 @@ function Field({
         value={value}
         maxLength={max}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[16px] font-semibold text-ink"
+        className={`h-11 ${field} font-semibold`}
       />
       {hint && <span className="text-xs text-muted">{hint}</span>}
     </label>
@@ -76,6 +76,7 @@ export default function AddCoffee({ done }: { done: () => void }) {
         <div className="flex flex-col gap-1">
           <Label>{t('coffee.process')}</Label>
           <Select
+            inCard
             label={t('coffee.process')}
             value={process}
             onChange={setProcess}
@@ -94,7 +95,7 @@ export default function AddCoffee({ done }: { done: () => void }) {
         {process === OTHER && <Field label={t('coffee.processOwn')} value={ownProcess} onChange={setOwnProcess} max={MAX_PROCESS} />}
         <div className="flex flex-col gap-1">
           <Label>{t('label.roast')}</Label>
-          <Segmented label={t('label.roast')} value={roast} onChange={setRoast} options={ROASTS.map((r) => ({ id: r, label: t(`roast.${r}`) }))} />
+          <Segmented inCard label={t('label.roast')} value={roast} onChange={setRoast} options={ROASTS.map((r) => ({ id: r, label: t(`roast.${r}`) }))} />
         </div>
         <Field label={t('coffee.name')} value={name} onChange={setName} hint={t('coffee.nameHint')} />
         <label className="flex flex-col gap-1">
@@ -104,7 +105,7 @@ export default function AddCoffee({ done }: { done: () => void }) {
             value={roastedOn}
             max={localDay(Date.now())}
             onChange={(e) => setRoastedOn(e.target.value)}
-            className="h-11 rounded-xl border-2 border-ink bg-cream px-3 text-[16px] font-semibold text-ink"
+            className={`h-11 ${field} font-semibold`}
           />
           <span className="text-xs text-muted">{t('coffee.roastedOnHint')}</span>
         </label>

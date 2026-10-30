@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { searchOrigins } from '../origins'
 import { useStore } from '../store'
-import { Label } from '../ui'
+import { Label, field } from '../ui'
 
 // A search box over coffee origins: type, then pick from the list. Only a listed origin counts as chosen.
 export default function OriginPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -63,7 +63,7 @@ export default function OriginPicker({ value, onChange }: { value: string; onCha
             setOpen(false)
           }
         }}
-        className="h-11 w-full rounded-xl border-2 border-ink bg-cream px-3 text-[16px] font-semibold text-ink placeholder:font-normal placeholder:text-muted"
+        className={`h-11 w-full ${field} font-semibold placeholder:font-normal`}
       />
       {open && (
         <ul

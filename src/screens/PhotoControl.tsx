@@ -75,7 +75,7 @@ function Status({ busy, error }: { busy: Key | null; error: Key | null }) {
   return null
 }
 
-const frame = 'w-full rounded-xl border-2 border-ink bg-line object-cover'
+const frame = 'w-full rounded-lg bg-line object-cover'
 
 /** Diagnose form: picks and prepares a photo before the report exists. The upload happens once it is filed. Sits inside the form's notes card. */
 export function PhotoPicker({ value, onChange }: { value: Blob | null; onChange: (jpeg: Blob | null) => void }) {
