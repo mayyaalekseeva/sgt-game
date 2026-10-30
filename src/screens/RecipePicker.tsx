@@ -1,5 +1,5 @@
 import { myRef } from '../coffees'
-import { BREWERS, METHODS, ROASTS } from '../data'
+import { BREWERS, METHODS } from '../data'
 import { currentLots } from '../lots'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
@@ -7,10 +7,10 @@ import { Segmented, Select } from '../ui'
 
 const ADD = '__add'
 
-// The coffee, then the method. Espresso is picked by roast level, unless your own coffee already says it;
-// filter by brewer. Every brew is of a known coffee: a roaster lot or one you added.
+// The coffee, then the method. Espresso of your own coffee shows its roast; a roaster lot brews the medium
+// recipe (LOT_ROAST). Filter is picked by brewer. Every brew is of a known coffee: a roaster lot or one you added.
 export default function RecipePicker({ addCoffee }: { addCoffee: () => void }) {
-  const { t, lang, method, roast, brewer, setLot, setMethod, setRoast, setBrewer } = useStore()
+  const { t, lang, method, brewer, setLot, setMethod, setBrewer } = useStore()
   const { coffees } = useReports()
   const { lot, mine } = usePick()
   const yours = coffees.filter((c) => !c.archived || myRef(c.id) === lot)
@@ -35,18 +35,12 @@ export default function RecipePicker({ addCoffee }: { addCoffee: () => void }) {
         onChange={setMethod}
         options={METHODS.map((m) => ({ id: m, label: t(`method.${m}`) }))}
       />
+      {/* a roaster lot has no roast to pick until the roaster says it (LOT_ROAST) */}
       {method === 'espresso' ? (
-        mine ? (
+        mine && (
           <p className="flex h-11 items-center rounded-xl border-2 border-dashed border-ink/40 px-3 text-[15px]">
             {t('coffee.roastFromBag', { roast: t(`roast.${mine.roast}`) })}
           </p>
-        ) : (
-          <Segmented
-            label={t('label.roast')}
-            value={roast}
-            onChange={setRoast}
-            options={ROASTS.map((r) => ({ id: r, label: t(`roast.${r}`) }))}
-          />
         )
       ) : (
         <Segmented

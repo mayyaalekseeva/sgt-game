@@ -43,7 +43,9 @@ Screens read reports and progress from useReports, not useStore. Secrets GOOGLE_
 - Recipe content lives in content/recipes.json (no admin UI). Versions are append-only: to change a
   recipe, add version N+1; never edit or delete a published version (reports reference `slug@version`,
   and the seed refuses changed versions). Archive with `"status": "archived"`.
-- Espresso recipes are per roast (`espresso-medium`); filter recipes are per brewer (`filter-v60`) with a grind and
+- Espresso recipes are per roast (`espresso-medium`), but the roast is hidden until the roaster confirms it: a roaster lot
+  brews `LOT_ROAST` (medium, src/coffees.ts), and Recipes lists only that espresso recipe. Your own coffee keeps its roast.
+  Filter recipes are per brewer (`filter-v60`) with a grind and
   timed steps, and no roast level: it will come from the coffee lot. The old per-roast filter recipes stay archived.
 - Coffee lots live in content/lots.json (src/lots.ts), from the roaster shop. Reports store the lot slug, so never
   rename or delete a lot: retire it with `"status": "retired"`. Recipes are not per lot yet; the roaster will supply them.

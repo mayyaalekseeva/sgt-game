@@ -84,10 +84,14 @@ describe('workingKey', () => {
 describe('resolvePick', () => {
   const base = { method: 'espresso', roast: 'medium', brewer: 'v60' } as const
 
-  it('takes the roaster lot as it is, and the picker roast for espresso', () => {
+  it('takes the roaster lot as it is, with the medium espresso recipe', () => {
     const p = resolvePick({ ...base, lot: 'peru-naranjo-yacu' }, [])
     expect(p).toMatchObject({ lot: 'peru-naranjo-yacu', slug: 'espresso-medium', key: 'espresso-medium|peru-naranjo-yacu' })
     expect(p.mine).toBeUndefined()
+  })
+
+  it('ignores a roast picked before the picker was hidden, for a roaster lot', () => {
+    expect(resolvePick({ ...base, roast: 'dark', lot: 'peru-naranjo-yacu' }, []).slug).toBe('espresso-medium')
   })
 
   it('takes the roast from your coffee for espresso', () => {
