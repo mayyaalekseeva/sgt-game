@@ -293,6 +293,16 @@ describe('parseReportsResponse', () => {
     expect(b).not.toHaveProperty('lot')
   })
 
+  it('keeps the photo nonce; a missing or null photo stays missing', () => {
+    const [a, b] = parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), photo: '0123456789abcdef' }, { ...report({ id: 'b' }), photo: null }] })).reports
+    expect(a.photo).toBe('0123456789abcdef')
+    expect(b).not.toHaveProperty('photo')
+  })
+
+  it('refuses a photo that is not a nonce, since it goes into a URL', () => {
+    expect(() => parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), photo: '../../me' }] }))).toThrow('reports[0] is invalid')
+  })
+
   it('keeps diag ids it does not know (older or newer builds)', () => {
     expect(parseReportsResponse(body({ reports: [report({ diag: 'future_id' })] })).reports[0].diag).toBe('future_id')
   })

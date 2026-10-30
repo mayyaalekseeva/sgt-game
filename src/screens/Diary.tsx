@@ -3,6 +3,7 @@ import { isDiagId } from '../diagnose'
 import { coffeeName, workingKey } from '../coffees'
 import { useReports } from '../reports'
 import { useStore } from '../store'
+import PhotoControl from './PhotoControl'
 import { Card, Label, ScreenTitle, brewLabel, diagVars, fmtClock, fmtDate, fmtNum, fmtTime } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -47,7 +48,7 @@ export default function Diary() {
 
 function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   const { t, lang } = useStore()
-  const { coffees } = useReports()
+  const { coffees, signedIn } = useReports()
   const coffee = coffeeName(r.lot, coffees)
   const v = versionOf(RECIPE_CONTENT, r.recipeVersionId)
   const recipe = v ?? RECIPES[slugOf(r)]
@@ -83,6 +84,7 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
           )}
         </div>
       )}
+      {signedIn && <PhotoControl report={r} compact />}
     </li>
   )
 }

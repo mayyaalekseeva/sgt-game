@@ -6,6 +6,7 @@ import { coffeeName, forRoast } from '../coffees'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, fmtNum, fmtRange, fmtTime } from '../ui'
+import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
 
 export default function Diagnose({
@@ -18,7 +19,7 @@ export default function Diagnose({
   addCoffee: () => void
 }) {
   const { t, method, timed, takeTimed } = useStore()
-  const { rank, addReport, markWorking, working, reports, coffees } = useReports()
+  const { rank, addReport, markWorking, working, reports, coffees, signedIn } = useReports()
   const { brew, slug, lot, mine, key } = usePick()
   const recipe = forRoast(RECIPES[slug], mine?.roast)
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
@@ -34,7 +35,8 @@ export default function Diagnose({
   const [grinder, setGrinder] = useState(workingReport?.grinder ?? '')
   const [notes, setNotes] = useState('')
   const [fromTimer, setFromTimer] = useState(false)
-  const [result, setResult] = useState<{ report: Report; diag: DiagId } | null>(null)
+  const [photo, setPhoto] = useState<Blob | null>(null) // prepared, uploaded once the report is filed
+  const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null } | null>(null)
 
   // when the recipe or coffee changes, reset the form to its starting point
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function Diagnose({
     setGrinder(workingReport?.grinder ?? '')
     setNotes('')
     setFromTimer(false)
+    setPhoto(null)
     setResult(null)
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -80,7 +83,8 @@ export default function Diagnose({
       ...(notes.trim() ? { notes: notes.trim() } : {}),
       ...(fromTimer ? { timed: true as const } : {}),
     })
-    setResult({ report, diag })
+    setResult({ report, diag, photo: signedIn ? photo : null })
+    setPhoto(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -89,6 +93,8 @@ export default function Diagnose({
     const ts = timeState(recipe, result.report.time)
     const wr = reports.find((x) => x.id === working[key] && x.id !== result.report.id)
     const isWorking = working[key] === result.report.id
+    // the list has the photo once it is uploaded
+    const filed = reports.find((x) => x.id === result.report.id) ?? result.report
     const k = (s: string) => `d.${d}.${s}` as Key
     return (
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
@@ -136,6 +142,8 @@ export default function Diagnose({
               </p>
             </Card>
           )}
+
+          {signedIn && <PhotoControl report={filed} initial={result.photo} />}
 
           <div className="flex animate-pop items-center gap-2 text-sm font-semibold [animation-delay:450ms]">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-olive text-cream">
@@ -209,6 +217,8 @@ export default function Diagnose({
             />
           </label>
         </Card>
+
+        {signedIn ? <PhotoPicker value={photo} onChange={setPhoto} /> : <SignInForPhotos />}
       </div>
 
       <div className="flex flex-col gap-4">

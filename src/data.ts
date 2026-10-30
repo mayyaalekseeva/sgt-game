@@ -198,6 +198,7 @@ export interface Report extends Brew {
   grinder?: string // the grinder setting as the player writes it ("18 clicks"); with notes, what a saved recipe keeps
   notes?: string
   timed?: true // brewed with the brew timer
+  photo?: string // the current photo's nonce (worker/photos.ts); signed-in reports only
 }
 
 export const MAX_GRINDER = 30
@@ -215,6 +216,9 @@ export function isBrew(r: { method?: unknown; roast?: unknown; brewer?: unknown 
   if (r.method === 'filter') return roast !== undefined || brewer !== undefined
   return false
 }
+
+// Same as the server's nonce (worker/photos.ts): it goes into the photo URL
+export const isPhotoNonce = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{16}$/.test(v)
 
 /** Validates a GET /api/reports body: { reports, working }. */
 export function parseReportsResponse(raw: unknown): { reports: Report[]; working: Record<string, string> } {
@@ -242,7 +246,8 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         (r.lot == null || typeof r.lot === 'string') &&
         (r.grinder == null || typeof r.grinder === 'string') &&
         (r.notes == null || typeof r.notes === 'string') &&
-        (r.timed == null || typeof r.timed === 'boolean')
+        (r.timed == null || typeof r.timed === 'boolean') &&
+        (r.photo == null || isPhotoNonce(r.photo))
       if (!ok) fail(`reports[${i}] is invalid`)
       return {
         id: r.id as string,
@@ -260,6 +265,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         ...(typeof r.grinder === 'string' && r.grinder !== '' ? { grinder: r.grinder } : {}),
         ...(typeof r.notes === 'string' && r.notes !== '' ? { notes: r.notes } : {}),
         ...(r.timed === true ? { timed: true as const } : {}),
+        ...(isPhotoNonce(r.photo) ? { photo: r.photo } : {}),
       }
     }),
     working: Object.fromEntries(
