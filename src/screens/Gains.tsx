@@ -62,6 +62,19 @@ export default function Gains({ before }: { before: Progress }) {
           {t('diag.missionDone', { m: t(`m.${id}.t` as Key) })}
         </div>
       ))}
+
+      {g.tasks.map((id, i) => (
+        <div
+          key={id}
+          className="flex animate-pop items-center gap-2 text-sm font-semibold"
+          style={{ animationDelay: `${700 + (g.missions.length + i) * 150}ms` }}
+        >
+          <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-olive text-cream">
+            <Chevrons n={1} size={12} />
+          </span>
+          {t('diag.taskDone', { d: t(`drill.${id}.t` as Key) })}
+        </div>
+      ))}
     </div>
   )
 }

@@ -13,6 +13,9 @@ import Recipes from './screens/Recipes'
 import Profile from './screens/Profile'
 import Missions from './screens/Missions'
 import Dossier from './screens/Dossier'
+import Drills from './screens/Drills'
+import Drill from './screens/Drill'
+import { drillById } from './drills'
 import Diary from './screens/Diary'
 import SavedRecipes from './screens/SavedRecipes'
 import { BackButton, Display } from './ui'
@@ -99,10 +102,13 @@ function SignInFailed() {
 // Desktop (lg): sticky sidebar with brand, nav and language; screens lay out in two columns.
 export default function App() {
   const { t } = useStore()
-  const [{ tab, sub }, go] = useRoute()
+  const [{ tab, sub, id }, go] = useRoute()
   const select = (id: Tab) => go({ tab: id, sub: null })
   // A sub-screen opens over the current tab, which stays highlighted; back returns to it
   const open = (s: Sub) => go({ tab, sub: s })
+  // one drill, or the list with null; over the current tab like any sub-screen
+  const openDrill = (d: string | null) => go({ tab, sub: 'drills', ...(d ? { id: d } : {}) })
+  const drill = sub === 'drills' && id ? drillById(id) : undefined
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-[480px] flex-col lg:max-w-[1200px] lg:flex-row lg:gap-12 lg:px-8">
@@ -140,14 +146,19 @@ export default function App() {
         <SignInFailed />
         <ImportOffer />
         {/* keyed by route, so each screen plays its entrance */}
-        <div key={`${tab}/${sub ?? ''}`} className="animate-enter">
+        <div key={`${tab}/${sub ?? ''}/${id ?? ''}`} className="animate-enter">
         {sub ? (
           <>
-            <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />
+            {drill ? (
+              <BackButton label={t('drills.title')} onClick={() => openDrill(null)} />
+            ) : (
+              <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />
+            )}
             {sub === 'saved' && <SavedRecipes />}
             {sub === 'diary' && <Diary />}
             {sub === 'missions' && <Missions />}
             {sub === 'dossier' && <Dossier />}
+            {sub === 'drills' && (drill ? <Drill key={drill.id} drill={drill} open={openDrill} /> : <Drills open={openDrill} />)}
             {sub === 'timer' && <BrewTimer done={() => select('diag')} />}
             {sub === 'coffee' && <AddCoffee done={() => select(tab)} />}
             {sub === 'coffees' && <MyCoffees add={() => open('coffee')} />}
@@ -155,7 +166,7 @@ export default function App() {
           </>
         ) : (
           <>
-            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} openLots={() => open('lots')} addCoffee={() => open('coffee')} />}
+            {tab === 'orders' && <Orders go={() => select('diag')} openTimer={() => go({ tab: 'diag', sub: 'timer' })} openRecipes={() => select('recipes')} openLots={() => open('lots')} openDrill={openDrill} addCoffee={() => open('coffee')} />}
             {tab === 'diag' && <Diagnose openDiary={() => open('diary')} openTimer={() => open('timer')} addCoffee={() => open('coffee')} />}
             {tab === 'recipes' && <Recipes use={() => select('orders')} />}
             {tab === 'profile' && <Profile open={open} />}
