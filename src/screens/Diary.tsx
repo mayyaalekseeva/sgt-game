@@ -69,26 +69,25 @@ function Entry({ r, isWorking }: { r: Report; isWorking: boolean }) {
   const thumb = signedIn && !editing ? r.photo : undefined
   return (
     <li className="flex flex-col gap-1 rounded-xl border-2 border-ink bg-cream p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold">
-          {brewLabel(t, r)}
-          {coffee && <span className="font-normal text-muted"> · {coffee}</span>}
-        </span>
-        <span className="flex items-center whitespace-nowrap text-xs text-muted">
-          {fmtClock(r.ts, lang)}
-          {r.editedAt && ` · ${t('diary.edited')}`}
-          {!editing && (
-            <button
-              type="button"
-              aria-label={t('diary.edit')}
-              onClick={() => setEditing(true)}
-              className="-my-3 -mr-3 flex h-11 w-11 items-center justify-center text-ink"
-            >
-              <Pencil />
-            </button>
-          )}
-        </span>
+      {/* The coffee is the title; older reports without one are titled by the brew */}
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="min-w-0 text-[19px] font-bold leading-tight">{coffee ?? brewLabel(t, r)}</h3>
+        {!editing && (
+          <button
+            type="button"
+            aria-label={t('diary.edit')}
+            onClick={() => setEditing(true)}
+            className="-my-2.5 -mr-3 flex h-11 w-11 flex-none items-center justify-center text-ink"
+          >
+            <Pencil />
+          </button>
+        )}
       </div>
+      <p className="text-sm text-muted">
+        {coffee && `${brewLabel(t, r)} · `}
+        {fmtClock(r.ts, lang)}
+        {r.editedAt && ` · ${t('diary.edited')}`}
+      </p>
       <div className="flex gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="text-[15px]">
