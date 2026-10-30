@@ -12,11 +12,13 @@ export default function Orders({
   go,
   openTimer,
   openRecipes,
+  openLots,
   addCoffee,
 }: {
   go: () => void
   openTimer: () => void
   openRecipes: () => void
+  openLots: () => void
   addCoffee: () => void
 }) {
   const { t, method } = useStore()
@@ -46,7 +48,7 @@ export default function Orders({
           <Label>{t('orders.recipe')}</Label>
           <RecipePicker addCoffee={addCoffee} />
         </div>
-        <LotCard />
+        <LotCard openLots={openLots} />
 
         {/* sibling keys must differ: a shared key makes React leave stale copies behind on brewer change */}
         <div key={`stats-${key}`} className="grid animate-enter grid-cols-2 gap-3">

@@ -11,7 +11,8 @@
       "notes": { "en": "Cocoa husk and green apple", "pt": "Casca de cacau e maçã verde" },
       "profile": "fruity_complex",
       "status": "current",
-      "url": "https://www.sgtmartinho.com/products/cafe-do-burundi-mutambu-38"
+      "url": "https://www.sgtmartinho.com/products/cafe-do-burundi-mutambu-38",
+      "photo": "https://cdn.shopify.com/s/files/1/0817/8866/6196/files/3._Coffee_Bag_Background_Mutambu__38.jpg?v=1793360606"
     },
     {
       "slug": "rwanda-cume-dos-gorilas",
@@ -24,7 +25,8 @@
       "notes": { "en": "Vanilla, cocoa, strawberry jam", "pt": "Baunilha, cacau, geleia de morango" },
       "profile": "fruity_floral",
       "status": "current",
-      "url": "https://www.sgtmartinho.com/products/cafe-do-ruanda-cume-dos-gorilas"
+      "url": "https://www.sgtmartinho.com/products/cafe-do-ruanda-cume-dos-gorilas",
+      "photo": "https://cdn.shopify.com/s/files/1/0817/8866/6196/files/3._Coffee_Bag_Background_Cume_dos_Gorilas.jpg?v=1793360880"
     },
     {
       "slug": "peru-naranjo-yacu",
@@ -37,7 +39,8 @@
       "notes": { "en": "Caramel and sweet citrus", "pt": "Caramelo e citrinos doces" },
       "profile": "classic_complex",
       "status": "current",
-      "url": "https://www.sgtmartinho.com/products/cafe-da-peru-naranjo-yacu"
+      "url": "https://www.sgtmartinho.com/products/cafe-da-peru-naranjo-yacu",
+      "photo": "https://cdn.shopify.com/s/files/1/0817/8866/6196/files/A_Sargento_Specialty_Coffee_Lisboa_Cafe_do_Peru_Naranjo_Yacu.jpg?v=1772813895"
     },
     {
       "slug": "brazil-lobo-guara",
@@ -50,7 +53,8 @@
       "notes": { "en": "Ripe fruit, dried fruit and rum", "pt": "Fruta madura, frutos secos e rum" },
       "profile": "classic",
       "status": "current",
-      "url": "https://www.sgtmartinho.com/products/cafe-do-brasil-lobo-guara-2"
+      "url": "https://www.sgtmartinho.com/products/cafe-do-brasil-lobo-guara-2",
+      "photo": "https://cdn.shopify.com/s/files/1/0817/8866/6196/files/A_Sargento_Specialty_Coffee_Lisboa_Cafe_do_Brasil_LoboGuara.jpg?v=1768405057"
     },
     {
       "slug": "colombia-luz-dos-andes",
@@ -63,7 +67,8 @@
       "notes": { "en": "Cocoa, spices and caramel", "pt": "Cacau, especiarias e caramelo" },
       "profile": "classic_rich",
       "status": "current",
-      "url": "https://www.sgtmartinho.com/products/cafe-da-colombia-luz-dos-andes"
+      "url": "https://www.sgtmartinho.com/products/cafe-da-colombia-luz-dos-andes",
+      "photo": "https://cdn.shopify.com/s/files/1/0817/8866/6196/files/A_Sargento_Specialty_Coffee_Lisboa_Cafe_da_Colombia_Luz_dos_Andes_10.jpg?v=1764700690"
     },
     {
       "slug": "colombia-la-meseta-decaf",
@@ -76,7 +81,8 @@
       "notes": { "en": "Spices, ginger, juicy acidity", "pt": "Especiarias, gengibre, acidez suculenta" },
       "profile": "decaf",
       "status": "current",
-      "url": "https://www.sgtmartinho.com/products/cafe-da-colombia-la-meseta-decaf"
+      "url": "https://www.sgtmartinho.com/products/cafe-da-colombia-la-meseta-decaf",
+      "photo": "https://cdn.shopify.com/s/files/1/0817/8866/6196/files/A_Sargento_Specialty_Coffee_Lisboa_Descafeinado_La_Meseta_13.jpg?v=1764700104"
     }
   ]
 }

@@ -1,5 +1,6 @@
 import { AccountCard, LangToggle } from '../account'
 import { CHAPTERS } from '../data'
+import { currentLots } from '../lots'
 import { useReports } from '../reports'
 import type { Sub } from '../route'
 import { useStore } from '../store'
@@ -28,6 +29,7 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
 
       <div className="flex flex-col gap-4">
         <Card className="!py-1">
+          <RowButton label={t('lots.title')} value={String(currentLots().length)} onClick={() => open('lots')} />
           <RowButton label={t('coffee.mine')} value={String(data.coffees.filter((c) => !c.archived).length)} onClick={() => open('coffees')} />
           <RowButton label={t('saved.title')} value={saved === null ? '…' : String(saved)} onClick={() => open('saved')} />
           <RowButton label={t('diary.title')} value={data.loading ? '…' : String(data.reports.length)} onClick={() => open('diary')} />

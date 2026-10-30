@@ -47,6 +47,8 @@ Screens read reports and progress from useReports, not useStore. Secrets GOOGLE_
   timed steps, and no roast level: it will come from the coffee lot. The old per-roast filter recipes stay archived.
 - Coffee lots live in content/lots.json (src/lots.ts), from the roaster shop. Reports store the lot slug, so never
   rename or delete a lot: retire it with `"status": "retired"`. Recipes are not per lot yet; the roaster will supply them.
+  A lot's `photo` is the bag image on the shop's CDN; the app shows a resized copy in public/lots/<slug>.webp, made by
+  `npm run lots:photos` (commit the file). Lots are shown on the "A Sargento coffees" screen with a link to buy.
 - Players add their own coffees (src/coffees.ts; D1 `coffees`, synced like reports): roaster, origin, process, roast.
   Reports name them `my:<id>`. Every brew is of a coffee. Working recipes are per recipe and coffee (`workingKey`).
   Starting recipe: your working recipe for that coffee, else the roaster's, else the brewer/roast one (`forRoast`).

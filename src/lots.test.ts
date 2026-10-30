@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import content from '../content/lots.json' with { type: 'json' }
-import { LOTS, currentLots, lotBySlug, parseLotContent } from './lots'
+import { LOTS, currentLots, lotBySlug, lotPhoto, parseLotContent } from './lots'
+
+// the photos committed in public/lots/
+const photos = Object.keys(import.meta.glob('../public/lots/*.webp'))
 
 describe('content/lots.json', () => {
   // a fresh, editable copy of the real content file
@@ -16,6 +19,19 @@ describe('content/lots.json', () => {
     expect(lotBySlug('brazil-lobo-guara')?.name).toBe('Lobo-Guará')
     expect(lotBySlug(null)).toBeUndefined()
     expect(lotBySlug('kenya-unknown')).toBeUndefined()
+  })
+
+  it('has a copied photo for every current lot', () => {
+    for (const lot of currentLots()) {
+      expect(lotPhoto(lot)).toBe(`./lots/${lot.slug}.webp`)
+      expect(photos, `${lot.slug}: run npm run lots:photos`).toContain(`../public/lots/${lot.slug}.webp`)
+    }
+  })
+
+  it('a lot without a photo has none to show', () => {
+    const c = copy()
+    delete c.lots[0].photo
+    expect(lotPhoto(parseLotContent(c)[0])).toBeUndefined()
   })
 
   it('keeps retired lots for older reports but not in the picker', () => {
@@ -36,6 +52,7 @@ describe('content/lots.json', () => {
     ['unknown profile', (c) => (c.lots[0].profile = 'smoky'), /profile must be one of/],
     ['unknown status', (c) => (c.lots[0].status = 'soon'), /status must be current or retired/],
     ['http url', (c) => (c.lots[0].url = 'http://example.com'), /url must be https/],
+    ['photo off the shop CDN', (c) => (c.lots[0].photo = 'https://example.com/bag.jpg'), /photo must be/],
   ])('rejects %s', (_name, mutate, err) => {
     const c = copy()
     mutate(c)
