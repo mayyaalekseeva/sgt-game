@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { gainsFor, type progressFor } from '../data'
+import { gainsFor, type Progress } from '../progress'
 import type { Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
@@ -7,7 +7,7 @@ import { Chevrons, Display } from '../ui'
 
 // The debrief's reward: XP gained since filing, a promotion, missions just done.
 // Compared with live progress, so marking the working recipe here adds its mission too.
-export default function Gains({ before }: { before: ReturnType<typeof progressFor> }) {
+export default function Gains({ before }: { before: Progress }) {
   const { t } = useStore()
   const now = useReports()
   const g = gainsFor(before, now)

@@ -7,14 +7,13 @@ import {
   RECIPE_CONTENT,
   REPORT_XP,
   diaryDays,
-  gainsFor,
   parseRecipeContent,
   parseReportsResponse,
-  progressFor,
   rankFor,
   versionOf,
   type Report,
 } from './data'
+import { gainsFor, progressFor } from './progress'
 
 const DAY = 24 * 60 * 60 * 1000
 const T0 = Date.UTC(2026, 9, 26, 9, 0)
@@ -166,13 +165,13 @@ describe('progressFor', () => {
 describe('gainsFor', () => {
   it('finds nothing when nothing changed', () => {
     const p = progressFor([report()], {})
-    expect(gainsFor(p, p)).toEqual({ xp: 0, rankUp: null, missions: [] })
+    expect(gainsFor(p, p)).toEqual({ xp: 0, rankUp: null, missions: [], tasks: [] })
   })
 
   it('lists the missions a report finishes', () => {
     const before = progressFor([], {})
     const after = progressFor([report()], {})
-    expect(gainsFor(before, after)).toEqual({ xp: after.xp, rankUp: null, missions: ['m1', 'm2'] })
+    expect(gainsFor(before, after)).toEqual({ xp: after.xp, rankUp: null, missions: ['m1', 'm2'], tasks: [] })
   })
 
   it('counts a working recipe marked after filing', () => {

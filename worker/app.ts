@@ -4,8 +4,9 @@ import { requireUser } from './auth'
 import { auth } from './auth-routes'
 import { db, rowsPerInsert } from './db/client'
 import { logError } from './log'
-import { coffees, deletedReports, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
+import { coffees, deletedReports, drillPasses, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
 import { parseCoffeeBatch, toCoffeeOut, toCoffeeRow, workingKey } from './coffees'
+import { parseDrillBatch, toDrillsOut } from './drills'
 import { toRecipeContent } from './recipes'
 import {
   MAX_PHOTO_BYTES,
@@ -53,19 +54,21 @@ app.get('/recipes', async (c) => {
   return c.json(toRecipeContent(rows, versions))
 })
 
-// Everything the client needs to rebuild progress: XP, rank and missions are derived from it there
+// Everything the client needs to rebuild progress: XP, rank, missions and drills are derived from it there
 app.get('/reports', requireUser, async (c) => {
   const d = db(c.env)
   const userId = c.var.userId
-  const [rows, working, mine] = await d.batch([
+  const [rows, working, mine, passed] = await d.batch([
     d.select().from(reports).where(eq(reports.userId, userId)).orderBy(desc(reports.ts)),
     d.select().from(workingRecipes).where(eq(workingRecipes.userId, userId)),
     d.select().from(coffees).where(eq(coffees.userId, userId)).orderBy(asc(coffees.updatedAt)),
+    d.select().from(drillPasses).where(eq(drillPasses.userId, userId)),
   ])
   return c.json({
     reports: rows.map(toReportOut),
     working: Object.fromEntries(working.map((w) => [workingKey(w.recipeSlug, w.lot), w.reportId])),
     coffees: mine.map(toCoffeeOut),
+    drills: toDrillsOut(passed),
   })
 })
 
@@ -297,6 +300,19 @@ app.post('/coffees', requireUser, async (c) => {
   const [first, ...rest] = writes
   await d.batch([first, ...rest])
   return c.json({ saved: rows.length })
+})
+
+// Passed drill field tests. The first pass stays: sending one again, or later, changes nothing.
+app.post('/drills', requireUser, async (c) => {
+  const parsed = parseDrillBatch(await c.req.json().catch(() => null))
+  if ('error' in parsed) return c.json(invalid(parsed.error), 400)
+  const now = Date.now()
+  const saved = await db(c.env)
+    .insert(drillPasses)
+    .values(parsed.drills.map((x) => ({ userId: c.var.userId, drillId: x.id, passedAt: x.passedAt, createdAt: now })))
+    .onConflictDoNothing()
+    .returning({ id: drillPasses.drillId })
+  return c.json({ saved: saved.length })
 })
 
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404))

@@ -1,7 +1,7 @@
 import { foreignKey, index, integer, primaryKey, real, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 // Times are epoch ms. Recipe content comes from content/recipes.json via scripts/seed-recipes.mjs;
-// XP, rank and missions are derived from reports and never stored.
+// XP, rank and missions are derived from reports and passed drills, and never stored.
 
 export const METHODS = ['espresso', 'filter'] as const
 export const ROASTS = ['light', 'medium', 'dark'] as const
@@ -164,4 +164,22 @@ export const coffees = sqliteTable(
     createdAt: integer('created_at').notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.id] })],
+)
+
+// Same list as the client's DRILL_IDS (src/drills.ts)
+export const DRILL_IDS = ['one-change', 'extraction', 'grind-time', 'ratio', 'channeling'] as const
+
+// A drill's field test, passed. The first pass is kept and never changes; XP and rank are derived from it on the
+// client, like missions from reports.
+export const drillPasses = sqliteTable(
+  'drill_passes',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    drillId: text('drill_id', { enum: DRILL_IDS }).notNull(),
+    passedAt: integer('passed_at').notNull(), // by the client's clock
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.drillId] })],
 )
