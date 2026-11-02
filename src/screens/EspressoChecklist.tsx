@@ -20,7 +20,7 @@ export default function EspressoChecklist({
   onTime: (seconds: number) => void
 }) {
   const { t } = useStore()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [done, setDone] = useState<Set<CheckStep>>(() => new Set())
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now)
