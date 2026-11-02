@@ -349,31 +349,15 @@ export const MISSIONS: MissionDef[] = [
   { id: 'm11', xp: 150, goal: 2, progress: (_r, w) => workingLots(w).length },
 ]
 
-// XP, rank and mission progress are always derived from reports, never stored
-export function progressFor(reports: Report[], working: Record<string, string>) {
+// Reports and missions only; progressFor (src/progress.ts) adds the drills, and is what the screens use
+export function missionProgress(reports: Report[], working: Record<string, string>) {
   const missions = MISSIONS.map((m) => {
     const cur = Math.min(m.goal, m.progress(reports, working))
     return { id: m.id, xp: m.xp, goal: m.goal, cur, done: cur >= m.goal }
   })
   const xp = reports.length * REPORT_XP + missions.filter((m) => m.done).reduce((a, m) => a + m.xp, 0)
-  return { xp, rank: rankFor(xp), missions }
+  return { xp, missions }
 }
 
-type Progress = ReturnType<typeof progressFor>
-
-/** What changed between two progress snapshots: XP gained, a new rank, missions newly done (the debrief shows them). */
-export function gainsFor(before: Progress, after: Progress) {
-  const was = new Set(before.missions.filter((m) => m.done).map((m) => m.id))
-  return {
-    xp: after.xp - before.xp,
-    rankUp: after.rank.idx > before.rank.idx ? after.rank.cur.id : null,
-    missions: after.missions.filter((m) => m.done && !was.has(m.id)).map((m) => m.id),
-  }
-}
-
-export const CHAPTERS:{ id: string; rank: number }[] = [
-  { id: 'c1', rank: 0 },
-  { id: 'c2', rank: 1 },
-  { id: 'c3', rank: 2 },
-  { id: 'c4', rank: 3 },
-]
+// Chapters 1 to 3 were lessons and are drills now (src/drills.ts); the Dossier keeps the story
+export const CHAPTERS: { id: string; rank: number }[] = [{ id: 'c4', rank: 3 }]

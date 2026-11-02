@@ -2,7 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { deletePhoto, fetchReports, putPhoto, sender, type Source } from './api'
 import { useAuth } from './auth'
 import { resolvePick, type MyCoffee, type Pick } from './coffees'
-import { progressFor, type Report } from './data'
+import type { Report } from './data'
+import type { DrillId, Passed } from './drills'
+import { progressFor } from './progress'
 import { useStore } from './store'
 import {
   applySent,
@@ -65,7 +67,8 @@ const pending = (o: Outbox) =>
   Object.keys(o.working).length > 0 ||
   (o.coffees?.length ?? 0) > 0 ||
   Object.keys(o.edits ?? {}).length > 0 ||
-  (o.deletes?.length ?? 0) > 0
+  (o.deletes?.length ?? 0) > 0 ||
+  Object.keys(o.drills ?? {}).length > 0
 
 type ImportStatus = 'idle' | 'busy' | 'failed'
 
@@ -76,7 +79,10 @@ interface Reports extends ReturnType<typeof progressFor> {
   reports: Report[]
   working: Record<string, string> // working key (src/coffees.ts workingKey) -> report id
   coffees: MyCoffee[] // the player's own coffees, archived ones included
+  passed: Passed // when each drill's field test was passed
   saveCoffee: (c: MyCoffee) => void
+  // A drill's field test, passed. The first pass is kept; passing again changes nothing.
+  passDrill: (id: DrillId) => void
   addReport: (r: Omit<Report, 'id' | 'ts'>) => Report
   markWorking: (key: string, reportId: string) => void
   // Grinder, its setting and notes only; empty clears them. The numbers and taste stay as filed.
@@ -176,7 +182,7 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     if (!a) return
     setImportStatus('busy')
     try {
-      const sent = await importGuest({ reports: guest.reports, working: guest.working, coffees: guest.coffees }, a.cache.working, sender)
+      const sent = await importGuest({ reports: guest.reports, working: guest.working, coffees: guest.coffees, drills: guest.drills }, a.cache.working, sender)
       updateCache(a.userId, (c) => ({ ...applySent(c, sent), importDecided: true }))
       guest.clearGuest()
       setImportStatus('idle')
@@ -217,14 +223,17 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
   }, [account, updateCache])
 
   const value = useMemo<Reports>(() => {
-    const shown = account ? view(account.cache) : { reports: guest.reports, working: guest.working, coffees: guest.coffees }
-    const guestItems = guest.reports.length + guest.coffees.length
+    const shown = account ? view(account.cache) : { reports: guest.reports, working: guest.working, coffees: guest.coffees, drills: guest.drills }
+    const guestItems = guest.reports.length + guest.coffees.length + Object.keys(guest.drills).length
     // Asked only once the server has answered, so import knows which working recipes the account already has
     const offer =
       account && confirmedId && account.server === 'loaded' && !account.cache.importDecided && guestItems > 0
     return {
-      ...shown,
-      ...progressFor(shown.reports, shown.working),
+      reports: shown.reports,
+      working: shown.working,
+      coffees: shown.coffees,
+      passed: shown.drills,
+      ...progressFor(shown.reports, shown.working, shown.drills),
       source: account ? 'api' : 'browser',
       loading: account ? !account.cached && account.server === 'loading' : user === undefined,
       signedIn: account !== null,
@@ -253,6 +262,12 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
             outbox: { ...x.outbox, coffees: [...(x.outbox.coffees ?? []).filter((q) => q.id !== c.id), c] },
           }))
         } else guest.saveCoffee(c)
+      },
+      passDrill: (id) => {
+        if (shown.drills[id] !== undefined) return
+        const at = Date.now()
+        if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, drills: { ...c.outbox.drills, [id]: at } } }))
+        else guest.passDrill(id, at)
       },
       setPhoto,
       importOffer: offer ? { count: guestItems, status: importStatus } : null,

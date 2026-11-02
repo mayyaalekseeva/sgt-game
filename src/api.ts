@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RECIPE_CONTENT, isPhotoNonce, parseRecipeContent, parseReportsResponse, type RecipeEntry, type Report } from './data'
 import { parseCoffees, type MyCoffee } from './coffees'
+import { parsePassed, type Passed } from './drills'
 import type { Sender } from './sync'
 
 // Where a screen's data came from: the API, or this browser (bundled recipes, guest reports)
@@ -26,11 +27,14 @@ export async function loadRecipes(signal: AbortSignal): Promise<{ recipes: Recip
   }
 }
 
-// The signed-in user's reports and working recipes. Throws on any failure (with .status when the API
+// The signed-in user's reports, working recipes, coffees and passed drills. Throws on any failure (with .status when the API
 // answered); the caller keeps showing its cached copy.
-export async function fetchReports(signal: AbortSignal): Promise<{ reports: Report[]; working: Record<string, string>; coffees: MyCoffee[] }> {
+export async function fetchReports(
+  signal: AbortSignal,
+): Promise<{ reports: Report[]; working: Record<string, string>; coffees: MyCoffee[]; drills: Passed }> {
   const raw = await getJson('/api/reports', signal)
-  return { ...parseReportsResponse(raw), coffees: parseCoffees((raw as { coffees?: unknown }).coffees) }
+  const { coffees, drills } = raw as { coffees?: unknown; drills?: unknown }
+  return { ...parseReportsResponse(raw), coffees: parseCoffees(coffees), drills: parsePassed(drills) }
 }
 
 async function send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) {
@@ -52,6 +56,7 @@ export const sender: Sender = {
   postCoffees: (coffees) => send('POST', '/api/coffees', { coffees }),
   patchReport: (id, edit) => send('PATCH', reportPath(id), { grinder: edit.grinder ?? null, grinderModel: edit.grinderModel ?? null, notes: edit.notes ?? null, editedAt: edit.editedAt }),
   deleteReport: (id) => send('DELETE', reportPath(id)),
+  postDrills: (drills) => send('POST', '/api/drills', { drills }),
 }
 
 // Report photos (worker/photos.ts). Owner-only: the session cookie goes along like with any same-origin request.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { MAX_GRINDER, MAX_NOTES, RECIPES, STYLE_OF, TASTES, progressFor, type Report, type Taste } from '../data'
+import { MAX_GRINDER, MAX_NOTES, RECIPES, STYLE_OF, TASTES, type Report, type Taste } from '../data'
+import { progressFor, type Progress } from '../progress'
 import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
 import { coffeeName, forRoast } from '../coffees'
@@ -23,7 +24,7 @@ export default function Diagnose({
   addCoffee: () => void
 }) {
   const { t, method, timed, takeTimed } = useStore()
-  const { rank, addReport, markWorking, working, reports, coffees, signedIn } = useReports()
+  const { rank, addReport, markWorking, working, reports, coffees, signedIn, passed } = useReports()
   const { brew, slug, lot, mine, key } = usePick()
   const recipe = forRoast(RECIPES[slug], mine?.roast)
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
@@ -43,7 +44,7 @@ export default function Diagnose({
   const [notes, setNotes] = useState('')
   const [fromTimer, setFromTimer] = useState(false)
   const [photo, setPhoto] = useState<Blob | null>(null) // prepared, uploaded once the report is filed
-  const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null; before: ReturnType<typeof progressFor> } | null>(null)
+  const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null; before: Progress } | null>(null)
   const [round, setRound] = useState(0) // each "Brew again" starts the checklist clean
 
   // when the recipe or coffee changes, reset the form to its starting point
@@ -80,7 +81,7 @@ export default function Diagnose({
     const input = { dose, yield: yld, time, taste, bloomed }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
     // progress before this report, so the debrief can show what it earned
-    const before = progressFor(reports, working)
+    const before = progressFor(reports, working, passed)
     const report = addReport({
       ...brew,
       lot,
