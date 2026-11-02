@@ -1,5 +1,6 @@
 import recipeContent from '../content/recipes.json' with { type: 'json' }
 // scripts/seed-recipes.mjs loads this file in plain Node, so relative runtime imports need the .ts extension
+import { cleanFlavors } from './flavors.ts'
 import { isGrinderModel } from './grinders.ts'
 
 export type Lang = 'en' | 'pt'
@@ -200,9 +201,10 @@ export interface Report extends Brew {
   grinder?: string // the grinder setting as the player writes it ("18 clicks"); with notes, what a saved recipe keeps
   grinderModel?: string // which grinder (src/grinders.ts id); the setting only means something on it
   notes?: string
+  flavors?: string[] // what the player tasted (src/flavors.ts ids); missing when none were picked
   timed?: true // brewed with the brew timer
   photo?: string // the current photo's nonce (worker/photos.ts); signed-in reports only
-  editedAt?: number // grinder, its setting or notes changed after filing; the numbers never change
+  editedAt?: number // grinder, its setting, notes or flavors changed after filing; the numbers never change
 }
 
 export const MAX_GRINDER = 30
@@ -269,6 +271,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         (r.grinder == null || typeof r.grinder === 'string') &&
         (r.grinderModel == null || isGrinderModel(r.grinderModel)) &&
         (r.notes == null || typeof r.notes === 'string') &&
+        (r.flavors == null || Array.isArray(r.flavors)) &&
         (r.timed == null || typeof r.timed === 'boolean') &&
         (r.photo == null || isPhotoNonce(r.photo)) &&
         (r.editedAt == null || num(r.editedAt))
@@ -289,6 +292,7 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         ...(typeof r.grinder === 'string' && r.grinder !== '' ? { grinder: r.grinder } : {}),
         ...(isGrinderModel(r.grinderModel) ? { grinderModel: r.grinderModel } : {}),
         ...(typeof r.notes === 'string' && r.notes !== '' ? { notes: r.notes } : {}),
+        ...(cleanFlavors(r.flavors).length ? { flavors: cleanFlavors(r.flavors) } : {}),
         ...(r.timed === true ? { timed: true as const } : {}),
         ...(isPhotoNonce(r.photo) ? { photo: r.photo } : {}),
         ...(num(r.editedAt) ? { editedAt: r.editedAt as number } : {}),

@@ -24,6 +24,7 @@ const report = (i: number): ReportIn => ({
   grinder: '12',
   grinderModel: 'comandante-c40',
   notes: 'ok',
+  flavors: ['fruity.berry', 'sweet'],
   timed: true,
 })
 

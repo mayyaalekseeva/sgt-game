@@ -309,6 +309,15 @@ describe('editing and deleting', () => {
       expect(queueEdit(base(), 'a', { grinderModel: 'Niche Zero' }, T).outbox.edits).toEqual({ a: { editedAt: T } })
     })
 
+    it('sets or clears flavors, and keeps them through the localStorage round trip', () => {
+      const set = queueEdit(base(), 'a', { flavors: ['fruity.berry', 'fruity.berry', 'Bad'] }, T)
+      expect(set.outbox.edits).toEqual({ a: { flavors: ['fruity.berry'], editedAt: T } })
+      expect(view(set).reports.find((r) => r.id === 'a')).toMatchObject({ flavors: ['fruity.berry'] })
+      expect(parseAccountCache(JSON.parse(JSON.stringify(set))).outbox.edits).toEqual(set.outbox.edits)
+      const withFlavors = { ...base(), reports: [rep('a', 1, { flavors: ['sweet'] })] }
+      expect(view(queueEdit(withFlavors, 'a', { flavors: [] }, T)).reports.find((r) => r.id === 'a')).not.toHaveProperty('flavors')
+    })
+
     it('keeps only the latest edit of a report', () => {
       const c = queueEdit(queueEdit(base(), 'a', { notes: 'one' }, T), 'a', { notes: 'two' }, T + 1)
       expect(c.outbox.edits).toEqual({ a: { notes: 'two', editedAt: T + 1 } })

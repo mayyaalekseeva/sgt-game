@@ -19,6 +19,7 @@ const report = (over: Record<string, unknown> = {}) => ({
   grinder: null,
   grinderModel: null,
   notes: null,
+  flavors: null,
   timed: false,
   ...over,
 })
@@ -79,6 +80,15 @@ describe('parseReportBatch', () => {
     }
   })
 
+  it('keeps flavors, listed or not, and stores none as null', () => {
+    const r = report({ flavors: ['fruity.berry', 'sweet', 'some_new.flavor'] })
+    expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
+    expect(parse({ reports: [report({ flavors: [] })] })).toEqual({ reports: [report()], imported: false })
+    // older clients leave it out
+    const { flavors: _, ...none } = report()
+    expect(parse({ reports: [none] })).toEqual({ reports: [report()], imported: false })
+  })
+
   it('accepts a lot slug, and no lot from older clients', () => {
     const r = report({ lot: 'peru-naranjo-yacu' })
     expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
@@ -113,6 +123,10 @@ describe('parseReportBatch', () => {
     ['lot', 'my:short'],
     ['grinder', 'x'.repeat(31)],
     ['notes', 7],
+    ['flavors', 'fruity'],
+    ['flavors', ['Fruity']],
+    ['flavors', ['fruity', 'fruity']],
+    ['flavors', ['fruity', 'floral', 'sweet', 'spice', 'green', 'roasted']],
     ['timed', 'yes'],
   ])('rejects a bad %s (%s) and names the report', (field, value) => {
     const out = parse({ reports: [report(), report({ [field]: value })] })
@@ -145,7 +159,7 @@ describe('toReportRows', () => {
     expect(toReportRows(batch, { ...ctx, imported: true }).every((r) => r.importedAt === NOW)).toBe(true)
   })
 
-  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, grinderModel: row.grinderModel ?? null, notes: row.notes ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
+  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, grinderModel: row.grinderModel ?? null, notes: row.notes ?? null, flavors: row.flavors ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)
@@ -178,6 +192,14 @@ describe('parseReportEdit', () => {
     expect(edit({ grinderModel: null })).toMatchObject({ grinderModel: null })
     expect(edit()).not.toHaveProperty('grinderModel')
     expect(edit({ grinderModel: 'Niche Zero' })).toEqual({ error: 'grinderModel is invalid' })
+  })
+
+  it('sets or clears flavors, and leaves them alone when an older build leaves them out', () => {
+    expect(edit({ flavors: ['floral.tea'] })).toMatchObject({ flavors: ['floral.tea'] })
+    expect(edit({ flavors: [] })).toMatchObject({ flavors: null })
+    expect(edit({ flavors: null })).toMatchObject({ flavors: null })
+    expect(edit()).not.toHaveProperty('flavors')
+    expect(edit({ flavors: ['Tea'] })).toEqual({ error: 'flavors is invalid' })
   })
 
   it('clears a field sent empty, blank or null', () => {

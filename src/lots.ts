@@ -1,5 +1,6 @@
 import lotContent from '../content/lots.json' with { type: 'json' }
 import type { Lang } from './data'
+import { isKnownFlavor } from './flavors'
 
 // The roaster's flavor profile, as its shop labels each coffee
 export type Profile = 'classic' | 'classic_rich' | 'classic_complex' | 'fruity_floral' | 'fruity_complex' | 'decaf'
@@ -20,6 +21,7 @@ export interface Lot {
   process: Text
   altitude: [number, number] // m
   notes: Text
+  flavors: string[] // the notes as src/flavors.ts ids, to compare with what the player tasted; [] when not tagged
   profile: Profile
   status: 'current' | 'retired' // retired lots stay for older reports, out of the picker
   url: string // the product page on the roaster's shop, where it is bought
@@ -47,6 +49,9 @@ export function parseLotContent(raw: unknown, source = 'content/lots.json'): Lot
     if (!Array.isArray(alt) || alt.length !== 2 || !alt.every((n) => Number.isInteger(n) && n > 0) || alt[0] > alt[1]) {
       fail(`${at}: altitude must be [min, max] metres`)
     }
+    if (l.flavors !== undefined && (!Array.isArray(l.flavors) || !l.flavors.every((f) => typeof f === 'string' && isKnownFlavor(f)))) {
+      fail(`${at}: flavors must be ids from src/flavors.ts`)
+    }
     if (!PROFILES.includes(l.profile as Profile)) fail(`${at}: profile must be one of ${PROFILES.join(', ')}`)
     if (l.status !== 'current' && l.status !== 'retired') fail(`${at}: status must be current or retired`)
     if (typeof l.url !== 'string' || !l.url.startsWith('https://')) fail(`${at}: url must be https`)
@@ -62,6 +67,7 @@ export function parseLotContent(raw: unknown, source = 'content/lots.json'): Lot
       process: l.process as Text,
       altitude: alt as [number, number],
       notes: l.notes as Text,
+      flavors: (l.flavors as string[] | undefined) ?? [],
       profile: l.profile as Profile,
       status: l.status as Lot['status'],
       url: l.url as string,

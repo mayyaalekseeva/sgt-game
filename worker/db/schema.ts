@@ -101,6 +101,7 @@ export const reports = sqliteTable(
     grinder: text('grinder'), // the player's grinder setting, free text
     grinderModel: text('grinder_model'), // which grinder, an id from src/grinders.ts; null when not chosen
     notes: text('notes'),
+    flavors: text('flavors', { mode: 'json' }).$type<string[]>(), // ids from src/flavors.ts, a JSON array; null when none
     timed: integer('timed', { mode: 'boolean' }).notNull().default(false), // brewed with the brew timer
     photoKey: text('photo_key'), // R2 key photos/<userId>/<reportId>/<nonce>.jpg (worker/photos.ts); null without a photo
     visibility: text('visibility', { enum: VISIBILITIES }).notNull().default('private'), // for later sharing; unused yet

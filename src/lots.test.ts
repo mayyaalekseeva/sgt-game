@@ -28,6 +28,13 @@ describe('content/lots.json', () => {
     }
   })
 
+  it('tags every current lot with its flavors; an untagged lot has none', () => {
+    for (const lot of currentLots()) expect(lot.flavors.length, lot.slug).toBeGreaterThan(0)
+    const c = copy()
+    delete c.lots[0].flavors
+    expect(parseLotContent(c)[0].flavors).toEqual([])
+  })
+
   it('a lot without a photo has none to show', () => {
     const c = copy()
     delete c.lots[0].photo
@@ -53,6 +60,7 @@ describe('content/lots.json', () => {
     ['unknown status', (c) => (c.lots[0].status = 'soon'), /status must be current or retired/],
     ['http url', (c) => (c.lots[0].url = 'http://example.com'), /url must be https/],
     ['photo off the shop CDN', (c) => (c.lots[0].photo = 'https://example.com/bag.jpg'), /photo must be/],
+    ['unknown flavor', (c) => (c.lots[0].flavors = ['fruity.mango']), /flavors must be/],
   ])('rejects %s', (_name, mutate, err) => {
     const c = copy()
     mutate(c)

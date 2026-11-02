@@ -1,6 +1,7 @@
 import { mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
 import { MAX_GRINDER, MAX_NOTES, parseReportsResponse, type Report } from './data'
 import { parsePassed, type DrillId, type Passed } from './drills'
+import { cleanFlavors } from './flavors'
 import { isGrinderModel } from './grinders'
 
 // Signed-in sync, kept free of React and fetch so it can be tested. The server is the record; this
@@ -8,16 +9,18 @@ import { isGrinderModel } from './grinders'
 
 type Working = Record<string, string> // recipeKey -> report id
 
-// A report's grinder, its setting and notes after filing (worker/reports.ts ReportEdit). A missing field is cleared.
+// A report's grinder, its setting, notes and flavors after filing (worker/reports.ts ReportEdit). A missing field is
+// cleared.
 export interface ReportEdit {
   grinder?: string
   grinderModel?: string
   notes?: string
+  flavors?: string[]
   editedAt: number
 }
 
 // What the Diary's edit form sends; empty clears a field
-export type EditFields = { grinder?: string; grinderModel?: string; notes?: string }
+export type EditFields = { grinder?: string; grinderModel?: string; notes?: string; flavors?: string[] }
 
 export interface Outbox {
   reports: Report[]
@@ -71,6 +74,7 @@ function parseChanges(o: Partial<Outbox> | undefined): Pick<Outbox, 'edits' | 'd
       ...(text(e.grinder, MAX_GRINDER) ? { grinder: e.grinder } : {}),
       ...(isGrinderModel(e.grinderModel) ? { grinderModel: e.grinderModel } : {}),
       ...(text(e.notes, MAX_NOTES) ? { notes: e.notes } : {}),
+      ...(cleanFlavors(e.flavors).length ? { flavors: cleanFlavors(e.flavors) } : {}),
       editedAt: e.editedAt,
     }
   }
@@ -99,14 +103,15 @@ export function parseAccountCache(raw: unknown): AccountCache {
   }
 }
 
-/** The report with its grinder, setting and notes replaced; empty ones are removed. */
+/** The report with its grinder, setting, notes and flavors replaced; empty ones are removed. */
 export function withEdit(r: Report, e: ReportEdit): Report {
-  const { grinder: _grinder, grinderModel: _grinderModel, notes: _notes, ...rest } = r
+  const { grinder: _grinder, grinderModel: _grinderModel, notes: _notes, flavors: _flavors, ...rest } = r
   return {
     ...rest,
     ...(e.grinder ? { grinder: e.grinder } : {}),
     ...(e.grinderModel ? { grinderModel: e.grinderModel } : {}),
     ...(e.notes ? { notes: e.notes } : {}),
+    ...(e.flavors?.length ? { flavors: e.flavors } : {}),
     editedAt: e.editedAt,
   }
 }
@@ -137,14 +142,15 @@ export function view(c: AccountCache): { reports: Report[]; working: Working; co
 }
 
 /**
- * Queues a new grinder, setting and notes for a report. One still waiting to be sent is changed in place: it goes
- * out with them, and was never filed without them, so it is not marked as edited.
+ * Queues a new grinder, setting, notes and flavors for a report. One still waiting to be sent is changed in place: it
+ * goes out with them, and was never filed without them, so it is not marked as edited.
  */
 export function queueEdit(c: AccountCache, id: string, fields: EditFields, now: number): AccountCache {
   const edit: ReportEdit = {
     ...(fields.grinder?.trim() ? { grinder: fields.grinder.trim() } : {}),
     ...(isGrinderModel(fields.grinderModel) ? { grinderModel: fields.grinderModel } : {}),
     ...(fields.notes?.trim() ? { notes: fields.notes.trim() } : {}),
+    ...(cleanFlavors(fields.flavors).length ? { flavors: cleanFlavors(fields.flavors) } : {}),
     editedAt: now,
   }
   if (c.outbox.reports.some((r) => r.id === id)) {
