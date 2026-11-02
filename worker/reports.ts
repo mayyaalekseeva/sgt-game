@@ -1,4 +1,4 @@
-import { BREWERS, METHODS, ROASTS, TASTES, type reports } from './db/schema'
+import { BREWERS, METHODS, OFF_NOTES, ROASTS, TASTES, type reports } from './db/schema'
 import { nonceOf } from './photos'
 
 // A report as the client stores it (src/data.ts Report); `yield` is yield_g in the table
@@ -20,6 +20,8 @@ export interface ReportIn {
   notes: string | null
   flavors: string[] | null
   timed: boolean
+  roastedOn: string | null
+  offNote: (typeof OFF_NOTES)[number] | null
 }
 
 export const MAX_BATCH = 200
@@ -44,6 +46,7 @@ const isFlavorList = (v: unknown): v is string[] =>
   Array.isArray(v) && v.length <= MAX_FLAVORS && v.every(isFlavorId) && new Set(v).size === v.length
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
+const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))
 
 const isNum = (v: unknown, min: number, max: number): v is number =>
   typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max
@@ -97,6 +100,8 @@ export function parseReportBatch(
     if (r.notes != null && (typeof r.notes !== 'string' || r.notes.length > MAX_NOTES)) return { error: `${at}.notes is invalid` }
     if (r.flavors != null && !isFlavorList(r.flavors)) return { error: `${at}.flavors is invalid` }
     if (r.timed != null && typeof r.timed !== 'boolean') return { error: `${at}.timed is invalid` }
+    if (r.roastedOn != null && !isDay(r.roastedOn)) return { error: `${at}.roastedOn must be YYYY-MM-DD` }
+    if (r.offNote != null && !oneOf(OFF_NOTES, r.offNote)) return { error: `${at}.offNote is invalid` }
     out.push({
       id: r.id,
       ts: r.ts,
@@ -114,6 +119,8 @@ export function parseReportBatch(
       notes: (r.notes as string | null | undefined) || null,
       flavors: (r.flavors as string[] | null | undefined)?.length ? (r.flavors as string[]) : null,
       timed: r.timed === true,
+      roastedOn: (r.roastedOn as string | null | undefined) ?? null,
+      offNote: (r.offNote as ReportIn['offNote'] | undefined) ?? null,
     })
   }
   return { reports: out, imported }
@@ -188,6 +195,8 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     grinderModel: r.grinderModel,
     notes: r.notes,
     flavors: r.flavors,
+    roastedOn: r.roastedOn,
+    offNote: r.offNote,
     ...(r.timed ? { timed: true } : {}),
     ...(photo ? { photo } : {}),
     ...(r.editedAt ? { editedAt: r.editedAt } : {}),

@@ -21,6 +21,8 @@ const report = (over: Record<string, unknown> = {}) => ({
   notes: null,
   flavors: null,
   timed: false,
+  roastedOn: null,
+  offNote: null,
   ...over,
 })
 
@@ -89,6 +91,13 @@ describe('parseReportBatch', () => {
     expect(parse({ reports: [none] })).toEqual({ reports: [report()], imported: false })
   })
 
+  it('keeps the roast date and off-note, and older clients leave them out', () => {
+    const r = report({ roastedOn: '2026-10-20', offNote: 'green' })
+    expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
+    const { roastedOn: _, offNote: __, ...none } = report()
+    expect(parse({ reports: [none] })).toEqual({ reports: [report()], imported: false })
+  })
+
   it('accepts a lot slug, and no lot from older clients', () => {
     const r = report({ lot: 'peru-naranjo-yacu' })
     expect(parse({ reports: [r] })).toEqual({ reports: [r], imported: false })
@@ -128,6 +137,9 @@ describe('parseReportBatch', () => {
     ['flavors', ['fruity', 'fruity']],
     ['flavors', ['fruity', 'floral', 'sweet', 'spice', 'green', 'roasted']],
     ['timed', 'yes'],
+    ['roastedOn', '20/10/2026'],
+    ['roastedOn', '2026-13-45'],
+    ['offNote', 'smoky'],
   ])('rejects a bad %s (%s) and names the report', (field, value) => {
     const out = parse({ reports: [report(), report({ [field]: value })] })
     expect(out).toHaveProperty('error')
@@ -159,7 +171,7 @@ describe('toReportRows', () => {
     expect(toReportRows(batch, { ...ctx, imported: true }).every((r) => r.importedAt === NOW)).toBe(true)
   })
 
-  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, grinderModel: row.grinderModel ?? null, notes: row.notes ?? null, flavors: row.flavors ?? null, timed: row.timed ?? false, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
+  const selected = (row: ReturnType<typeof toReportRows>[number]) => ({ ...row, roast: row.roast ?? null, brewer: row.brewer ?? null, recipeVersionId: row.recipeVersionId ?? null, lot: row.lot ?? null, grinder: row.grinder ?? null, grinderModel: row.grinderModel ?? null, notes: row.notes ?? null, flavors: row.flavors ?? null, timed: row.timed ?? false, roastedOn: row.roastedOn ?? null, offNote: row.offNote ?? null, photoKey: null, visibility: 'private' as const, editedAt: null, importedAt: null })
 
   it('round-trips through toReportOut', () => {
     const [row] = toReportRows([batch[0]], ctx)

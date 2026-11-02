@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { freshness, forRoast, isMyRef, mergeCoffees, myRef, parseCoffee, parseCoffees, resolvePick, workingKey, coffeeName, type MyCoffee } from './coffees'
+import { daysOffRoast, freshness, forRoast, isMyRef, mergeCoffees, myRef, parseCoffee, parseCoffees, resolvePick, workingKey, coffeeName, type MyCoffee } from './coffees'
 import { RECIPES } from './data'
 import { currentLots } from './lots'
 
@@ -155,5 +155,20 @@ describe('freshness', () => {
     expect(freshness('2026-09-26', '2026-10-27', 'filter')?.stage).toBe('fading')
     expect(freshness('2026-08-28', '2026-10-27', 'filter')?.stage).toBe('fading')
     expect(freshness('2026-08-27', '2026-10-27', 'filter')?.stage).toBe('stale')
+  })
+})
+
+describe('daysOffRoast', () => {
+  // noon local time, so the brew's calendar day is the same in any time zone the tests run in
+  const brewed = new Date(2026, 9, 27, 12).getTime()
+
+  it('counts calendar days from the roast to the brew', () => {
+    expect(daysOffRoast('2026-10-27', brewed)).toBe(0)
+    expect(daysOffRoast('2026-10-15', brewed)).toBe(12)
+  })
+
+  it('is unknown without a date or for one after the brew', () => {
+    expect(daysOffRoast(undefined, brewed)).toBeUndefined()
+    expect(daysOffRoast('2026-10-28', brewed)).toBeUndefined()
   })
 })

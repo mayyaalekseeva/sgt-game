@@ -6,6 +6,7 @@ import { foreignKey, index, integer, primaryKey, real, sqliteTable, text, unique
 export const METHODS = ['espresso', 'filter'] as const
 export const ROASTS = ['light', 'medium', 'dark'] as const
 export const TASTES = ['sour', 'bitter', 'thin', 'balanced'] as const
+export const OFF_NOTES = ['green', 'harsh', 'woody'] as const
 export const BREWERS = ['v60', 'aeropress', 'frenchpress'] as const
 export const GRINDS = ['fine', 'medium_fine', 'medium', 'medium_coarse', 'coarse'] as const
 export const PROCESSES = ['washed', 'natural', 'honey', 'anaerobic', 'decaf'] as const
@@ -106,6 +107,8 @@ export const reports = sqliteTable(
     photoKey: text('photo_key'), // R2 key photos/<userId>/<reportId>/<nonce>.jpg (worker/photos.ts); null without a photo
     visibility: text('visibility', { enum: VISIBILITIES }).notNull().default('private'), // for later sharing; unused yet
     editedAt: integer('edited_at'), // last edit of grinder, setting or notes, by the client's clock; the later edit wins
+    roastedOn: text('roasted_on'), // YYYY-MM-DD the brewed bag was roasted; null when not given
+    offNote: text('off_note', { enum: OFF_NOTES }), // a flavor noticed besides the taste; null when none
     importedAt: integer('imported_at'),
     createdAt: integer('created_at').notNull(),
   },

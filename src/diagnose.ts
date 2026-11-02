@@ -1,4 +1,5 @@
-import type { BrewStyle, Recipe, Taste } from './data'
+import { freshStage } from './coffees'
+import type { BrewStyle, OffNote, Recipe, Taste } from './data'
 
 export interface Input {
   dose: number
@@ -6,9 +7,18 @@ export interface Input {
   time: number
   taste: Taste
   bloomed?: boolean // pour-over only; undefined counts as bloomed
+  offNote?: OffNote
+  daysOff?: number // days from the roast to the brew; undefined without a roast date
 }
 
 export type DiagId =
+  | 'too_fresh'
+  | 'green_under'
+  | 'harsh_channel'
+  | 'woody_fading'
+  | 'woody_stale'
+  | 'pour_harsh_uneven'
+  | 'pour_woody_paper'
   | 'balanced'
   | 'balanced_off'
   | 'sour_fast'
@@ -41,6 +51,13 @@ export type DiagId =
   | 'steep_thin_ok'
 
 export const DIAG_IDS: DiagId[] = [
+  'too_fresh',
+  'green_under',
+  'harsh_channel',
+  'woody_fading',
+  'woody_stale',
+  'pour_harsh_uneven',
+  'pour_woody_paper',
   'balanced',
   'balanced_off',
   'sour_fast',
@@ -86,10 +103,35 @@ export function timeState(r: Recipe, time: number): TimeState {
 const tooDilute = (r: Recipe, i: Input) => i.yield / i.dose > (r.yield / r.dose) * 1.1
 
 /**
+ * An off-note comes before the taste. When the coffee's age explains it, the change is about the bag, not the
+ * recipe: coffee still resting is full of CO2 that pushes the water around, so it tastes green or harsh whatever
+ * the grind; after a month it loses its aromatics and turns woody. Otherwise green is under-extraction, harsh is
+ * uneven extraction (channeling in espresso, a lopsided bed in pour-over) and woody in a fresh pour-over is the
+ * paper. Null when the taste and time should decide.
+ */
+function offNoteDiag(brew: 'espresso' | BrewStyle, i: Input): DiagId | null {
+  if (!i.offNote) return null
+  const stage = i.daysOff == null || i.daysOff < 0 ? null : freshStage(i.daysOff, brew === 'espresso' ? 'espresso' : 'filter')
+  switch (i.offNote) {
+    case 'green':
+      return stage === 'resting' ? 'too_fresh' : 'green_under'
+    case 'harsh':
+      if (stage === 'resting') return 'too_fresh'
+      return brew === 'espresso' ? 'harsh_channel' : brew === 'pour' ? 'pour_harsh_uneven' : null
+    case 'woody':
+      if (stage === 'stale') return 'woody_stale'
+      if (stage === 'fading') return 'woody_fading'
+      return brew === 'pour' ? 'pour_woody_paper' : null
+  }
+}
+
+/**
  * Rule-based espresso diagnosis. One taste symptom + time vs. the recipe range -> ONE change.
  * Thresholds are relative to the recipe range for the chosen roast level.
  */
 export function diagnose(r: Recipe, i: Input): DiagId {
+  const off = offNoteDiag('espresso', i)
+  if (off) return off
   const ts = timeState(r, i.time)
   switch (i.taste) {
     case 'balanced':
@@ -110,6 +152,8 @@ export function diagnose(r: Recipe, i: Input): DiagId {
  * contact time, so time off the range means pressing early or late, and grind is the lever after that.
  */
 export function diagnoseFilter(style: BrewStyle, r: Recipe, i: Input): DiagId {
+  const off = offNoteDiag(style, i)
+  if (off) return off
   const ts = timeState(r, i.time)
   if (i.taste === 'balanced') return ts === 'ok' ? 'balanced' : 'balanced_off'
   if (style === 'pour') {

@@ -26,6 +26,8 @@ const report = (i: number): ReportIn => ({
   notes: 'ok',
   flavors: ['fruity.berry', 'sweet'],
   timed: true,
+  roastedOn: '2026-10-20',
+  offNote: 'green',
 })
 
 describe('rowsPerInsert', () => {

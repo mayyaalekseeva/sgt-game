@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a121ff75-db0b-4c17-a3f1-97a0e5ed22ca",
+  "id": "28662259-3af6-4742-b27c-dd1cd5654e86",
   "prevId": "65a0982b-c72c-43f3-a4d4-d1a94f7be809",
   "tables": {
     "coffees": {
@@ -525,13 +525,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "flavors": {
-          "name": "flavors",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "timed": {
           "name": "timed",
           "type": "integer",
@@ -558,6 +551,20 @@
         "edited_at": {
           "name": "edited_at",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "roasted_on": {
+          "name": "roasted_on",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "off_note": {
+          "name": "off_note",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
