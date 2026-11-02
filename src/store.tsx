@@ -116,7 +116,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       editReport: (id, fields) =>
         setS((p) => {
-          const edit = { grinder: fields.grinder?.trim(), grinderModel: fields.grinderModel || undefined, notes: fields.notes?.trim(), editedAt: Date.now() }
+          const edit = { grinder: fields.grinder?.trim(), grinderModel: fields.grinderModel || undefined, notes: fields.notes?.trim(), flavors: fields.flavors, editedAt: Date.now() }
           return { ...p, reports: p.reports.map((r) => (r.id === id ? withEdit(r, edit) : r)) }
         }),
       deleteReport: (id) =>

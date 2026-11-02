@@ -54,7 +54,7 @@ export const sender: Sender = {
   postReports: (reports, imported) => send('POST', '/api/reports', { reports, imported }),
   putWorking: (reportId) => send('PUT', '/api/working-recipes', { reportId }),
   postCoffees: (coffees) => send('POST', '/api/coffees', { coffees }),
-  patchReport: (id, edit) => send('PATCH', reportPath(id), { grinder: edit.grinder ?? null, grinderModel: edit.grinderModel ?? null, notes: edit.notes ?? null, editedAt: edit.editedAt }),
+  patchReport: (id, edit) => send('PATCH', reportPath(id), { grinder: edit.grinder ?? null, grinderModel: edit.grinderModel ?? null, notes: edit.notes ?? null, flavors: edit.flavors ?? null, editedAt: edit.editedAt }),
   deleteReport: (id) => send('DELETE', reportPath(id)),
   postDrills: (drills) => send('POST', '/api/drills', { drills }),
 }

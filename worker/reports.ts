@@ -18,6 +18,7 @@ export interface ReportIn {
   grinder: string | null
   grinderModel: string | null
   notes: string | null
+  flavors: string[] | null
   timed: boolean
   roastedOn: string | null
   offNote: (typeof OFF_NOTES)[number] | null
@@ -36,6 +37,13 @@ const MAX_NOTES = 280
 // A grinder id (src/grinders.ts isGrinderModel). Any well-formed one is kept, so a grinder added to the list needs no
 // server change.
 const isGrinderModel = (v: unknown): v is string => typeof v === 'string' && v.length <= 40 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v)
+// What the player tasted (src/flavors.ts isFlavorId, MAX_FLAVORS). Any well-formed id is kept, like grinders.
+const MAX_FLAVORS = 5
+const isFlavorId = (v: unknown): v is string =>
+  typeof v === 'string' && v.length <= 40 && /^[a-z]+(_[a-z]+)*(\.[a-z]+(_[a-z]+)*)?$/.test(v)
+// null or [] is none; undefined is not a list either, so callers decide what missing means
+const isFlavorList = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.length <= MAX_FLAVORS && v.every(isFlavorId) && new Set(v).size === v.length
 const EARLIEST_TS = Date.UTC(2024, 0, 1)
 const DAY = 24 * 60 * 60 * 1000
 const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))
@@ -90,6 +98,7 @@ export function parseReportBatch(
     if (r.grinder != null && (typeof r.grinder !== 'string' || r.grinder.length > MAX_GRINDER)) return { error: `${at}.grinder is invalid` }
     if (r.grinderModel != null && !isGrinderModel(r.grinderModel)) return { error: `${at}.grinderModel is invalid` }
     if (r.notes != null && (typeof r.notes !== 'string' || r.notes.length > MAX_NOTES)) return { error: `${at}.notes is invalid` }
+    if (r.flavors != null && !isFlavorList(r.flavors)) return { error: `${at}.flavors is invalid` }
     if (r.timed != null && typeof r.timed !== 'boolean') return { error: `${at}.timed is invalid` }
     if (r.roastedOn != null && !isDay(r.roastedOn)) return { error: `${at}.roastedOn must be YYYY-MM-DD` }
     if (r.offNote != null && !oneOf(OFF_NOTES, r.offNote)) return { error: `${at}.offNote is invalid` }
@@ -108,6 +117,7 @@ export function parseReportBatch(
       grinder: (r.grinder as string | null | undefined) || null,
       grinderModel: (r.grinderModel as string | null | undefined) ?? null,
       notes: (r.notes as string | null | undefined) || null,
+      flavors: (r.flavors as string[] | null | undefined)?.length ? (r.flavors as string[]) : null,
       timed: r.timed === true,
       roastedOn: (r.roastedOn as string | null | undefined) ?? null,
       offNote: (r.offNote as ReportIn['offNote'] | undefined) ?? null,
@@ -116,27 +126,33 @@ export function parseReportBatch(
   return { reports: out, imported }
 }
 
-// The only fields that change after filing: the player's grinder and own words. The numbers, taste and diagnosis
-// stay as filed.
+// The only fields that change after filing: the player's grinder, flavors and own words. The numbers, taste and
+// diagnosis stay as filed.
 export interface ReportEdit {
   grinder: string | null
   grinderModel?: string | null // missing: left as it is (an older build's edit, which never showed it)
   notes: string | null
+  flavors?: string[] | null // likewise
   editedAt: number
 }
 
-/** Validates a PATCH /api/reports/:id body: { grinder, grinderModel, notes, editedAt }. Empty text or null clears a field. */
+/**
+ * Validates a PATCH /api/reports/:id body: { grinder, grinderModel, notes, flavors, editedAt }. Empty text, [] or null
+ * clears a field.
+ */
 export function parseReportEdit(body: unknown, now = Date.now()): ReportEdit | { error: string } {
   if (typeof body !== 'object' || body === null) return { error: 'expected { grinder, notes, editedAt }' }
-  const { grinder, grinderModel, notes, editedAt } = body as Record<string, unknown>
+  const { grinder, grinderModel, notes, flavors, editedAt } = body as Record<string, unknown>
   if (grinder != null && (typeof grinder !== 'string' || grinder.length > MAX_GRINDER)) return { error: 'grinder is invalid' }
   if (grinderModel != null && grinderModel !== '' && !isGrinderModel(grinderModel)) return { error: 'grinderModel is invalid' }
   if (notes != null && (typeof notes !== 'string' || notes.length > MAX_NOTES)) return { error: 'notes is invalid' }
+  if (flavors != null && !isFlavorList(flavors)) return { error: 'flavors is invalid' }
   if (!isInt(editedAt, EARLIEST_TS, now + DAY)) return { error: 'editedAt is out of range' }
   return {
     grinder: (grinder as string | null | undefined)?.trim() || null,
     ...(grinderModel !== undefined ? { grinderModel: (grinderModel as string | null) || null } : {}),
     notes: (notes as string | null | undefined)?.trim() || null,
+    ...(flavors !== undefined ? { flavors: (flavors as string[] | null)?.length ? (flavors as string[]) : null } : {}),
     editedAt,
   }
 }
@@ -178,6 +194,7 @@ export function toReportOut(r: typeof reports.$inferSelect) {
     grinder: r.grinder,
     grinderModel: r.grinderModel,
     notes: r.notes,
+    flavors: r.flavors,
     roastedOn: r.roastedOn,
     offNote: r.offNote,
     ...(r.timed ? { timed: true } : {}),
