@@ -8,7 +8,10 @@ import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, field, fmtNum, fmtRange, fmtTime, signed } from '../ui'
 import { lastGrinderModel } from '../grinders'
+import { sharedFlavors } from '../flavors'
+import { lotBySlug } from '../lots'
 import EspressoChecklist from './EspressoChecklist'
+import FlavorPicker, { FlavorChips } from './FlavorPicker'
 import Gains from './Gains'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
@@ -23,7 +26,7 @@ export default function Diagnose({
   openTimer: () => void
   addCoffee: () => void
 }) {
-  const { t, method, timed, takeTimed } = useStore()
+  const { t, lang, method, timed, takeTimed } = useStore()
   const { rank, addReport, markWorking, working, reports, coffees, signedIn, passed } = useReports()
   const { brew, slug, lot, mine, key } = usePick()
   const recipe = forRoast(RECIPES[slug], mine?.roast)
@@ -42,6 +45,7 @@ export default function Diagnose({
   const [grinder, setGrinder] = useState(workingReport?.grinder ?? '')
   const [grinderModel, setGrinderModel] = useState(startModel)
   const [notes, setNotes] = useState('')
+  const [flavors, setFlavors] = useState<string[]>([])
   const [fromTimer, setFromTimer] = useState(false)
   const [photo, setPhoto] = useState<Blob | null>(null) // prepared, uploaded once the report is filed
   const [result, setResult] = useState<{ report: Report; diag: DiagId; photo: Blob | null; before: Progress } | null>(null)
@@ -57,6 +61,7 @@ export default function Diagnose({
     setGrinder(workingReport?.grinder ?? '')
     setGrinderModel(startModel)
     setNotes('')
+    setFlavors([])
     setFromTimer(false)
     setPhoto(null)
     setResult(null)
@@ -94,6 +99,7 @@ export default function Diagnose({
       ...(grinder.trim() ? { grinder: grinder.trim() } : {}),
       ...(grinderModel ? { grinderModel } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
+      ...(flavors.length ? { flavors } : {}),
       ...(fromTimer ? { timed: true as const } : {}),
     })
     setResult({ report, diag, photo: signedIn ? photo : null, before })
@@ -109,6 +115,9 @@ export default function Diagnose({
     // the list has the photo once it is uploaded
     const filed = reports.find((x) => x.id === result.report.id) ?? result.report
     const k = (s: string) => `d.${d}.${s}` as Key
+    const tasted = filed.flavors ?? []
+    const roaster = lotBySlug(filed.lot)
+    const shared = roaster ? sharedFlavors(tasted, roaster.flavors) : []
     return (
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
         <div className="flex flex-col gap-4">
@@ -156,12 +165,30 @@ export default function Diagnose({
             </Card>
           )}
 
+          {(tasted.length > 0 || roaster) && (
+            <Card className="flex flex-col gap-2">
+              <Label>{t('diag.inCup')}</Label>
+              {tasted.length > 0 && <FlavorChips ids={tasted} shared={shared} />}
+              {roaster && <p className="text-[15px] leading-snug">{t('diag.roasterNotes', { notes: roaster.notes[lang] })}</p>}
+              {tasted.length === 0 ? (
+                <p className="text-sm text-ink/70">{t('diag.noFlavors')}</p>
+              ) : (
+                roaster &&
+                roaster.flavors.length > 0 && (
+                  <p className="text-sm font-semibold">
+                    {shared.length === 0 ? t('diag.sharedNone') : shared.length === 1 ? t('diag.shared1') : t('diag.sharedN', { n: shared.length })}
+                  </p>
+                )
+              )}
+            </Card>
+          )}
+
           {signedIn && <PhotoControl report={filed} initial={result.photo} />}
 
           <Gains before={result.before} />
 
           <div className="flex flex-col gap-2">
-            <Button onClick={() => { setResult(null); setTaste(null); setRound((r) => r + 1) }}>{t('diag.again')}</Button>
+            <Button onClick={() => { setResult(null); setTaste(null); setFlavors([]); setRound((r) => r + 1) }}>{t('diag.again')}</Button>
             <Button
               variant="secondary"
               disabled={isWorking}
@@ -261,6 +288,10 @@ export default function Diagnose({
             ))}
           </div>
         </div>
+
+        <Card>
+          <FlavorPicker value={flavors} onChange={setFlavors} />
+        </Card>
 
         <Button disabled={!taste} onClick={file}>{t('diag.file')}</Button>
         <p className="text-xs text-ink/70">{t('diag.guideline')}</p>

@@ -3,6 +3,7 @@ import { localDay } from '../data'
 import { grinderText } from '../grinders'
 import { useReports } from '../reports'
 import { useStore } from '../store'
+import { FlavorChips } from './FlavorPicker'
 import { Card, Display, Label, ScreenTitle, brewLabel, fmtDate, fmtNum, fmtTime } from '../ui'
 
 // The brews marked as working recipes, one per recipe. Opened from Profile.
@@ -37,6 +38,7 @@ export default function SavedRecipes() {
                   {fmtNum(r.dose)} g → {fmtNum(r.yield)} g · {fmtTime(r.time, r.method)}
                 </Display>
                 {grinderText(r) && <p className="mt-1 text-[15px] font-semibold">{t('saved.grinder', { g: grinderText(r) })}</p>}
+                {r.flavors && <div className="mt-2"><FlavorChips ids={r.flavors} /></div>}
                 {r.notes && <p className="mt-1 text-[15px] leading-snug">{r.notes}</p>}
                 <p className="mt-1 text-sm text-muted">{t('saved.from', { date: fmtDate(localDay(r.ts), lang) })}</p>
               </Card>

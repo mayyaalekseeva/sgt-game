@@ -7,6 +7,7 @@ import { photoUrl } from '../api'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { grinderName, grinderText } from '../grinders'
+import FlavorPicker, { FlavorChips } from './FlavorPicker'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl from './PhotoControl'
 import { Button, Label, ScreenTitle, brewLabel, diagVars, field, fmtClock, fmtDate, fmtNum, fmtTime, ratio, signed } from '../ui'
@@ -175,6 +176,7 @@ function Entry({ r, prev, isWorking }: { r: Report; prev?: Report; isWorking: bo
             {isDiagId(r.diag) && <p className="text-sm leading-snug text-ink/80">{t(`d.${r.diag}.change`, diagVars(recipe, r.method))}</p>}
           </div>
           {prev && <SinceLast prev={prev} r={r} />}
+          {r.flavors && <FlavorChips ids={r.flavors} />}
           {(grinderText(r) || r.notes) && (
             <p className="text-sm leading-snug text-ink/80">
               {grinderText(r) && <span className="font-semibold text-ink">{t('saved.grinder', { g: grinderText(r) })}</span>}
@@ -213,7 +215,7 @@ function Pencil() {
   )
 }
 
-// Grinder, notes and photo. The numbers and taste are what was brewed and diagnosed, so they stay as filed;
+// Grinder, flavors, notes and photo. The numbers and taste are what was brewed and diagnosed, so they stay as filed;
 // a wrong number is fixed by deleting the report and filing it again.
 function EditEntry({ r, done }: { r: Report; done: () => void }) {
   const { t } = useStore()
@@ -221,8 +223,9 @@ function EditEntry({ r, done }: { r: Report; done: () => void }) {
   const [grinder, setGrinder] = useState(r.grinder ?? '')
   const [grinderModel, setGrinderModel] = useState(r.grinderModel ?? '')
   const [notes, setNotes] = useState(r.notes ?? '')
+  const [flavors, setFlavors] = useState(r.flavors ?? [])
   const save = () => {
-    editReport(r.id, { grinder, grinderModel, notes })
+    editReport(r.id, { grinder, grinderModel, notes, flavors })
     done()
   }
   const remove = () => {
@@ -235,6 +238,7 @@ function EditEntry({ r, done }: { r: Report; done: () => void }) {
         <Label>{t('diag.grinder')}</Label>
         <input value={grinder} maxLength={MAX_GRINDER} placeholder={t('diag.grinderHint')} onChange={(e) => setGrinder(e.target.value)} className={`${field} h-11 font-semibold placeholder:font-normal`} />
       </label>
+      <FlavorPicker value={flavors} onChange={setFlavors} gap="gap-1" />
       <label className="flex flex-col gap-1">
         <Label>{t('diag.notes')}</Label>
         <textarea value={notes} maxLength={MAX_NOTES} rows={2} placeholder={t('diag.notesHint')} onChange={(e) => setNotes(e.target.value)} className={`${field} resize-none py-2`} />
