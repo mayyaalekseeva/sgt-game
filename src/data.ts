@@ -6,6 +6,8 @@ export type Lang = 'en' | 'pt'
 export type Method = 'espresso' | 'filter'
 export type Roast = 'light' | 'medium' | 'dark'
 export type Taste = 'sour' | 'bitter' | 'thin' | 'balanced'
+// A flavor noticed besides the taste: green and grassy, harsh and unbalanced, or woody and papery
+export type OffNote = 'green' | 'harsh' | 'woody'
 // Filter brewers. Pour-over drains through the bed; immersion steeps, then separates (press or drawdown).
 export type Brewer = 'v60' | 'aeropress' | 'frenchpress'
 export type BrewStyle = 'pour' | 'steep'
@@ -203,12 +205,15 @@ export interface Report extends Brew {
   timed?: true // brewed with the brew timer
   photo?: string // the current photo's nonce (worker/photos.ts); signed-in reports only
   editedAt?: number // grinder, its setting or notes changed after filing; the numbers never change
+  roastedOn?: string // YYYY-MM-DD the brewed bag was roasted; with ts, how old the coffee was
+  offNote?: OffNote
 }
 
 export const MAX_GRINDER = 30
 export const MAX_NOTES = 280
 
 export const TASTES: Taste[] = ['sour', 'bitter', 'thin', 'balanced']
+export const OFF_NOTES: OffNote[] = ['green', 'harsh', 'woody']
 
 // One espresso shot, from puck prep to clean-up. A guide only: ticks are not stored. The shot step has a stopwatch.
 export type CheckPhase = 'prep' | 'shot' | 'clean'
@@ -271,7 +276,9 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         (r.notes == null || typeof r.notes === 'string') &&
         (r.timed == null || typeof r.timed === 'boolean') &&
         (r.photo == null || isPhotoNonce(r.photo)) &&
-        (r.editedAt == null || num(r.editedAt))
+        (r.editedAt == null || num(r.editedAt)) &&
+        (r.roastedOn == null || isDay(r.roastedOn)) &&
+        (r.offNote == null || OFF_NOTES.includes(r.offNote as OffNote))
       if (!ok) fail(`reports[${i}] is invalid`)
       return {
         id: r.id as string,
@@ -292,6 +299,8 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
         ...(r.timed === true ? { timed: true as const } : {}),
         ...(isPhotoNonce(r.photo) ? { photo: r.photo } : {}),
         ...(num(r.editedAt) ? { editedAt: r.editedAt as number } : {}),
+        ...(isDay(r.roastedOn) ? { roastedOn: r.roastedOn } : {}),
+        ...(r.offNote != null ? { offNote: r.offNote as OffNote } : {}),
       }
     }),
     working: Object.fromEntries(
@@ -299,6 +308,9 @@ export function parseReportsResponse(raw: unknown): { reports: Report[]; working
     ),
   }
 }
+
+// A calendar day as YYYY-MM-DD, as a date input gives it
+export const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))
 
 // Calendar day in the viewer's time zone, YYYY-MM-DD
 export const localDay = (ts: number) => {
