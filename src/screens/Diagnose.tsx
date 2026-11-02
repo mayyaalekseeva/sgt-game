@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { MAX_GRINDER, MAX_NOTES, RECIPES, STYLE_OF, TASTES, progressFor, type Report, type Taste } from '../data'
+import { MAX_GRINDER, MAX_NOTES, OFF_NOTES, RECIPES, STYLE_OF, TASTES, localDay, progressFor, type OffNote, type Report, type Taste } from '../data'
 import { diagnose, diagnoseFilter, timeState, type DiagId } from '../diagnose'
 import type { Key } from '../i18n'
-import { coffeeName, forRoast } from '../coffees'
+import { coffeeName, daysOffRoast, forRoast } from '../coffees'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, field, fmtNum, fmtRange, fmtTime, signed } from '../ui'
@@ -12,6 +12,7 @@ import Gains from './Gains'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl, { PhotoPicker, SignInForPhotos } from './PhotoControl'
 import RecipePicker from './RecipePicker'
+import { AgeLine } from './Diary'
 
 export default function Diagnose({
   openDiary,
@@ -23,7 +24,7 @@ export default function Diagnose({
   addCoffee: () => void
 }) {
   const { t, method, timed, takeTimed } = useStore()
-  const { rank, addReport, markWorking, working, reports, coffees, signedIn } = useReports()
+  const { rank, addReport, markWorking, working, reports, coffees, signedIn, saveCoffee } = useReports()
   const { brew, slug, lot, mine, key } = usePick()
   const recipe = forRoast(RECIPES[slug], mine?.roast)
   const mid = Math.round((recipe.time[0] + recipe.time[1]) / 2)
@@ -32,11 +33,16 @@ export default function Diagnose({
   const start = workingReport ?? recipe
   // the working recipe's grinder, else the one you last brewed with
   const startModel = workingReport?.grinderModel ?? lastGrinderModel(reports) ?? ''
+  // the bag's roast date: your coffee's, else the one on your last brew of this coffee (likely the same bag)
+  const lastDated = reports.reduce<Report | undefined>((a, r) => (r.lot === lot && r.roastedOn && (!a || r.ts > a.ts) ? r : a), undefined)
+  const startRoastedOn = mine?.roastedOn ?? lastDated?.roastedOn ?? ''
 
   const [dose, setDose] = useState(start.dose)
   const [yld, setYld] = useState(start.yield)
   const [time, setTime] = useState(mid)
   const [taste, setTaste] = useState<Taste | null>(null)
+  const [offNote, setOffNote] = useState<OffNote | null>(null)
+  const [roastedOn, setRoastedOn] = useState(startRoastedOn)
   const [bloomed, setBloomed] = useState(true)
   const [grinder, setGrinder] = useState(workingReport?.grinder ?? '')
   const [grinderModel, setGrinderModel] = useState(startModel)
@@ -52,6 +58,8 @@ export default function Diagnose({
     setYld(start.yield)
     setTime(mid)
     setTaste(null)
+    setOffNote(null)
+    setRoastedOn(startRoastedOn)
     setBloomed(true)
     setGrinder(workingReport?.grinder ?? '')
     setGrinderModel(startModel)
@@ -60,6 +68,11 @@ export default function Diagnose({
     setPhoto(null)
     setResult(null)
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // a coffee's bag date comes in after the form was set up (reports load, or you set it in My coffees)
+  useEffect(() => {
+    if (!roastedOn) setRoastedOn(startRoastedOn)
+  }, [startRoastedOn]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // a brew just finished on the timer: take its time (after the reset above, which also runs on mount)
   useEffect(() => {
@@ -77,7 +90,7 @@ export default function Diagnose({
   const style = brew.brewer ? STYLE_OF[brew.brewer] : null
   const file = () => {
     if (!taste) return
-    const input = { dose, yield: yld, time, taste, bloomed }
+    const input = { dose, yield: yld, time, taste, bloomed, ...(offNote ? { offNote } : {}), daysOff: daysOffRoast(roastedOn, Date.now()) }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
     // progress before this report, so the debrief can show what it earned
     const before = progressFor(reports, working)
@@ -94,7 +107,11 @@ export default function Diagnose({
       ...(grinderModel ? { grinderModel } : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
       ...(fromTimer ? { timed: true as const } : {}),
+      ...(roastedOn ? { roastedOn } : {}),
+      ...(offNote ? { offNote } : {}),
     })
+    // a later date on your own coffee is a new bag of it
+    if (mine && roastedOn > (mine.roastedOn ?? '')) saveCoffee({ ...mine, roastedOn, updatedAt: Date.now() })
     setResult({ report, diag, photo: signedIn ? photo : null, before })
     setPhoto(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -120,6 +137,7 @@ export default function Diagnose({
               <Display className="mt-1 text-[24px] !normal-case tracking-wide">
                 {fmtNum(result.report.dose)} g → {fmtNum(result.report.yield)} g · {fmtTime(result.report.time, method)}
               </Display>
+              <AgeLine r={result.report} className="mt-1 text-sm text-muted" />
             </div>
             <span className="whitespace-nowrap rounded-full border-2 border-terracotta px-3 py-1 text-sm font-semibold text-terracotta">
               {t(`time.${ts}`)}
@@ -160,7 +178,7 @@ export default function Diagnose({
           <Gains before={result.before} />
 
           <div className="flex flex-col gap-2">
-            <Button onClick={() => { setResult(null); setTaste(null); setRound((r) => r + 1) }}>{t('diag.again')}</Button>
+            <Button onClick={() => { setResult(null); setTaste(null); setOffNote(null); setRound((r) => r + 1) }}>{t('diag.again')}</Button>
             <Button
               variant="secondary"
               disabled={isWorking}
@@ -260,6 +278,35 @@ export default function Diagnose({
             ))}
           </div>
         </div>
+
+        <div>
+          <Label>{t('diag.offNote')}</Label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {OFF_NOTES.map((x) => (
+              <button
+                key={x}
+                type="button"
+                aria-pressed={offNote === x}
+                onClick={() => setOffNote(offNote === x ? null : x)}
+                className={`min-h-11 rounded-full border-2 border-ink px-4 text-[15px] font-semibold transition-colors duration-150 active:scale-[0.98] ${offNote === x ? 'bg-ink text-cream' : 'bg-cream text-ink'}`}
+              >
+                {t(`offNote.${x}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="flex flex-col gap-1">
+          <Label>{t('diag.roastedOn')}</Label>
+          <input
+            type="date"
+            value={roastedOn}
+            max={localDay(Date.now())}
+            onChange={(e) => setRoastedOn(e.target.value)}
+            className={`h-11 ${field} font-semibold`}
+          />
+          <span className="text-xs text-muted">{t('diag.roastedOnHint')}</span>
+        </label>
 
         <Button disabled={!taste} onClick={file}>{t('diag.file')}</Button>
         <p className="text-xs text-ink/70">{t('diag.guideline')}</p>

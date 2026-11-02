@@ -1,4 +1,4 @@
-import { GRINDS, ROASTS, brewOf, slugOf, type Brew, type Brewer, type Lang, type Method, type Recipe, type Roast } from './data'
+import { GRINDS, ROASTS, brewOf, isDay, localDay, slugOf, type Brew, type Brewer, type Lang, type Method, type Recipe, type Roast } from './data'
 import { currentLots, lotBySlug } from './lots'
 
 // How the cherry was processed, as roasters label their bags. A coffee stores one of these, or the player's
@@ -27,7 +27,6 @@ export const myRef = (id: string) => `${MY_PREFIX}${id}`
 export const isMyRef = (ref: string | null | undefined): ref is string => !!ref && ref.startsWith(MY_PREFIX)
 export const MAX_TEXT = 60
 
-const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))
 
 const text = (v: unknown) => typeof v === 'string' && v.trim() !== '' && v.length <= MAX_TEXT
 
@@ -141,7 +140,18 @@ export function freshness(roastedOn: string | undefined, today: string, method: 
   if (!roastedOn) return null
   const days = Math.round(dayNumber(today) - dayNumber(roastedOn))
   if (!Number.isFinite(days) || days < 0) return null
+  return { days, stage: freshStage(days, method) }
+}
+
+/** How many days off roast the coffee was at a brew; undefined without a roast date, or with one after the brew */
+export function daysOffRoast(roastedOn: string | undefined, ts: number): number | undefined {
+  if (!roastedOn) return undefined
+  const days = Math.round(dayNumber(localDay(ts)) - dayNumber(roastedOn))
+  return Number.isFinite(days) && days >= 0 ? days : undefined
+}
+
+/** The stage of a coffee this many days off roast */
+export function freshStage(days: number, method: Method): Freshness {
   const rest = method === 'espresso' ? 7 : 3
-  const stage: Freshness = days < rest ? 'resting' : days <= 30 ? 'peak' : days <= 60 ? 'fading' : 'stale'
-  return { days, stage }
+  return days < rest ? 'resting' : days <= 30 ? 'peak' : days <= 60 ? 'fading' : 'stale'
 }

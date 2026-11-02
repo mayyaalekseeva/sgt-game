@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MAX_GRINDER, MAX_NOTES, RECIPES, RECIPE_CONTENT, diaryDays, localDay, slugOf, versionOf, type Report } from '../data'
 import { isDiagId } from '../diagnose'
-import { coffeeName, workingKey } from '../coffees'
+import { coffeeName, daysOffRoast, workingKey } from '../coffees'
 import { brewChanges, diaryCoffees, diarySummary, lastWeek, previousBrews } from '../diary'
 import { photoUrl } from '../api'
 import { useReports } from '../reports'
@@ -108,6 +108,14 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
+// "Day 12 off roast", when the report has its bag's roast date
+export function AgeLine({ r, className }: { r: Pick<Report, 'roastedOn' | 'ts'>; className: string }) {
+  const { t } = useStore()
+  const days = daysOffRoast(r.roastedOn, r.ts)
+  if (days === undefined) return null
+  return <p className={className}>{t('diary.daysOff', { n: days })}</p>
+}
+
 // "yield +2 g, time −3 s, grinder 14 → 13", or "Same recipe as last time"
 function SinceLast({ prev, r }: { prev: Report; r: Report }) {
   const { t, lang } = useStore()
@@ -170,9 +178,11 @@ function Entry({ r, prev, isWorking }: { r: Report; prev?: Report; isWorking: bo
               <span className={`whitespace-nowrap rounded-full px-3 py-0.5 text-sm font-semibold ${r.taste === 'balanced' ? 'bg-olive text-cream' : 'border-2 border-ink text-ink'}`}>
                 {t(`taste.${r.taste}`)}
               </span>
+              {r.offNote && <span className="whitespace-nowrap rounded-full border border-ink px-3 py-0.5 text-sm">{t(`offNote.${r.offNote}`)}</span>}
               {isDiagId(r.diag) && <span className="text-[15px] font-semibold">{t(`d.${r.diag}.title`)}</span>}
             </div>
             {isDiagId(r.diag) && <p className="text-sm leading-snug text-ink/80">{t(`d.${r.diag}.change`, diagVars(recipe, r.method))}</p>}
+            <AgeLine r={r} className="text-sm text-muted" />
           </div>
           {prev && <SinceLast prev={prev} r={r} />}
           {(grinderText(r) || r.notes) && (

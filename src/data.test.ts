@@ -326,6 +326,15 @@ describe('parseReportsResponse', () => {
     expect(() => parseReportsResponse(body({ reports: [{ ...report(), grinderModel: 'Niche Zero' }] }))).toThrow('reports[0] is invalid')
   })
 
+  it('keeps the roast date and off-note; null ones go missing, malformed ones fail', () => {
+    const [a, b] = parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), roastedOn: '2026-10-20', offNote: 'woody' }, { ...report({ id: 'b' }), roastedOn: null, offNote: null }] })).reports
+    expect(a).toMatchObject({ roastedOn: '2026-10-20', offNote: 'woody' })
+    expect(b).not.toHaveProperty('roastedOn')
+    expect(b).not.toHaveProperty('offNote')
+    expect(() => parseReportsResponse(body({ reports: [{ ...report(), roastedOn: '20/10/2026' }] }))).toThrow('reports[0] is invalid')
+    expect(() => parseReportsResponse(body({ reports: [{ ...report(), offNote: 'smoky' }] }))).toThrow('reports[0] is invalid')
+  })
+
   it('keeps the lot; a null lot becomes a missing one', () => {
     const [a, b] = parseReportsResponse(body({ reports: [{ ...report({ id: 'a' }), lot: 'peru-naranjo-yacu' }, { ...report({ id: 'b' }), lot: null }] })).reports
     expect(a.lot).toBe('peru-naranjo-yacu')

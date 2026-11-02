@@ -25,6 +25,8 @@ const report = (i: number): ReportIn => ({
   grinderModel: 'comandante-c40',
   notes: 'ok',
   timed: true,
+  roastedOn: '2026-10-20',
+  offNote: 'green',
 })
 
 describe('rowsPerInsert', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RECIPES, type Recipe, type Taste } from './data'
+import { RECIPES, type OffNote, type Recipe, type Taste } from './data'
 import { DIAG_IDS, diagnose, diagnoseFilter, isDiagId, timeState, type DiagId } from './diagnose'
 
 // espresso-medium: 18 g -> 36 g (ratio 2.0), 25-30 s
@@ -9,6 +9,13 @@ const brew = (taste: Taste, time: number, dose = R.dose, yld = R.yield) =>
 
 // Record<DiagId, ...> fails to typecheck when a DiagId is added or removed
 const ALL: Record<DiagId, true> = {
+  too_fresh: true,
+  green_under: true,
+  harsh_channel: true,
+  woody_fading: true,
+  woody_stale: true,
+  pour_harsh_uneven: true,
+  pour_woody_paper: true,
   balanced: true,
   balanced_off: true,
   sour_fast: true,
@@ -40,7 +47,9 @@ const ALL: Record<DiagId, true> = {
   steep_thin_short: true,
   steep_thin_ok: true,
 }
-const ids = (prefix: string) => (Object.keys(ALL) as DiagId[]).filter((id) => id.startsWith(prefix))
+// Only an off-note reaches these
+const OFF: DiagId[] = ['too_fresh', 'green_under', 'harsh_channel', 'woody_fading', 'woody_stale', 'pour_harsh_uneven', 'pour_woody_paper']
+const ids = (prefix: string) => (Object.keys(ALL) as DiagId[]).filter((id) => id.startsWith(prefix) && !OFF.includes(id))
 const SHARED: DiagId[] = ['balanced', 'balanced_off']
 
 describe('timeState', () => {
@@ -120,7 +129,7 @@ describe('diagnose', () => {
         for (const yld of [R.yield, R.yield * 2]) reached.add(brew(taste, time, R.dose, yld))
       }
     }
-    expect([...reached].sort()).toEqual((Object.keys(ALL) as DiagId[]).filter((id) => !/^(pour|steep)_/.test(id)).sort())
+    expect([...reached].sort()).toEqual((Object.keys(ALL) as DiagId[]).filter((id) => !/^(pour|steep)_/.test(id) && !OFF.includes(id)).sort())
   })
 })
 
@@ -198,6 +207,67 @@ describe('diagnoseFilter', () => {
     }
     expect([...p].sort()).toEqual([...SHARED, ...ids('pour_')].sort())
     expect([...s].sort()).toEqual([...SHARED, ...ids('steep_')].sort())
+  })
+})
+
+describe('off-notes and the age of the coffee', () => {
+  const V60 = RECIPES['filter-v60']
+  const FP = RECIPES['filter-frenchpress']
+  // a sour shot in time, so without the off-note it would be sour_ok / pour_sour_ok / steep_sour_ok
+  const shot = (offNote: OffNote, daysOff?: number) => diagnose(R, { dose: 18, yield: 36, time: 27, taste: 'sour', offNote, daysOff })
+  const pour = (offNote: OffNote, daysOff?: number) =>
+    diagnoseFilter('pour', V60, { dose: 15, yield: 250, time: 180, taste: 'sour', offNote, daysOff })
+  const steep = (offNote: OffNote, daysOff?: number) =>
+    diagnoseFilter('steep', FP, { dose: 30, yield: 500, time: 320, taste: 'sour', offNote, daysOff })
+
+  it('green: too fresh while resting (a week for espresso, 3 days for filter), else under-extracted', () => {
+    expect(shot('green', 0)).toBe('too_fresh')
+    expect(shot('green', 6)).toBe('too_fresh')
+    expect(shot('green', 7)).toBe('green_under')
+    expect(shot('green', 90)).toBe('green_under')
+    expect(shot('green')).toBe('green_under')
+    expect(pour('green', 2)).toBe('too_fresh')
+    expect(pour('green', 3)).toBe('green_under')
+    expect(steep('green', 2)).toBe('too_fresh')
+    expect(steep('green')).toBe('green_under')
+  })
+
+  it('harsh: too fresh while resting, else channeling or an uneven bed; immersion goes by the taste', () => {
+    expect(shot('harsh', 3)).toBe('too_fresh')
+    expect(shot('harsh', 10)).toBe('harsh_channel')
+    expect(shot('harsh')).toBe('harsh_channel')
+    expect(pour('harsh', 1)).toBe('too_fresh')
+    expect(pour('harsh', 10)).toBe('pour_harsh_uneven')
+    expect(steep('harsh', 1)).toBe('too_fresh')
+    expect(steep('harsh', 10)).toBe('steep_sour_ok')
+  })
+
+  it('woody: past its peak after day 30, old after day 60; a fresh pour-over points at the paper', () => {
+    expect(shot('woody', 30)).toBe('sour_ok')
+    expect(shot('woody', 31)).toBe('woody_fading')
+    expect(shot('woody', 60)).toBe('woody_fading')
+    expect(shot('woody', 61)).toBe('woody_stale')
+    expect(shot('woody')).toBe('sour_ok')
+    expect(pour('woody', 45)).toBe('woody_fading')
+    expect(pour('woody', 10)).toBe('pour_woody_paper')
+    expect(pour('woody')).toBe('pour_woody_paper')
+    expect(steep('woody', 90)).toBe('woody_stale')
+    expect(steep('woody', 10)).toBe('steep_sour_ok')
+  })
+
+  it('comes before the taste, the bloom and the ratio', () => {
+    expect(diagnose(R, { dose: 18, yield: 36, time: 27, taste: 'balanced', offNote: 'green', daysOff: 2 })).toBe('too_fresh')
+    expect(diagnose(R, { dose: 18, yield: 60, time: 10, taste: 'thin', offNote: 'green', daysOff: 20 })).toBe('green_under')
+    expect(diagnoseFilter('pour', V60, { dose: 15, yield: 250, time: 180, taste: 'sour', bloomed: false, offNote: 'woody', daysOff: 70 })).toBe('woody_stale')
+  })
+
+  it('a roast date after the brew counts as no date', () => {
+    expect(shot('green', -2)).toBe('green_under')
+  })
+
+  it('without an off-note the age changes nothing', () => {
+    expect(diagnose(R, { dose: 18, yield: 36, time: 27, taste: 'sour', daysOff: 1 })).toBe('sour_ok')
+    expect(diagnose(R, { dose: 18, yield: 36, time: 27, taste: 'sour', daysOff: 90 })).toBe('sour_ok')
   })
 })
 

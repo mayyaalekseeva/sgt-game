@@ -14,7 +14,7 @@ requireUser in worker/auth.ts (cookie stored only as SHA-256); client state in s
 localStorage. Signed-in reports sync through /api/reports and /api/working-recipes (worker/reports.ts): ids
 come from the client so re-sending is a no-op; the client caches per account and queues writes in an outbox
 (src/sync.ts, src/reports.tsx). After filing, only a report's grinder and notes can change (PATCH, the later
-editedAt wins); dose, yield, time, taste and diag never do, since the diagnosis and progress come from them. Deleting
+editedAt wins); dose, yield, time, taste, off-note, roast date and diag never do, since the diagnosis and progress come from them. Deleting
 keeps the id in deleted_reports so a late retry cannot file it again. Edits and deletes queue in the outbox too.
 Screens read reports and progress from useReports, not useStore. Secrets GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET: .dev.vars locally, `wrangler secret put` in production.
 
