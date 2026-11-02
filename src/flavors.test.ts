@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FAMILIES, FLAVORS, MAX_FLAVORS, cleanFlavors, familyOf, isFlavorId, sharedFlavors, toggleFlavor } from './flavors'
+import { FAMILIES, FLAVORS, MAX_FLAVORS, cleanFlavors, familyOf, isFlavorId, sharedFlavors, suggestFlavors, toggleFlavor } from './flavors'
 import { translate, type Key } from './i18n'
 
 describe('flavors', () => {
@@ -29,6 +29,13 @@ describe('flavors', () => {
     expect(toggleFlavor(full, 'off')).toBe(full)
     // replacing does not grow the list, so it works when full
     expect(toggleFlavor(full, 'fruity.berry')).toEqual(['fruity.berry', ...full.slice(1)])
+  })
+
+  it('suggests the roaster’s specifics, then your recent ones, once each and never an off-note', () => {
+    const recent = [['sweet.caramel', 'off.ashy'], ['fruity.citrus', 'sweet.caramel'], ['floral.tea']]
+    expect(suggestFlavors(['fruity', 'fruity.citrus', 'spice.ginger'], recent)).toEqual(['fruity.citrus', 'spice.ginger', 'sweet.caramel', 'floral.tea'])
+    expect(suggestFlavors([], [['sweet.caramel', 'unknown.thing']])).toEqual(['sweet.caramel'])
+    expect(suggestFlavors(FLAVORS, [], 3)).toHaveLength(3)
   })
 
   it('shares a flavor with the roaster by id or family, never an off-note', () => {

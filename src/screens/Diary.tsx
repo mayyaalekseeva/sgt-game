@@ -7,6 +7,8 @@ import { photoUrl } from '../api'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { grinderName, grinderText } from '../grinders'
+import { suggestFlavors } from '../flavors'
+import { lotBySlug } from '../lots'
 import FlavorPicker, { FlavorChips } from './FlavorPicker'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl from './PhotoControl'
@@ -219,7 +221,7 @@ function Pencil() {
 // a wrong number is fixed by deleting the report and filing it again.
 function EditEntry({ r, done }: { r: Report; done: () => void }) {
   const { t } = useStore()
-  const { editReport, deleteReport, signedIn } = useReports()
+  const { editReport, deleteReport, signedIn, reports } = useReports()
   const [grinder, setGrinder] = useState(r.grinder ?? '')
   const [grinderModel, setGrinderModel] = useState(r.grinderModel ?? '')
   const [notes, setNotes] = useState(r.notes ?? '')
@@ -238,7 +240,12 @@ function EditEntry({ r, done }: { r: Report; done: () => void }) {
         <Label>{t('diag.grinder')}</Label>
         <input value={grinder} maxLength={MAX_GRINDER} placeholder={t('diag.grinderHint')} onChange={(e) => setGrinder(e.target.value)} className={`${field} h-11 font-semibold placeholder:font-normal`} />
       </label>
-      <FlavorPicker value={flavors} onChange={setFlavors} gap="gap-1" />
+      <FlavorPicker
+        value={flavors}
+        onChange={setFlavors}
+        suggested={suggestFlavors(lotBySlug(r.lot)?.flavors ?? [], reports.slice(0, 10).map((x) => x.flavors ?? []))}
+        gap="gap-1"
+      />
       <label className="flex flex-col gap-1">
         <Label>{t('diag.notes')}</Label>
         <textarea value={notes} maxLength={MAX_NOTES} rows={2} placeholder={t('diag.notesHint')} onChange={(e) => setNotes(e.target.value)} className={`${field} resize-none py-2`} />

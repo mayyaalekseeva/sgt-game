@@ -8,7 +8,7 @@ import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, diagVars, field, fmtNum, fmtRange, fmtTime, signed } from '../ui'
 import { lastGrinderModel } from '../grinders'
-import { sharedFlavors } from '../flavors'
+import { sharedFlavors, suggestFlavors } from '../flavors'
 import { lotBySlug } from '../lots'
 import EspressoChecklist from './EspressoChecklist'
 import FlavorPicker, { FlavorChips } from './FlavorPicker'
@@ -290,7 +290,7 @@ export default function Diagnose({
         </div>
 
         <Card>
-          <FlavorPicker value={flavors} onChange={setFlavors} />
+          <FlavorPicker key={key} value={flavors} onChange={setFlavors} suggested={suggestFlavors(lotBySlug(lot)?.flavors ?? [], reports.slice(0, 10).map((r) => r.flavors ?? []))} />
         </Card>
 
         <Button disabled={!taste} onClick={file}>{t('diag.file')}</Button>

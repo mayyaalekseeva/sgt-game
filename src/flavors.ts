@@ -47,6 +47,17 @@ export function toggleFlavor(list: string[], id: string): string[] {
   return list.length >= MAX_FLAVORS ? list : [...list, id]
 }
 
+export const SUGGESTED = 6
+
+/**
+ * Quick picks: the roaster's notes for this coffee, then the flavors of your recent brews (newest first), each once.
+ * Specifics only, like the picker; off-notes are never suggested.
+ */
+export function suggestFlavors(roaster: string[], recent: string[][], max = SUGGESTED): string[] {
+  const ok = (id: string) => id.includes('.') && familyOf(id) !== 'off' && isKnownFlavor(id)
+  return [...new Set([...roaster, ...recent.flat()].filter(ok))].slice(0, max)
+}
+
 /**
  * Which of yours the roaster's notes share: the same flavor, or the same family ("fruity.citrus" and
  * "fruity.berry" are both fruity). Off-notes never match.
