@@ -1,5 +1,6 @@
-// What the player tasted, from a small coffee flavor wheel: a family ("fruity") or one of its specifics
-// ("fruity.berry"). A report stores the ids, so never rename or remove one; add new ones freely.
+// What the player tasted, from a small coffee flavor wheel: one of a family's specifics ("fruity.berry"). The picker
+// offers only specifics; a bare family ("fruity") is still a valid id, for lot tags like "ripe fruit".
+// A report stores the ids, so never rename or remove one; add new ones freely.
 // Labels are in src/i18n.ts as flavor.<id>.
 
 export interface Family {
@@ -36,15 +37,6 @@ export const familyOf = (id: string) => id.split('.')[0]
 export function cleanFlavors(v: unknown): string[] {
   if (!Array.isArray(v)) return []
   return [...new Set(v.filter(isFlavorId))].slice(0, MAX_FLAVORS)
-}
-
-/**
- * Tapping a family: it is added on its own (the quick answer, "fruity"), unless something of it is picked already
- * or the list is full.
- */
-export function pickFamily(list: string[], family: string): string[] {
-  if (list.some((id) => familyOf(id) === family) || list.length >= MAX_FLAVORS) return list
-  return [...list, family]
 }
 
 /** Tapping a flavor: removes it if picked. A specific replaces its bare family, so "fruity" becomes "fruity.berry". */

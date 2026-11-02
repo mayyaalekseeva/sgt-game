@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FAMILIES, FLAVORS, MAX_FLAVORS, cleanFlavors, familyOf, isFlavorId, pickFamily, sharedFlavors, toggleFlavor } from './flavors'
+import { FAMILIES, FLAVORS, MAX_FLAVORS, cleanFlavors, familyOf, isFlavorId, sharedFlavors, toggleFlavor } from './flavors'
 import { translate, type Key } from './i18n'
 
 describe('flavors', () => {
@@ -19,13 +19,6 @@ describe('flavors', () => {
     expect(cleanFlavors(FLAVORS)).toHaveLength(MAX_FLAVORS)
     expect(cleanFlavors('sweet')).toEqual([])
     expect(cleanFlavors(undefined)).toEqual([])
-  })
-
-  it('adds a family on its own, unless something of it is picked or the list is full', () => {
-    expect(pickFamily([], 'fruity')).toEqual(['fruity'])
-    expect(pickFamily(['fruity.berry'], 'fruity')).toEqual(['fruity.berry'])
-    const full = FAMILIES.slice(0, MAX_FLAVORS).map((f) => f.id)
-    expect(pickFamily(full, 'off')).toBe(full)
   })
 
   it('toggles a flavor, a specific taking its bare family’s place', () => {
