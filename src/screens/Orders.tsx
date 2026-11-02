@@ -1,6 +1,7 @@
 import { RANKS, RECIPES } from '../data'
 import { forRoast } from '../coffees'
 import { grinderText } from '../grinders'
+import type { Key } from '../i18n'
 import { usePick, useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Display, Label, Button, RowButton, Stat, fmtNum, fmtRange, fmtTime, ratio } from '../ui'
@@ -14,17 +15,21 @@ export default function Orders({
   openTimer,
   openRecipes,
   openLots,
+  openDrill,
   addCoffee,
 }: {
   go: () => void
   openTimer: () => void
   openRecipes: () => void
   openLots: () => void
+  openDrill: (id: string) => void
   addCoffee: () => void
 }) {
   const { t, method } = useStore()
   const isFilter = method === 'filter'
-  const { reports, working } = useReports()
+  const { reports, working, drills } = useReports()
+  // the first drill not yet done: its field test, or its field assignment
+  const drill = drills.find((d) => d.unlocked && !d.done)
   const { brew, slug, mine, key } = usePick()
   const r = forRoast(RECIPES[slug], mine?.roast)
   const tip = Math.floor(Date.now() / 86400000) % 5
@@ -41,6 +46,16 @@ export default function Orders({
             <Display className="text-lg tracking-[0.14em] text-cream">{t('orders.title')}</Display>
           </div>
           <p className="mt-3 text-[21px] font-medium leading-snug lg:text-[26px]">{t(`tip.${tip as 0 | 1 | 2 | 3 | 4}`)}</p>
+          {drill && (
+            <button
+              type="button"
+              onClick={() => openDrill(drill.id)}
+              className="mt-4 flex min-h-12 w-full items-center gap-3 rounded-xl border-2 border-ink bg-cream px-4 py-2 text-left text-ink active:scale-[0.98]"
+            >
+              <span className="flex-1 text-[16px] font-semibold leading-snug">{t('drills.next', { d: t(`drill.${drill.id}.t` as Key) })}</span>
+              <span aria-hidden="true" className="text-xl">›</span>
+            </button>
+          )}
         </div>
       </div>
 

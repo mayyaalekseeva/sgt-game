@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bfa1a90b-6efa-46a3-9521-03aa3d4fb575",
+  "id": "65a0982b-c72c-43f3-a4d4-d1a94f7be809",
   "prevId": "633e4592-79e0-4dfb-b65e-53410953439f",
   "tables": {
     "coffees": {
@@ -162,6 +162,66 @@
             "id"
           ],
           "name": "deleted_reports_user_id_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "drill_passes": {
+      "name": "drill_passes",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "drill_id": {
+          "name": "drill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "passed_at": {
+          "name": "passed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "drill_passes_user_id_users_id_fk": {
+          "name": "drill_passes_user_id_users_id_fk",
+          "tableFrom": "drill_passes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "drill_passes_user_id_drill_id_pk": {
+          "columns": [
+            "user_id",
+            "drill_id"
+          ],
+          "name": "drill_passes_user_id_drill_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -491,20 +551,6 @@
         "edited_at": {
           "name": "edited_at",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "roasted_on": {
-          "name": "roasted_on",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "off_note": {
-          "name": "off_note",
-          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

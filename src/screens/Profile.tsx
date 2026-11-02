@@ -14,6 +14,7 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
   const { missions, rank } = data
   const saved = data.loading ? null : Object.values(data.working).filter((id) => data.reports.some((x) => x.id === id)).length
   const done = missions.filter((m) => m.done).length
+  const drillsDone = data.drills.filter((d) => d.done).length
   const chapters = CHAPTERS.filter((c) => rank.idx >= c.rank).length
 
   return (
@@ -33,6 +34,7 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
           <RowButton label={t('coffee.mine')} value={String(data.coffees.filter((c) => !c.archived).length)} onClick={() => open('coffees')} />
           <RowButton label={t('saved.title')} value={saved === null ? '…' : String(saved)} onClick={() => open('saved')} />
           <RowButton label={t('diary.title')} value={data.loading ? '…' : String(data.reports.length)} onClick={() => open('diary')} />
+          <RowButton label={t('drills.title')} value={t('drills.done', { n: drillsDone, total: data.drills.length })} onClick={() => open('drills')} />
           <RowButton label={t('m.title')} value={t('m.done', { n: done, total: missions.length })} onClick={() => open('missions')} />
           <RowButton label={t('dos.title')} value={t('profile.chapters', { n: chapters, total: CHAPTERS.length })} onClick={() => open('dossier')} />
         </Card>

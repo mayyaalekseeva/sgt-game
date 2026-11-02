@@ -1,5 +1,6 @@
 import { mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
 import { MAX_GRINDER, MAX_NOTES, parseReportsResponse, type Report } from './data'
+import { parsePassed, type DrillId, type Passed } from './drills'
 import { isGrinderModel } from './grinders'
 
 // Signed-in sync, kept free of React and fetch so it can be tested. The server is the record; this
@@ -24,17 +25,35 @@ export interface Outbox {
   coffees?: MyCoffee[] // added or edited coffees; sent before reports, which may name them
   edits?: Record<string, ReportEdit> // report id -> its latest grinder and notes, for reports the server has
   deletes?: string[] // report ids; sent last
+  drills?: Passed // drill field tests passed here
 }
 
 export interface AccountCache {
   reports: Report[] // as of the last GET /api/reports, plus what has been sent since
   working: Working
   coffees: MyCoffee[]
+  drills: Passed
   outbox: Outbox
   importDecided: boolean // asked once per account and browser whether to import the guest reports
 }
 
-export const emptyCache = (): AccountCache => ({ reports: [], working: {}, coffees: [], outbox: { reports: [], working: {} }, importDecided: false })
+export const emptyCache = (): AccountCache => ({
+  reports: [],
+  working: {},
+  coffees: [],
+  drills: {},
+  outbox: { reports: [], working: {} },
+  importDecided: false,
+})
+
+// The first pass of each drill wins, as on the server
+export const mergePassed = (a: Passed, b: Passed): Passed => {
+  const out = { ...a }
+  for (const [id, at] of Object.entries(b) as [DrillId, number][]) if (out[id] === undefined || at < out[id]) out[id] = at
+  return out
+}
+
+const passedList = (p: Passed) => Object.entries(p).map(([id, passedAt]) => ({ id: id as DrillId, passedAt: passedAt as number }))
 
 // Same size as the server's MAX_BATCH (worker/reports.ts)
 export const BATCH = 200
@@ -66,10 +85,12 @@ export function parseAccountCache(raw: unknown): AccountCache {
     return {
       ...parseReportsResponse({ reports: c.reports, working: c.working }),
       coffees: parseCoffees(c.coffees),
+      drills: parsePassed(c.drills),
       outbox: {
         ...parseReportsResponse(c.outbox),
         ...(c.outbox?.coffees?.length ? { coffees: parseCoffees(c.outbox.coffees) } : {}),
         ...parseChanges(c.outbox),
+        ...(Object.keys(parsePassed(c.outbox?.drills)).length ? { drills: parsePassed(c.outbox.drills) } : {}),
       },
       importDecided: c.importDecided === true,
     }
@@ -99,7 +120,7 @@ const dropWorking = (w: Working, gone: Set<string>) => Object.fromEntries(Object
  * What the screens show: the server's reports plus the ones still waiting to be sent, newest first, with queued
  * edits applied and queued deletes left out.
  */
-export function view(c: AccountCache): { reports: Report[]; working: Working; coffees: MyCoffee[] } {
+export function view(c: AccountCache): { reports: Report[]; working: Working; coffees: MyCoffee[]; drills: Passed } {
   const ids = new Set(c.reports.map((r) => r.id))
   const gone = new Set(c.outbox.deletes ?? [])
   const edits = c.outbox.edits ?? {}
@@ -111,6 +132,7 @@ export function view(c: AccountCache): { reports: Report[]; working: Working; co
     reports,
     working: dropWorking({ ...c.working, ...c.outbox.working }, gone),
     coffees: mergeCoffees(c.coffees, c.outbox.coffees ?? []),
+    drills: mergePassed(c.drills, c.outbox.drills ?? {}),
   }
 }
 
@@ -152,10 +174,14 @@ export function queueDelete(c: AccountCache, id: string): AccountCache {
 }
 
 /** A fresh GET /api/reports replaces the copy; the outbox stays, since the server may not have it yet. */
-export const withServer = (c: AccountCache, server: { reports: Report[]; working: Working; coffees?: MyCoffee[] }): AccountCache => ({
+export const withServer = (
+  c: AccountCache,
+  server: { reports: Report[]; working: Working; coffees?: MyCoffee[]; drills?: Passed },
+): AccountCache => ({
   ...c,
   ...server,
   coffees: server.coffees ?? c.coffees,
+  drills: server.drills ?? c.drills,
 })
 
 export interface Sender {
@@ -164,6 +190,7 @@ export interface Sender {
   postCoffees: (coffees: MyCoffee[]) => Promise<void>
   patchReport: (id: string, edit: ReportEdit) => Promise<void>
   deleteReport: (id: string) => Promise<void>
+  postDrills: (drills: { id: DrillId; passedAt: number }[]) => Promise<void>
 }
 
 // The server refused it (400: invalid, 404: report not there). Sending it again would not help.
@@ -222,6 +249,15 @@ export async function flush(outbox: Outbox, send: Sender): Promise<Outbox> {
     }
     done.deletes = [...(done.deletes ?? []), id]
   }
+  if (Object.keys(outbox.drills ?? {}).length) {
+    try {
+      await send.postDrills(passedList(outbox.drills ?? {}))
+    } catch (err) {
+      if (!refused(err)) return done
+      console.error('Drills refused by the server', err)
+    }
+    done.drills = outbox.drills
+  }
   return done
 }
 
@@ -239,9 +275,12 @@ export function applySent(c: AccountCache, sent: Outbox): AccountCache {
   const edits = Object.fromEntries(Object.entries(c.outbox.edits ?? {}).filter(([id, e]) => sentEdits[id]?.editedAt !== e.editedAt))
   const deleted = new Set(sent.deletes ?? [])
   const deletes = (c.outbox.deletes ?? []).filter((id) => !deleted.has(id))
+  const sentDrills = sent.drills ?? {}
+  const drills = Object.fromEntries(Object.entries(c.outbox.drills ?? {}).filter(([id]) => !(id in sentDrills)))
   return {
     ...c,
     coffees: mergeCoffees(c.coffees, sentCoffees),
+    drills: mergePassed(c.drills, sentDrills),
     reports: [...c.reports, ...sent.reports.filter((r) => !have.has(r.id))]
       .filter((r) => !deleted.has(r.id))
       .map((r) => (newer(r, sentEdits[r.id]) ? withEdit(r, sentEdits[r.id]) : r)),
@@ -252,6 +291,7 @@ export function applySent(c: AccountCache, sent: Outbox): AccountCache {
       ...(queued.length ? { coffees: queued } : {}),
       ...(Object.keys(edits).length ? { edits } : {}),
       ...(deletes.length ? { deletes } : {}),
+      ...(Object.keys(drills).length ? { drills } : {}),
     },
   }
 }
@@ -271,17 +311,19 @@ export function withPhoto(c: AccountCache, reportId: string, photo: string | nul
 }
 
 /**
- * First sign-in: sends this browser's guest coffees, then its reports marked as imported, and its
+ * First sign-in: sends this browser's guest coffees, then its reports marked as imported, its passed drills, and its
  * working recipes for the recipes the account has none for yet. Returns what went through, for
  * applySent. Throws if a batch does not go through; sending again is safe, the ids make it a no-op.
  */
 export async function importGuest(
-  guest: { reports: Report[]; working: Working; coffees?: MyCoffee[] },
+  guest: { reports: Report[]; working: Working; coffees?: MyCoffee[]; drills?: Passed },
   account: Working,
   send: Sender,
 ): Promise<Outbox> {
   for (const batch of chunks(guest.coffees ?? [], BATCH)) await send.postCoffees(batch)
   for (const batch of chunks(guest.reports, BATCH)) await send.postReports(batch, true)
+  const drills = passedList(guest.drills ?? {})
+  if (drills.length) await send.postDrills(drills)
   const ids = new Set(guest.reports.map((r) => r.id))
   const working: Working = {}
   for (const [key, id] of Object.entries(guest.working)) {
@@ -293,7 +335,12 @@ export async function importGuest(
       if (!refused(err)) throw err
     }
   }
-  return { reports: guest.reports, working, ...(guest.coffees?.length ? { coffees: guest.coffees } : {}) }
+  return {
+    reports: guest.reports,
+    working,
+    ...(guest.coffees?.length ? { coffees: guest.coffees } : {}),
+    ...(drills.length ? { drills: guest.drills } : {}),
+  }
 }
 
 // Not crypto.randomUUID(): it only exists on https and localhost, and the dev server is opened from

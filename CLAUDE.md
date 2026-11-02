@@ -34,7 +34,7 @@ Screens read reports and progress from useReports, not useStore. Secrets GOOGLE_
 ## Rules
 
 - Domain logic stays pure and UI-free: src/diagnose.ts, src/data.ts. Add tests for any change there.
-- XP, rank and mission progress are derived from reports, never stored.
+- XP, rank, mission and drill progress are derived from reports and passed drill field tests (src/progress.ts), never stored as totals.
 - Every user-facing string goes through i18n in BOTH en and pt.
 - Design: sage #9AA784, cream #F1EDE0, ink #2C140A, olive #3F4F2E, terracotta #B5532F (accent only).
   Never cream text on sage. Fonts: Big Shoulders Stencil Display + Hanken Grotesk.

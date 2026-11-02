@@ -1,7 +1,23 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MyCoffee } from './coffees'
 import type { Report } from './data'
-import { BATCH, applySent, chunks, emptyCache, flush, importGuest, newReportId, parseAccountCache, queueDelete, queueEdit, view, withPhoto, withServer, type Sender } from './sync'
+import {
+  BATCH,
+  applySent,
+  chunks,
+  emptyCache,
+  flush,
+  importGuest,
+  mergePassed,
+  newReportId,
+  parseAccountCache,
+  queueDelete,
+  queueEdit,
+  view,
+  withPhoto,
+  withServer,
+  type Sender,
+} from './sync'
 
 const rep = (id: string, ts = 1_000, over: Partial<Report> = {}): Report => ({
   id,
@@ -29,7 +45,7 @@ const coffee = (tag: string, updatedAt = 1): MyCoffee => ({
 const status = (n: number) => Object.assign(new Error(String(n)), { status: n })
 
 // Records calls; `fail` decides per call whether (and how) it throws
-function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete', arg: unknown) => Error | null = () => null) {
+function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete' | 'drills', arg: unknown) => Error | null = () => null) {
   const calls: [string, unknown, boolean?][] = []
   const send: Sender = {
     postReports: async (reports, imported) => {
@@ -55,6 +71,11 @@ function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete'
     deleteReport: async (id) => {
       calls.push(['delete', id])
       const e = fail('delete', id)
+      if (e) throw e
+    },
+    postDrills: async (drills) => {
+      calls.push(['drills', drills.map((d) => d.id)])
+      const e = fail('drills', drills)
       if (e) throw e
     },
   }
@@ -119,7 +140,8 @@ describe('parseAccountCache', () => {
       reports: [rep('a')],
       working: { 'espresso-medium': 'a' },
       coffees: [coffee('c1')],
-      outbox: { reports: [rep('b')], working: {}, coffees: [coffee('c2')] },
+      drills: { ratio: 4 },
+      outbox: { reports: [rep('b')], working: {}, coffees: [coffee('c2')], drills: { channeling: 5 } },
       importDecided: true,
     }
     expect(parseAccountCache(JSON.parse(JSON.stringify(c)))).toEqual(c)
@@ -377,5 +399,49 @@ describe('editing and deleting', () => {
     const back = parseAccountCache(raw)
     expect(back.outbox.edits).toEqual({ a: { grinder: '14', editedAt: T } })
     expect(back.outbox.deletes).toEqual(['b'])
+  })
+})
+
+describe('drills', () => {
+  it('keeps the first pass of each drill', () => {
+    expect(mergePassed({ ratio: 5, extraction: 1 }, { ratio: 3, extraction: 2, channeling: 9 })).toEqual({ ratio: 3, extraction: 1, channeling: 9 })
+  })
+
+  it('shows a queued pass at once, next to the server ones', () => {
+    const c = { ...emptyCache(), drills: { 'one-change': 1 }, outbox: { reports: [], working: {}, drills: { extraction: 2 } } }
+    expect(view(c).drills).toEqual({ 'one-change': 1, extraction: 2 })
+  })
+
+  it('sends passed drills and moves them into the copy', async () => {
+    const { send, calls } = fakeSender()
+    const c = { ...emptyCache(), outbox: { reports: [rep('a')], working: {}, drills: { extraction: 2 } } }
+    const sent = await flush(c.outbox, send)
+    expect(calls).toContainEqual(['drills', ['extraction']])
+    const after = applySent(c, sent)
+    expect(after.drills).toEqual({ extraction: 2 })
+    expect(after.outbox.drills).toBeUndefined()
+  })
+
+  it('keeps passes queued while offline', async () => {
+    const { send } = fakeSender((kind) => (kind === 'drills' ? new TypeError('offline') : null))
+    const sent = await flush({ reports: [], working: {}, drills: { ratio: 4 } }, send)
+    expect(sent.drills).toBeUndefined()
+  })
+
+  it('takes the server passes, and keeps the cached ones when it sends none', () => {
+    const c = { ...emptyCache(), drills: { ratio: 4 } }
+    expect(withServer(c, { reports: [], working: {} }).drills).toEqual({ ratio: 4 })
+    expect(withServer(c, { reports: [], working: {}, drills: { extraction: 1 } }).drills).toEqual({ extraction: 1 })
+  })
+
+  it('imports guest passes and survives the localStorage round trip', async () => {
+    const { send, calls } = fakeSender()
+    const sent = await importGuest({ reports: [], working: {}, drills: { 'one-change': 7 } }, {}, send)
+    expect(calls).toEqual([['drills', ['one-change']]])
+    expect(sent.drills).toEqual({ 'one-change': 7 })
+    const c = { ...emptyCache(), drills: { ratio: 4 }, outbox: { reports: [], working: {}, drills: { channeling: 5, nope: 1 } as never } }
+    const back = parseAccountCache(JSON.parse(JSON.stringify(c)))
+    expect(back.drills).toEqual({ ratio: 4 })
+    expect(back.outbox.drills).toEqual({ channeling: 5 })
   })
 })
