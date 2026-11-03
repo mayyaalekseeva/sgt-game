@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MyCoffee } from './coffees'
+import { newSession, type CuppingSession } from './cuppings'
 import type { Report } from './data'
 import {
   BATCH,
@@ -11,6 +12,8 @@ import {
   mergePassed,
   newReportId,
   parseAccountCache,
+  queueCupping,
+  queueCuppingDelete,
   queueDelete,
   queueEdit,
   view,
@@ -42,10 +45,14 @@ const coffee = (tag: string, updatedAt = 1): MyCoffee => ({
   updatedAt,
 })
 
+const cupping = (tag: string, updatedAt = 1, day = '2026-11-03'): CuppingSession => ({
+  ...newSession(tag.padEnd(32, '0').replace(/[^0-9a-f]/g, 'a'), updatedAt, () => day),
+})
+
 const status = (n: number) => Object.assign(new Error(String(n)), { status: n })
 
 // Records calls; `fail` decides per call whether (and how) it throws
-function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete' | 'drills', arg: unknown) => Error | null = () => null) {
+function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete' | 'drills' | 'cuppings' | 'cuppingDelete', arg: unknown) => Error | null = () => null) {
   const calls: [string, unknown, boolean?][] = []
   const send: Sender = {
     postReports: async (reports, imported) => {
@@ -76,6 +83,16 @@ function fakeSender(fail: (kind: 'post' | 'put' | 'coffees' | 'patch' | 'delete'
     postDrills: async (drills) => {
       calls.push(['drills', drills.map((d) => d.id)])
       const e = fail('drills', drills)
+      if (e) throw e
+    },
+    postCuppings: async (sessions) => {
+      calls.push(['cuppings', sessions.map((x) => [x.id, x.updatedAt])])
+      const e = fail('cuppings', sessions)
+      if (e) throw e
+    },
+    deleteCupping: async (id) => {
+      calls.push(['cuppingDelete', id])
+      const e = fail('cuppingDelete', id)
       if (e) throw e
     },
   }
@@ -141,6 +158,7 @@ describe('parseAccountCache', () => {
       working: { 'espresso-medium': 'a' },
       coffees: [coffee('c1')],
       drills: { ratio: 4 },
+      cuppings: [cupping('d')],
       outbox: { reports: [rep('b')], working: {}, coffees: [coffee('c2')], drills: { channeling: 5 } },
       importDecided: true,
     }
@@ -452,5 +470,78 @@ describe('drills', () => {
     const back = parseAccountCache(JSON.parse(JSON.stringify(c)))
     expect(back.drills).toEqual({ ratio: 4 })
     expect(back.outbox.drills).toEqual({ channeling: 5 })
+  })
+})
+
+describe('cupping sessions', () => {
+  const a = cupping('a', 1)
+  const b = cupping('b', 1, '2026-11-01')
+
+  it('shows the server copy and the queued one, the newer winning, newest day first', () => {
+    let c = { ...emptyCache(), cuppings: [a, b] }
+    c = queueCupping(c, { ...a, place: 'Lab', updatedAt: 5 })
+    expect(view(c).cuppings.map((x) => [x.id, x.place])).toEqual([[a.id, 'Lab'], [b.id, undefined]])
+    // a later save replaces the queued copy, it does not add one
+    c = queueCupping(c, { ...a, place: 'Home', updatedAt: 6 })
+    expect(c.outbox.cuppings).toHaveLength(1)
+    expect(view(c).cuppings[0].place).toBe('Home')
+  })
+
+  it('hides a deleted session, drops its queued copy, and does not let a save bring it back', () => {
+    let c = queueCupping({ ...emptyCache(), cuppings: [a] }, { ...a, updatedAt: 5 })
+    c = queueCuppingDelete(c, a.id)
+    expect(c.outbox.cuppings).toEqual([])
+    expect(c.outbox.cuppingDeletes).toEqual([a.id])
+    expect(view(c).cuppings).toEqual([])
+    expect(queueCupping(c, { ...a, updatedAt: 9 })).toBe(c)
+  })
+
+  it('sends sessions, then deletes, after everything else', async () => {
+    const { send, calls } = fakeSender()
+    const sent = await flush({ reports: [rep('r')], working: {}, cuppings: [a], cuppingDeletes: [b.id] }, send)
+    expect(calls.map((x) => x[0])).toEqual(['post', 'cuppings', 'cuppingDelete'])
+    expect(sent).toMatchObject({ cuppings: [a], cuppingDeletes: [b.id] })
+  })
+
+  it('stops when offline and keeps the session queued; a refused one leaves the queue', async () => {
+    const offline = fakeSender((kind) => (kind === 'cuppings' ? new TypeError('offline') : null))
+    const kept = await flush({ reports: [], working: {}, cuppings: [a], cuppingDeletes: [b.id] }, offline.send)
+    expect(kept.cuppings).toBeUndefined()
+    expect(offline.calls.map((x) => x[0])).toEqual(['cuppings'])
+    const refusing = fakeSender((kind) => (kind === 'cuppings' ? status(400) : null))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect((await flush({ reports: [], working: {}, cuppings: [a] }, refusing.send)).cuppings).toEqual([a])
+  })
+
+  it('applies what was sent, keeping a session changed again meanwhile', () => {
+    const later = { ...a, place: 'Lab', updatedAt: 7 }
+    const c = { ...emptyCache(), outbox: { reports: [], working: {}, cuppings: [later, b], cuppingDeletes: ['x'.repeat(32)] } }
+    const out = applySent(c, { reports: [], working: {}, cuppings: [a, b], cuppingDeletes: ['x'.repeat(32)] })
+    expect(out.outbox.cuppings).toEqual([later])
+    expect(out.outbox.cuppingDeletes).toBeUndefined()
+    expect(out.cuppings.map((x) => x.id)).toEqual([a.id, b.id])
+    expect(view(out).cuppings[0].place).toBe('Lab')
+  })
+
+  it('takes the server list, dropping a queued copy of a session deleted on another device', () => {
+    const c = queueCupping(queueCupping(emptyCache(), { ...a, updatedAt: 5 }), b)
+    const out = withServer(c, { reports: [], working: {}, cuppings: [], cuppingsDeleted: [a.id] })
+    expect(out.outbox.cuppings).toEqual([b])
+    expect(withServer(c, { reports: [], working: {} }).cuppings).toEqual([])
+  })
+
+  it('keeps sessions and the queue through localStorage', () => {
+    const c = queueCuppingDelete(queueCupping({ ...emptyCache(), cuppings: [a] }, b), 'c'.repeat(32))
+    const back = parseAccountCache(JSON.parse(JSON.stringify(c)))
+    expect(back.cuppings).toEqual([a])
+    expect(back.outbox.cuppings).toEqual([b])
+    expect(back.outbox.cuppingDeletes).toEqual(['c'.repeat(32)])
+  })
+
+  it('imports guest sessions at first sign-in', async () => {
+    const { send, calls } = fakeSender()
+    const sent = await importGuest({ reports: [], working: {}, cuppings: [a] }, {}, send)
+    expect(calls).toContainEqual(['cuppings', [[a.id, 1]]])
+    expect(sent.cuppings).toEqual([a])
   })
 })

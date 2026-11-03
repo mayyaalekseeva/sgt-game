@@ -31,6 +31,15 @@ describe('parseRoute', () => {
     expect(parseRoute('#/profile/diary/extraction')).toEqual(HOME)
     expect(parseRoute('#/profile/drills/Bad_Id')).toEqual(HOME)
   })
+
+  it('reads a cupping session, or one coffee in it', () => {
+    const s = 'a'.repeat(32)
+    const x = 'b'.repeat(32)
+    expect(parseRoute(`#/profile/cupping/${s}`)).toEqual({ tab: 'profile', sub: 'cupping', id: s })
+    expect(parseRoute(`#/profile/cupping/${s}.${x}`)).toEqual({ tab: 'profile', sub: 'cupping', id: `${s}.${x}` })
+    expect(parseRoute(`#/profile/cupping/${s}x${x}`)).toEqual(HOME)
+    expect(parseRoute('#/profile/cupping/extraction')).toEqual(HOME)
+  })
 })
 
 describe('routeHash', () => {

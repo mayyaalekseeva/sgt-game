@@ -1,6 +1,6 @@
 // The first-run briefing and the player's level. Both stay on this device (the store's localStorage),
 // for guests and signed-in players alike. The level only changes the Sargento's greeting and which
-// missions are listed first: it never hides or locks anything, and never touches XP.
+// missions and Profile rows are listed first: it never hides or locks anything, and never touches XP.
 
 export type Level = 'recruit' | 'home' | 'pro'
 export const LEVELS: Level[] = ['recruit', 'home', 'pro']
@@ -36,4 +36,16 @@ export function missionsFor<M extends { id: string }>(missions: M[], level: Leve
   }
   // sort is stable, so missions outside the list keep their order
   return [...missions].sort((a, b) => rank(a) - rank(b))
+}
+
+// Profile rows listed first for each level; the rest keep their order. Every row is always shown.
+const PROFILE_FIRST: Partial<Record<Level, string[]>> = { pro: ['cupping'] }
+
+export function profileRowsFor<R extends { id: string }>(rows: R[], level: Level | null): R[] {
+  const first = (level && PROFILE_FIRST[level]) || []
+  const rank = (r: R) => {
+    const i = first.indexOf(r.id)
+    return i < 0 ? first.length : i
+  }
+  return [...rows].sort((a, b) => rank(a) - rank(b))
 }
