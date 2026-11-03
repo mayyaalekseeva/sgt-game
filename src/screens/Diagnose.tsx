@@ -10,6 +10,7 @@ import { Button, Card, Chevrons, Display, Label, RowButton, Stepper, brewLabel, 
 import { lastGrinderModel } from '../grinders'
 import { sharedFlavors, suggestFlavors } from '../flavors'
 import { lotBySlug } from '../lots'
+import DatePicker from './DatePicker'
 import EspressoChecklist from './EspressoChecklist'
 import FlavorPicker, { FlavorChips } from './FlavorPicker'
 import Gains from './Gains'
@@ -324,17 +325,11 @@ export default function Diagnose({
           </div>
         </div>
 
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <Label>{t('diag.roastedOn')}</Label>
-          <input
-            type="date"
-            value={roastedOn}
-            max={localDay(Date.now())}
-            onChange={(e) => setRoastedOn(e.target.value)}
-            className={`h-11 ${field} font-semibold`}
-          />
+          <DatePicker label={t('diag.roastedOn')} value={roastedOn} onChange={setRoastedOn} max={localDay(Date.now())} />
           <span className="text-xs text-muted">{t('diag.roastedOnHint')}</span>
-        </label>
+        </div>
 
         <Card>
           <FlavorPicker key={key} value={flavors} onChange={setFlavors} suggested={suggestFlavors(lotBySlug(lot)?.flavors ?? [], reports.slice(0, 10).map((r) => r.flavors ?? []))} />

@@ -322,6 +322,17 @@ export const localDay = (ts: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/** One month (0-11) as Monday-first weeks for the date picker: YYYY-MM-DD days, null to pad the first and last week. */
+export function monthGrid(year: number, month: number) {
+  const lead = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7
+  const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  const ym = `${year}-${String(month + 1).padStart(2, '0')}`
+  const cells: (string | null)[] = Array(lead).fill(null)
+  for (let d = 1; d <= length; d++) cells.push(`${ym}-${String(d).padStart(2, '0')}`)
+  while (cells.length % 7) cells.push(null)
+  return cells
+}
+
 /** Diary: reports grouped by day, newest day first and newest report first within a day. */
 export function diaryDays(reports: Report[], dayOf: (ts: number) => string = localDay) {
   const days = new Map<string, Report[]>()
