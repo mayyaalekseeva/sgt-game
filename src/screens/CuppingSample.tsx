@@ -139,13 +139,14 @@ export default function CuppingSampleScreen({
           </label>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="secondary" disabled={!prev} onClick={() => prev && open(`${session.id}.${prev.id}`)}>
-            ← <span className="sr-only">{t('cupping.prev')}</span>
-          </Button>
-          <Button variant="secondary" disabled={!next} onClick={() => next && open(`${session.id}.${next.id}`)}>
-            → <span className="sr-only">{t('cupping.next')}</span>
-          </Button>
+        {/* the way on is never a dead button: after the last coffee comes the summary */}
+        <div className="flex flex-col gap-3">
+          <Button onClick={() => open(next ? `${session.id}.${next.id}` : session.id)}>{next ? `${t('cupping.next')} →` : t('cupping.toSummary')}</Button>
+          {prev && (
+            <Button variant="secondary" onClick={() => open(`${session.id}.${prev.id}`)}>
+              ← {t('cupping.prev')}
+            </Button>
+          )}
         </div>
         <Button
           variant="ghost"
