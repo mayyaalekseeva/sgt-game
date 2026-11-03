@@ -5,6 +5,7 @@ import { resolvePick, type MyCoffee, type Pick } from './coffees'
 import type { CuppingSession } from './cuppings'
 import type { Report } from './data'
 import type { DrillId, Passed } from './drills'
+import { useMoments } from './moments-layer'
 import { progressFor } from './progress'
 import { useStore } from './store'
 import {
@@ -114,6 +115,7 @@ const Ctx = createContext<Reports | null>(null)
 export function ReportsProvider({ children }: { children: ReactNode }) {
   const guest = useStore()
   const { user } = useAuth()
+  const { celebrate } = useMoments()
   // Until /api/me answers, assume whoever was signed in last
   const userId = user === undefined ? read(LAST_USER_KEY) : (user?.id ?? null)
   const confirmedId = user?.id ?? null
@@ -243,13 +245,18 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     // Asked only once the server has answered, so import knows which working recipes the account already has
     const offer =
       account && confirmedId && account.server === 'loaded' && !account.cache.importDecided && guestItems > 0
+    const progress = progressFor(shown.reports, shown.working, shown.drills)
+    // After the player's own action here, never a sync: celebrate what it earned (src/moments.ts)
+    const owner = account?.userId ?? 'guest'
+    const celebrated = (after: { reports: Report[]; working: Record<string, string>; drills: Passed }) =>
+      celebrate(owner, progress, progressFor(after.reports, after.working, after.drills))
     return {
       reports: shown.reports,
       working: shown.working,
       coffees: shown.coffees,
       passed: shown.drills,
       cuppings: shown.cuppings,
-      ...progressFor(shown.reports, shown.working, shown.drills),
+      ...progress,
       source: account ? 'api' : 'browser',
       loading: account ? !account.cached && account.server === 'loading' : user === undefined,
       signedIn: account !== null,
@@ -257,11 +264,13 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
         const report: Report = { ...r, id: newReportId(), ts: Date.now() }
         if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, reports: [report, ...c.outbox.reports] } }))
         else guest.addReport(report)
+        celebrated({ ...shown, reports: [report, ...shown.reports] })
         return report
       },
       markWorking: (key, reportId) => {
         if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, working: { ...c.outbox.working, [key]: reportId } } }))
         else guest.markWorking(key, reportId)
+        celebrated({ ...shown, working: { ...shown.working, [key]: reportId } })
       },
       editReport: (id, fields) => {
         if (account) updateCache(account.userId, (c) => queueEdit(c, id, fields, Date.now()))
@@ -284,6 +293,7 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
         const at = Date.now()
         if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, drills: { ...c.outbox.drills, [id]: at } } }))
         else guest.passDrill(id, at)
+        celebrated({ ...shown, drills: { ...shown.drills, [id]: at } })
       },
       saveCupping: (s) => {
         if (account) updateCache(account.userId, (c) => queueCupping(c, s))
@@ -298,7 +308,7 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
       acceptImport: () => void acceptImport(),
       declineImport,
     }
-  }, [account, confirmedId, guest, user, importStatus, updateCache, acceptImport, declineImport, setPhoto])
+  }, [account, confirmedId, guest, user, importStatus, updateCache, acceptImport, declineImport, setPhoto, celebrate])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
