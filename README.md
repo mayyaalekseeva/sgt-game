@@ -1,7 +1,33 @@
 # Barista Game
 
-Mobile-first web app that helps baristas brew better coffee, avoid common mistakes and refine recipes.
-Portfolio project. Runs as one Cloudflare Worker: the static app plus a small API under `/api/*` (Hono). Guest progress is stored in the browser (localStorage); Google sign-in is optional. EN / PT.
+A mobile-first web app that helps you brew better coffee, one change at a time. You brew from a recipe,
+tell the app how the cup tasted and how long it ran, and the Sargento (the app's coach) names the one thing
+to change next. Missions, drills and ranks track how far you have come.
+
+**Who it is for:** baristas in training and home brewers who make espresso or filter coffee (V60, Kalita Wave,
+AeroPress, French press) and want to dial in a coffee on purpose instead of by guesswork.
+
+**Try it:** _live URL coming soon_ (`https://<live-url>`). Works in the browser and installs to your
+home screen. No account is needed: progress stays in your browser, and Google sign-in syncs it across
+devices. English and Portuguese.
+
+Portfolio project, non-commercial. Coffees and brand from the roaster A Sargento (Torrefatora Lisboeta),
+used with permission. Recipes are starting guidelines still to be checked with the roaster
+([docs/recipe-research.md](docs/recipe-research.md)).
+
+### Screenshots
+
+_To come._
+
+| Orders | Diagnose | Brew timer | Diary |
+| --- | --- | --- | --- |
+| _screenshot_ | _screenshot_ | _screenshot_ | _screenshot_ |
+
+## For developers
+
+One Cloudflare Worker serves the React app and a small Hono API under `/api/*`, with D1 for synced data.
+The stack, the rules and where things live are in [CLAUDE.md](CLAUDE.md), and the reasons behind
+the main design choices are in [docs/decisions/](docs/decisions/).
 
 ## Run
 
@@ -105,5 +131,10 @@ Waiting on the roaster:
 - Which roasts (espresso, filter or both) each lot in `content/lots.json` has
 - Real Dossier texts, and a check of the recipe ranges and diagnosis thresholds
 
+In progress:
+- Cupping: SCA cupping sessions, scored and synced (branch `feat/cupping`, not merged yet)
+
 Can be done now:
-- More filter brewers: Kalita, Chemex, Clever
+- More filter brewers: Chemex, Clever (V60, Kalita Wave, AeroPress and French press are done)
+- Recipe research for the espresso, V60, AeroPress and French press recipes, still to be written down in
+  [docs/recipe-research.md](docs/recipe-research.md)
