@@ -28,6 +28,9 @@ function writeDraft(s: CuppingSession | null, id: string) {
   }
 }
 
+/** Forget this browser's draft of a session deleted from the list, or opening it again would bring it back. */
+export const discardDraft = (id: string) => writeDraft(null, id)
+
 export function useCuppingSession(id: string | undefined) {
   const { cuppings, saveCupping } = useReports()
   const saved = cuppings.find((s) => s.id === id)

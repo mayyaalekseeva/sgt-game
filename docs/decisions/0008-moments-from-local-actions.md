@@ -1,4 +1,4 @@
-# 0007. Celebration moments come from the player's own actions, remembered on the device
+# 0008. Celebration moments come from the player's own actions, remembered on the device
 
 Status: Accepted (2026-11-03, branch feat/moments)
 

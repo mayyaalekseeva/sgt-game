@@ -14,6 +14,7 @@ import {
   parseSessions,
   pickDraft,
   touched,
+  withoutSample,
   type CuppingSession,
 } from './cuppings'
 
@@ -77,6 +78,12 @@ describe('cupping sessions', () => {
   it('gives the next free blind code', () => {
     expect(nextCode(session())).toBe('A')
     expect(nextCode(session({ samples: [{ ...newSample(id('b')), code: 'A' }, { ...newSample(id('c')), code: 'C' }] }))).toBe('B')
+  })
+
+  it('removes one coffee and keeps the others in order', () => {
+    const [b, c, d] = [newSample(id('b')), newSample(id('c')), newSample(id('d'))]
+    expect(withoutSample(session({ samples: [b, c, d] }), id('c')).samples).toEqual([b, d])
+    expect(withoutSample(session({ samples: [b] }), id('x')).samples).toEqual([b])
   })
 
   it('hides names only in a blind session not yet revealed', () => {

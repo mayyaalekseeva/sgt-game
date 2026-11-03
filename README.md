@@ -125,6 +125,7 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 - `src/moments.ts`: celebration moments (promotion, field test passed, mission done) found by comparing progress before and after the player's own action; `src/moments-layer.tsx` queues and shows them
 - `src/route.ts`: the current screen in the URL hash (`#/profile/diary`), so back, refresh and links work
 - `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary (one timeline, filtered by coffee, with what changed since the previous brew), Missions and Dossier, and Cupping (sessions scored on a form based on the SCA cupping form, with a summary and blind mode)
+- `src/screens/SwipeRow.tsx`: swipe a list row left on a touch screen to delete it (a cupping session, a coffee on the table, a diary report) or to finish a bag in My coffees; the same action stays on a button in the item's own screen (docs/decisions/0007)
 - `public/brand/`: logo and photos (used with the roaster's permission)
 
 ## Next
