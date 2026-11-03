@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import content from '../content/recipes.json' with { type: 'json' }
 import {
+  ACTIVE_SLUGS,
   CHECK_PHASES,
   ESPRESSO_STEPS,
   MISSIONS,
@@ -8,11 +9,14 @@ import {
   RECIPES,
   RECIPE_CONTENT,
   REPORT_XP,
+  STYLE_OF,
   diaryDays,
+  isBrew,
   monthGrid,
   parseRecipeContent,
   parseReportsResponse,
   rankFor,
+  slugOf,
   versionOf,
   type Report,
 } from './data'
@@ -48,6 +52,8 @@ describe('new missions', () => {
     const rs = [report({ method: 'filter', roast: undefined, brewer: 'v60' }), report({ method: 'filter', roast: undefined, brewer: 'v60' }), report()]
     expect(progress('m7', rs)).toBe(1)
     expect(progress('m7', [...rs, report({ method: 'filter', roast: undefined, brewer: 'aeropress' })])).toBe(2)
+    // any brewer counts, not only the three the mission names
+    expect(progress('m7', [...rs, report({ method: 'filter', roast: undefined, brewer: 'kalita' })])).toBe(2)
   })
 
   it('m8 counts timed brews', () => {
@@ -208,12 +214,13 @@ describe('recipe content', () => {
       'filter-aeropress',
       'filter-dark',
       'filter-frenchpress',
+      'filter-kalita',
       'filter-light',
       'filter-medium',
       'filter-v60',
     ])
     const filter = RECIPE_CONTENT.filter((e) => e.method === 'filter')
-    expect(filter.filter((e) => e.status === 'published').map((e) => e.brewer).sort()).toEqual(['aeropress', 'frenchpress', 'v60'])
+    expect(filter.filter((e) => e.status === 'published').map((e) => e.brewer).sort()).toEqual(['aeropress', 'frenchpress', 'kalita', 'v60'])
     expect(filter.filter((e) => e.roast).every((e) => e.status === 'archived')).toBe(true)
   })
 
@@ -221,8 +228,25 @@ describe('recipe content', () => {
     expect(RECIPES['filter-v60'].grind).toBe('medium_fine')
     expect(RECIPES['filter-v60'].steps?.[0]).toEqual({ at: 0, kind: 'bloom', to: 45 })
     expect(RECIPES['filter-frenchpress'].steps?.at(-1)).toEqual({ at: 300, kind: 'press' })
+    expect(RECIPES['filter-kalita'].grind).toBe('medium')
+    expect(RECIPES['filter-kalita'].steps?.at(-1)).toEqual({ at: 105, kind: 'pour', to: 250 })
     expect(RECIPES['espresso-medium']).not.toHaveProperty('steps')
     expect(RECIPES['filter-light']).not.toHaveProperty('grind')
+  })
+
+  it('the Kalita Wave is a pour-over brewer the picker offers, with no special rules', () => {
+    expect(STYLE_OF.kalita).toBe('pour')
+    expect(ACTIVE_SLUGS).toContain('filter-kalita')
+    expect(slugOf({ method: 'filter', brewer: 'kalita' })).toBe('filter-kalita')
+    expect(isBrew({ method: 'filter', brewer: 'kalita' })).toBe(true)
+    expect(isBrew({ method: 'espresso', roast: 'medium', brewer: 'kalita' })).toBe(false)
+    expect(versionOf(RECIPE_CONTENT, 'filter-kalita@1')).toMatchObject({ dose: 16, yield: 250 })
+  })
+
+  it('a filter recipe set must keep the Kalita Wave', () => {
+    const c = copy()
+    c.recipes = c.recipes.filter((e) => e.slug !== 'filter-kalita')
+    expect(() => parseRecipeContent(c)).toThrow(/filter-kalita is missing/)
   })
 
   it('RECIPES uses the latest version and a stable id', () => {

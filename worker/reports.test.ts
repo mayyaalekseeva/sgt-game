@@ -57,6 +57,8 @@ describe('parseReportBatch', () => {
   it('accepts filter reports by brewer, and older filter reports by roast', () => {
     const v60 = report({ method: 'filter', roast: null, brewer: 'v60', recipeVersionId: 'filter-v60@1' })
     expect(parse({ reports: [v60] })).toEqual({ reports: [v60], imported: false })
+    const kalita = report({ method: 'filter', roast: null, brewer: 'kalita', recipeVersionId: 'filter-kalita@1' })
+    expect(parse({ reports: [kalita] })).toEqual({ reports: [kalita], imported: false })
     const old = report({ method: 'filter', roast: 'light', recipeVersionId: 'filter-light@1' })
     expect(parse({ reports: [old] })).toEqual({ reports: [old], imported: false })
     // older clients leave brewer out entirely

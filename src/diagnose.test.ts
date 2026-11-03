@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RECIPES, type OffNote, type Recipe, type Taste } from './data'
+import { RECIPES, STYLE_OF, type OffNote, type Recipe, type Taste } from './data'
 import { DIAG_IDS, diagnose, diagnoseFilter, isDiagId, timeState, type DiagId } from './diagnose'
 
 // espresso-medium: 18 g -> 36 g (ratio 2.0), 25-30 s
@@ -194,6 +194,23 @@ describe('diagnoseFilter', () => {
     // 30 g: limit 550 g
     expect(steep('thin', 240, 550)).toBe('steep_thin_short')
     expect(steep('thin', 240, 560)).toBe('steep_thin_ratio')
+  })
+
+  it('diagnoses the Kalita Wave as a pour-over against its own recipe', () => {
+    // filter-kalita: 16 g -> 250 g (ratio 15.6), 3:00-3:45
+    const K = RECIPES['filter-kalita']
+    const kalita = (taste: Taste, time: number, bloomed = true, water = K.yield) =>
+      diagnoseFilter(STYLE_OF.kalita, K, { dose: K.dose, yield: water, time, taste, bloomed })
+    expect(kalita('balanced', 179)).toBe('balanced_off')
+    expect(kalita('balanced', 180)).toBe('balanced')
+    expect(kalita('balanced', 225)).toBe('balanced')
+    expect(kalita('sour', 170)).toBe('pour_sour_fast')
+    expect(kalita('bitter', 226)).toBe('pour_bitter_slow')
+    expect(kalita('sour', 200, false)).toBe('pour_no_bloom')
+    // 1.1 x 15.625 x 16 g -> 275 g is the limit
+    expect(kalita('thin', 170, true, 275)).toBe('pour_thin_fast')
+    expect(kalita('thin', 170, true, 280)).toBe('pour_thin_ratio')
+    expect(diagnoseFilter(STYLE_OF.kalita, K, { dose: 16, yield: 250, time: 200, taste: 'sour', offNote: 'woody', daysOff: 10 })).toBe('pour_woody_paper')
   })
 
   it('reaches every pour-over and immersion DiagId', () => {

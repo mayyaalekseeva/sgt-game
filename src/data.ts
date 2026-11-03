@@ -10,7 +10,7 @@ export type Taste = 'sour' | 'bitter' | 'thin' | 'balanced'
 // A flavor noticed besides the taste: green and grassy, harsh and unbalanced, or woody and papery
 export type OffNote = 'green' | 'harsh' | 'woody'
 // Filter brewers. Pour-over drains through the bed; immersion steeps, then separates (press or drawdown).
-export type Brewer = 'v60' | 'aeropress' | 'frenchpress'
+export type Brewer = 'v60' | 'kalita' | 'aeropress' | 'frenchpress'
 export type BrewStyle = 'pour' | 'steep'
 export type Grind = 'fine' | 'medium_fine' | 'medium' | 'medium_coarse' | 'coarse'
 export type StepKind = 'bloom' | 'pour' | 'stir' | 'swirl' | 'cap' | 'break' | 'skim' | 'press'
@@ -55,10 +55,10 @@ export interface RecipeEntry extends Brew {
 
 export const METHODS: Method[] = ['espresso', 'filter']
 export const ROASTS: Roast[] = ['light', 'medium', 'dark']
-export const BREWERS: Brewer[] = ['v60', 'aeropress', 'frenchpress']
+export const BREWERS: Brewer[] = ['v60', 'kalita', 'aeropress', 'frenchpress']
 export const GRINDS: Grind[] = ['fine', 'medium_fine', 'medium', 'medium_coarse', 'coarse']
 export const STEP_KINDS: StepKind[] = ['bloom', 'pour', 'stir', 'swirl', 'cap', 'break', 'skim', 'press']
-export const STYLE_OF: Record<Brewer, BrewStyle> = { v60: 'pour', aeropress: 'steep', frenchpress: 'steep' }
+export const STYLE_OF: Record<Brewer, BrewStyle> = { v60: 'pour', kalita: 'pour', aeropress: 'steep', frenchpress: 'steep' }
 
 /** Recipe slug, also the working-recipe key: "espresso-medium", "filter-v60"; old filter brews "filter-light". */
 export const slugOf = (b: Brew) => (b.method === 'filter' && b.brewer ? `filter-${b.brewer}` : `${b.method}-${b.roast}`)

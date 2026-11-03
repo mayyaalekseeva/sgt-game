@@ -46,6 +46,30 @@
       ]
     },
     {
+      "slug": "filter-kalita",
+      "method": "filter",
+      "brewer": "kalita",
+      "status": "published",
+      "versions": [
+        {
+          "version": 1,
+          "publishedAt": "2026-11-03",
+          "dose": 16,
+          "yield": 250,
+          "time": [180, 225],
+          "temp": [94, 96],
+          "grind": "medium",
+          "steps": [
+            { "at": 0, "kind": "bloom", "to": 40 },
+            { "at": 10, "kind": "stir" },
+            { "at": 45, "kind": "pour", "to": 110 },
+            { "at": 75, "kind": "pour", "to": 180 },
+            { "at": 105, "kind": "pour", "to": 250 }
+          ]
+        }
+      ]
+    },
+    {
       "slug": "filter-aeropress",
       "method": "filter",
       "brewer": "aeropress",
