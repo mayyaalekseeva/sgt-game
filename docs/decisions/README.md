@@ -15,3 +15,4 @@ NNNN". Update these in the same PR as the code change (see CLAUDE.md).
 | [0004](0004-briefing-and-level-local-only.md) | Player level and briefing flag stored on the device only | Accepted |
 | [0005](0005-append-only-recipe-versions.md) | Recipe versions are append-only | Accepted |
 | [0006](0006-service-worker-skips-api.md) | The PWA service worker never touches /api/* | Accepted |
+| [0007](0007-moments-from-local-actions.md) | Celebration moments come from the player's own actions, remembered on the device | Accepted |

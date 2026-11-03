@@ -122,6 +122,7 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 - `src/api.ts`: reads the API, falling back to the browser (bundled recipes, guest reports in localStorage); `src/reports.tsx` loads the reports once for Profile, Diary and Saved recipes
 - `src/account.tsx`: account card and language switch
 - `src/cupping.ts`: the cupping form as data and its scoring; `src/cuppings.ts` sessions; `src/cupping-draft.tsx` autosaves the open session to this browser before it syncs; `worker/cuppings.ts` the API side. Sources for every number: `docs/cupping-research.md`
+- `src/moments.ts`: celebration moments (promotion, field test passed, mission done) found by comparing progress before and after the player's own action; `src/moments-layer.tsx` queues and shows them
 - `src/route.ts`: the current screen in the URL hash (`#/profile/diary`), so back, refresh and links work
 - `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary (one timeline, filtered by coffee, with what changed since the previous brew), Missions and Dossier, and Cupping (sessions scored on a form based on the SCA cupping form, with a summary and blind mode)
 - `public/brand/`: logo and photos (used with the roaster's permission)
