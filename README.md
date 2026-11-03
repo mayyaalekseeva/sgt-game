@@ -124,6 +124,7 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 - `src/cupping.ts`: the cupping form as data and its scoring; `src/cuppings.ts` sessions; `src/cupping-draft.tsx` autosaves the open session to this browser before it syncs; `worker/cuppings.ts` the API side. Sources for every number: `docs/cupping-research.md`
 - `src/route.ts`: the current screen in the URL hash (`#/profile/diary`), so back, refresh and links work
 - `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary (one timeline, filtered by coffee, with what changed since the previous brew), Missions and Dossier, and Cupping (sessions scored on a form based on the SCA cupping form, with a summary and blind mode)
+- `src/screens/SwipeRow.tsx`: swipe a list row left on a touch screen to delete it (a cupping session, a coffee on the table, a diary report) or to finish a bag in My coffees; the same action stays on a button in the item's own screen (docs/decisions/0007)
 - `public/brand/`: logo and photos (used with the roaster's permission)
 
 ## Next

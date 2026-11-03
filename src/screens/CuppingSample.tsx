@@ -12,7 +12,7 @@ import {
   type SampleMarks,
   type ScaleAttribute,
 } from '../cupping'
-import { MAX_CODE, MAX_NOTES, namesHidden, type CuppingSample, type CuppingSession } from '../cuppings'
+import { MAX_CODE, MAX_NOTES, namesHidden, withoutSample, type CuppingSample, type CuppingSession } from '../cuppings'
 import { FAMILIES, suggestFlavors } from '../flavors'
 import type { Key } from '../i18n'
 import { lotBySlug } from '../lots'
@@ -151,7 +151,7 @@ export default function CuppingSampleScreen({
           variant="ghost"
           onClick={() => {
             if (!window.confirm(t('cupping.removeSampleConfirm'))) return
-            change((s) => ({ ...s, samples: s.samples.filter((x) => x.id !== sample.id) }))
+            change((s) => withoutSample(s, sample.id))
             open(session.id)
           }}
         >
