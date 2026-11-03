@@ -11,6 +11,9 @@ const en = {
   'profile.guest': 'You are playing as a guest. Your progress is saved on this device only.',
   'profile.language': 'Language',
   'profile.chapters': '{n} of {total} open',
+  'profile.group.coffee': 'Coffee & recipes',
+  'profile.group.log': 'Brew log',
+  'profile.group.training': 'Training',
 
   'brief.label': 'Briefing',
   'brief.skip': 'Skip',
@@ -777,6 +780,9 @@ const pt: Record<keyof typeof en, string> = {
   'profile.guest': 'Estás a jogar como convidado. O teu progresso fica guardado apenas neste dispositivo.',
   'profile.language': 'Idioma',
   'profile.chapters': '{n} de {total} abertos',
+  'profile.group.coffee': 'Café e receitas',
+  'profile.group.log': 'Registo',
+  'profile.group.training': 'Treino',
 
   'brief.label': 'Briefing',
   'brief.skip': 'Saltar',
