@@ -17,7 +17,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:seed:local": "node scripts/seed-recipes.mjs --local",
     "db:seed:remote": "node scripts/seed-recipes.mjs --remote",
-    "lots:photos": "node scripts/fetch-lot-photos.mjs"
+    "lots:photos": "node scripts/fetch-lot-photos.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
