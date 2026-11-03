@@ -1,12 +1,15 @@
+import { missionsFor } from '../briefing'
 import type { Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Card, Chevrons, Display } from '../ui'
 
 export default function Missions() {
-  const { t } = useStore()
+  const { t, briefing } = useStore()
   const { missions } = useReports()
   const done = missions.filter((m) => m.done).length
+  // the player's level picks which come first; every mission is listed either way
+  const listed = missionsFor(missions, briefing.level)
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -14,7 +17,7 @@ export default function Missions() {
         <p className="mt-1 text-[15px] text-ink/80">{t('m.done', { n: done, total: missions.length })}</p>
       </div>
       <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
-        {missions.map((m) => (
+        {listed.map((m) => (
           <li key={m.id}>
             <Card className={`lg:h-full ${m.done ? '' : 'bg-cream/80'}`}>
               <div className="flex items-start gap-3">

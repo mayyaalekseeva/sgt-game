@@ -110,7 +110,7 @@ export function Segmented<T extends string>({
   label,
   inCard = false,
 }: {
-  value: T
+  value: T | null // null: none picked yet
   options: { id: T; label: string }[]
   onChange: (v: T) => void
   label: string
