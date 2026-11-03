@@ -5,6 +5,7 @@ import { useReports } from '../reports'
 import { useStore } from '../store'
 import { newReportId } from '../sync'
 import { Button, Card, Label, ScreenTitle, Segmented, Select, field } from '../ui'
+import DatePicker from './DatePicker'
 import OriginPicker from './OriginPicker'
 
 const OTHER = 'other'
@@ -98,17 +99,11 @@ export default function AddCoffee({ done }: { done: () => void }) {
           <Label>{t('label.roast')}</Label>
           <Segmented inCard label={t('label.roast')} value={roast} onChange={setRoast} options={ROASTS.map((r) => ({ id: r, label: t(`roast.${r}`) }))} />
         </div>
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <Label>{t('coffee.roastedOn')}</Label>
-          <input
-            type="date"
-            value={roastedOn}
-            max={localDay(Date.now())}
-            onChange={(e) => setRoastedOn(e.target.value)}
-            className={`h-11 ${field} font-semibold`}
-          />
+          <DatePicker label={t('coffee.roastedOn')} value={roastedOn} onChange={setRoastedOn} max={localDay(Date.now())} inCard />
           <span className="text-xs text-muted">{t('coffee.roastedOnHint')}</span>
-        </label>
+        </div>
       </Card>
       <Button disabled={!ready} onClick={save}>
         {t('coffee.save')}

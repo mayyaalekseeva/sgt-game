@@ -9,6 +9,7 @@ import {
   RECIPE_CONTENT,
   REPORT_XP,
   diaryDays,
+  monthGrid,
   parseRecipeContent,
   parseReportsResponse,
   rankFor,
@@ -373,6 +374,22 @@ describe('parseReportsResponse', () => {
     ['an unknown brewer', { reports: [{ ...report({ method: 'filter' }), brewer: 'chemex' }], working: {} }],
   ])('rejects %s', (_name, raw) => {
     expect(() => parseReportsResponse(raw)).toThrow(/GET \/api\/reports/)
+  })
+})
+
+describe('monthGrid', () => {
+  it('starts weeks on Monday and pads to whole weeks', () => {
+    // 1 Nov 2026 is a Sunday
+    const g = monthGrid(2026, 10)
+    expect(g.length % 7).toBe(0)
+    expect(g.slice(0, 7)).toEqual([null, null, null, null, null, null, '2026-11-01'])
+    expect(g.filter(Boolean)).toHaveLength(30)
+    expect(g.at(-1)).toBe(null)
+  })
+
+  it('knows leap years', () => {
+    expect(monthGrid(2028, 1).filter(Boolean).at(-1)).toBe('2028-02-29')
+    expect(monthGrid(2027, 1).filter(Boolean).at(-1)).toBe('2027-02-28')
   })
 })
 
