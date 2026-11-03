@@ -129,6 +129,9 @@ export function nextCode(session: CuppingSession): string {
   return String(session.samples.length + 1)
 }
 
+/** The session without one of its coffees and that coffee's scores. */
+export const withoutSample = (s: CuppingSession, sampleId: string): CuppingSession => ({ ...s, samples: s.samples.filter((x) => x.id !== sampleId) })
+
 /** Whether the coffee's name is hidden: blind and not revealed yet. */
 export const namesHidden = (s: CuppingSession) => s.blind && !s.revealed
 

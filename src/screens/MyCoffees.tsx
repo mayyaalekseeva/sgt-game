@@ -4,6 +4,7 @@ import { localDay } from '../data'
 import { useStore } from '../store'
 import DatePicker from './DatePicker'
 import Freshness from './Freshness'
+import SwipeRow from './SwipeRow'
 import { Button, Card, Display, Label, ScreenTitle, SmallButton, processLabel } from '../ui'
 
 // Your own coffees, opened from Profile. A finished bag leaves the picker but keeps its name in the diary.
@@ -22,7 +23,11 @@ export default function MyCoffees({ add }: { add: () => void }) {
 
   const row = (c: MyCoffee) => (
     <li key={c.id}>
-      <Card className={c.archived ? 'opacity-70' : ''}>
+      <SwipeRow
+        className={`rounded-xl ${c.archived ? 'opacity-70' : ''}`}
+        action={{ label: t(c.archived ? 'swipe.restore' : 'swipe.finish'), tone: 'neutral', onAction: () => toggle(c) }}
+      >
+      <Card>
         <Label>
           {c.roaster} · {c.origin}
         </Label>
@@ -39,6 +44,7 @@ export default function MyCoffees({ add }: { add: () => void }) {
         )}
         <SmallButton onClick={() => toggle(c)}>{t(c.archived ? 'coffee.restore' : 'coffee.finish')}</SmallButton>
       </Card>
+      </SwipeRow>
     </li>
   )
 

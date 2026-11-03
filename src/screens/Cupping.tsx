@@ -1,6 +1,6 @@
 import { formById, maxTotal, scoreSample } from '../cupping'
-import { useCuppingSession } from '../cupping-draft'
-import { MAX_PLACE, MAX_SAMPLES, compareSamples, namesHidden, newSample, newSession, nextCode, type CuppingSession } from '../cuppings'
+import { discardDraft, useCuppingSession } from '../cupping-draft'
+import { MAX_PLACE, MAX_SAMPLES, compareSamples, namesHidden, newSample, newSession, nextCode, withoutSample, type CuppingSession } from '../cuppings'
 import { MAX_NOTES, localDay } from '../data'
 import type { Key } from '../i18n'
 import { useReports } from '../reports'
@@ -10,6 +10,7 @@ import { Button, Card, Display, Label, ScreenTitle, field, fmtDate } from '../ui
 import { coffeeGroups, fmtScore, sampleName } from '../cupping-labels'
 import CuppingSampleScreen from './CuppingSample'
 import DatePicker from './DatePicker'
+import SwipeRow from './SwipeRow'
 
 // Profile > Cupping: the sessions, one session's table and summary, and (CuppingSample) one coffee's scores.
 // Based on the SCA cupping form (src/cupping.ts); the app is not SCA-certified and gives no Q-grade.
@@ -30,7 +31,7 @@ function Disclaimer() {
 
 function CuppingList({ open }: { open: (id?: string) => void }) {
   const { t, lang } = useStore()
-  const { cuppings, saveCupping } = useReports()
+  const { cuppings, saveCupping, deleteCupping } = useReports()
   const start = () => {
     const s = newSession(newReportId(), Date.now())
     saveCupping(s)
@@ -49,6 +50,17 @@ function CuppingList({ open }: { open: (id?: string) => void }) {
             const best = compareSamples(s).find((r) => r.score?.complete)?.score
             return (
               <li key={s.id}>
+                <SwipeRow
+                  className="rounded-xl"
+                  action={{
+                    label: t('swipe.delete'),
+                    tone: 'danger',
+                    onAction: () => {
+                      discardDraft(s.id)
+                      deleteCupping(s.id)
+                    },
+                  }}
+                >
                 <button type="button" onClick={() => open(s.id)} className="w-full rounded-xl border-2 border-ink bg-cream p-4 text-left active:scale-[0.99]">
                   <div className="flex items-center gap-2">
                     <span className="flex-1 text-[17px] font-semibold">{fmtDate(s.day, lang)}</span>
@@ -61,6 +73,7 @@ function CuppingList({ open }: { open: (id?: string) => void }) {
                     {best && <span>{t('cupping.best', { score: fmtScore(best.final) })}</span>}
                   </div>
                 </button>
+                </SwipeRow>
               </li>
             )
           })}
@@ -168,6 +181,7 @@ function SessionView({
               const score = form ? scoreSample(form, x.marks) : null
               return (
                 <li key={x.id}>
+                  <SwipeRow action={{ label: t('swipe.remove'), tone: 'danger', onAction: () => change((s) => withoutSample(s, x.id)) }}>
                   <button type="button" onClick={() => open(`${session.id}.${x.id}`)} className="flex min-h-14 w-full items-center gap-3 border-b border-line px-1 text-left">
                     <span className="flex-1">
                       <span className="block text-[17px] font-semibold">{sampleName(t, session, x, coffees)}</span>
@@ -178,6 +192,7 @@ function SessionView({
                     </span>
                     <span aria-hidden="true" className="text-xl">›</span>
                   </button>
+                  </SwipeRow>
                 </li>
               )
             })}

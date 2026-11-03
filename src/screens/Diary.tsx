@@ -12,6 +12,7 @@ import { lotBySlug } from '../lots'
 import FlavorPicker, { FlavorChips } from './FlavorPicker'
 import GrinderSelect from './GrinderSelect'
 import PhotoControl from './PhotoControl'
+import SwipeRow from './SwipeRow'
 import { Button, Label, ScreenTitle, brewLabel, diagVars, field, fmtClock, fmtDate, fmtNum, fmtTime, ratio, signed } from '../ui'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -137,14 +138,16 @@ function SinceLast({ prev, r }: { prev: Report; r: Report }) {
 
 function Entry({ r, prev, isWorking }: { r: Report; prev?: Report; isWorking: boolean }) {
   const { t, lang } = useStore()
-  const { coffees, signedIn } = useReports()
+  const { coffees, signedIn, deleteReport } = useReports()
   const [editing, setEditing] = useState(false)
   const coffee = coffeeName(r.lot, coffees)
   const v = versionOf(RECIPE_CONTENT, r.recipeVersionId)
   const recipe = v ?? RECIPES[slugOf(r)]
   const photo = signedIn && !editing ? r.photo : undefined
   return (
-    <li className="flex flex-col gap-2 rounded-xl border-2 border-ink bg-cream p-4">
+    <li>
+    <SwipeRow className="rounded-xl" disabled={editing} action={{ label: t('swipe.delete'), tone: 'danger', onAction: () => deleteReport(r.id) }}>
+    <div className="flex flex-col gap-2 rounded-xl border-2 border-ink bg-cream p-4">
       {/* The coffee is the title; older reports without one are titled by the brew */}
       <div>
         <div className="flex items-start justify-between gap-2">
@@ -214,6 +217,8 @@ function Entry({ r, prev, isWorking }: { r: Report; prev?: Report; isWorking: bo
           )}
         </>
       )}
+    </div>
+    </SwipeRow>
     </li>
   )
 }
