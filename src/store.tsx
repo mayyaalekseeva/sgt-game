@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { needsBriefing, parseBriefing, type Briefing, type Level } from './briefing'
 import { isMyRef, mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
+import { mergeSessions, parseSessions, type CuppingSession } from './cuppings'
 import { BREWERS, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { parsePassed, type DrillId, type Passed } from './drills'
 import { translate, type Key } from './i18n'
@@ -19,6 +20,7 @@ interface Persisted {
   working: Record<string, string> // working key (src/coffees.ts workingKey) -> report id
   coffees: MyCoffee[] // the guest's own coffees
   drills: Passed // the guest's passed drill field tests
+  cuppings: CuppingSession[] // the guest's cupping sessions
   sound: boolean // brew timer tones
   briefing: Briefing // first-run briefing and level; this device only, also when signed in
 }
@@ -33,6 +35,7 @@ const initial = (): Persisted => ({
   working: {},
   coffees: [],
   drills: {},
+  cuppings: [],
   sound: true,
   briefing: { seen: false, level: null },
 })
@@ -50,6 +53,7 @@ function load(): Persisted {
         lot: isMyRef(saved.lot) || lotBySlug(saved.lot) ? saved.lot : null,
         coffees: parseCoffees(saved.coffees),
         drills: parsePassed(saved.drills),
+        cuppings: parseSessions(saved.cuppings),
         briefing: parseBriefing(saved.briefing),
       }
     }
@@ -81,6 +85,8 @@ interface Store extends Persisted {
   reset: () => void
   saveCoffee: (c: MyCoffee) => void
   passDrill: (id: DrillId, at: number) => void
+  saveCupping: (s: CuppingSession) => void
+  deleteCupping: (id: string) => void
   // after the guest data went to an account at first sign-in
   clearGuest: () => void
   // Brew timer, kept in memory only: it survives switching tabs, not a reload
@@ -145,7 +151,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       reset: () => setS((p) => ({ ...p, reports: [], working: {}, drills: {} })),
       saveCoffee: (c) => setS((p) => ({ ...p, coffees: mergeCoffees(p.coffees, [c]) })),
       passDrill: (id, at) => setS((p) => (p.drills[id] !== undefined ? p : { ...p, drills: { ...p.drills, [id]: at } })),
-      clearGuest: () => setS((p) => ({ ...p, reports: [], working: {}, coffees: [], drills: {} })),
+      saveCupping: (c) => setS((p) => ({ ...p, cuppings: mergeSessions(p.cuppings, [c]) })),
+      deleteCupping: (id) => setS((p) => ({ ...p, cuppings: p.cuppings.filter((c) => c.id !== id) })),
+      clearGuest: () => setS((p) => ({ ...p, reports: [], working: {}, coffees: [], drills: {}, cuppings: [] })),
       timer,
       startTimer: (slug, roast) => setTimer({ slug, ...(roast ? { roast } : {}), startedAt: Date.now() }),
       cancelTimer: () => setTimer(null),

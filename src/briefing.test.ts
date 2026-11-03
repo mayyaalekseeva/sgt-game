@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LEVELS, missionsFor, needsBriefing, parseBriefing, parseLevel } from './briefing'
+import { LEVELS, missionsFor, needsBriefing, parseBriefing, parseLevel, profileRowsFor } from './briefing'
 import { MISSIONS } from './data'
 
 describe('parseLevel', () => {
@@ -74,5 +74,21 @@ describe('missionsFor', () => {
     const out = missionsFor(missions, 'home')
     expect(out).toEqual([{ id: 'm5', done: false }, { id: 'm6', done: true }])
     expect(missions[0].id).toBe('m6')
+  })
+})
+
+describe('profileRowsFor', () => {
+  const rows = ['lots', 'coffees', 'diary', 'cupping', 'missions'].map((id) => ({ id }))
+  const ids = (l: Parameters<typeof profileRowsFor>[1]) => profileRowsFor(rows, l).map((r) => r.id)
+
+  it('lists cupping first for a pro, and keeps every row for every level', () => {
+    expect(ids('pro')).toEqual(['cupping', 'lots', 'coffees', 'diary', 'missions'])
+    for (const l of [...LEVELS, null]) expect(ids(l).sort()).toEqual(rows.map((r) => r.id).sort())
+  })
+
+  it('keeps the order for the other levels', () => {
+    expect(ids('recruit')).toEqual(rows.map((r) => r.id))
+    expect(ids('home')).toEqual(rows.map((r) => r.id))
+    expect(ids(null)).toEqual(rows.map((r) => r.id))
   })
 })

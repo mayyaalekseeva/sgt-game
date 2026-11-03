@@ -93,7 +93,7 @@ The app uses hash routing, so only `/` is ever requested and there is no SPA fal
 Merging to `main` deploys it. The deploy fails, or the API breaks, if the infrastructure it expects is missing, so for any PR that adds a binding or a migration, do this first, in this order:
 
 1. **Create new buckets and databases.** R2 bucket for report photos: Cloudflare dashboard > **R2** > **Create bucket**, name `barista-photos` (or `npx wrangler r2 bucket create barista-photos`). Keep it private: no public access, no r2.dev URL. Photos are served only through `/api/reports/:id/photo/:nonce`, to their owner.
-2. **Apply new migrations to the remote D1** before `main` is deployed: `npm run db:migrate:remote`. Migrations only add columns or tables, so the running version keeps working with the new schema. Migration `0007_report_photo` adds `reports.photo_key` and `reports.visibility`; `0008_report_edit_delete` adds `reports.edited_at` and the `deleted_reports` table.
+2. **Apply new migrations to the remote D1** before `main` is deployed: `npm run db:migrate:remote`. Migrations only add columns or tables, so the running version keeps working with the new schema. Migration `0007_report_photo` adds `reports.photo_key` and `reports.visibility`; `0008_report_edit_delete` adds `reports.edited_at` and the `deleted_reports` table. `0013_cupping` adds the `cupping_sessions` and `cupping_samples` tables.
 3. Only then merge the PR.
 
 ### Cache headers
@@ -120,8 +120,9 @@ Check after deploying with `curl -I https://barista-game.<subdomain>.workers.dev
 - `src/i18n.ts`: all EN/PT texts
 - `src/api.ts`: reads the API, falling back to the browser (bundled recipes, guest reports in localStorage); `src/reports.tsx` loads the reports once for Profile, Diary and Saved recipes
 - `src/account.tsx`: account card and language switch
+- `src/cupping.ts`: the cupping form as data and its scoring; `src/cuppings.ts` sessions; `src/cupping-draft.tsx` autosaves the open session to this browser before it syncs; `worker/cuppings.ts` the API side. Sources for every number: `docs/cupping-research.md`
 - `src/route.ts`: the current screen in the URL hash (`#/profile/diary`), so back, refresh and links work
-- `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary (one timeline, filtered by coffee, with what changed since the previous brew), Missions and Dossier
+- `src/screens/`: the tabs Orders, Diagnose, Recipes, Profile; Profile opens Saved recipes, Diary (one timeline, filtered by coffee, with what changed since the previous brew), Missions and Dossier, and Cupping (sessions scored on a form based on the SCA cupping form, with a summary and blind mode)
 - `public/brand/`: logo and photos (used with the roaster's permission)
 
 ## Next
