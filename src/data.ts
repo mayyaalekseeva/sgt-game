@@ -2,6 +2,7 @@ import recipeContent from '../content/recipes.json' with { type: 'json' }
 // scripts/seed-recipes.mjs loads this file in plain Node, so relative runtime imports need the .ts extension
 import { cleanFlavors } from './flavors.ts'
 import { isGrinderModel } from './grinders.ts'
+import { originsIn, type Continent, type Origin } from './origins.ts'
 
 export type Lang = 'en' | 'pt'
 export type Method = 'espresso' | 'filter'
@@ -354,13 +355,24 @@ export interface MissionDef {
   id: string
   xp: number
   goal: number
-  progress: (reports: Report[], working: Record<string, string>) => number
+  progress: (reports: Report[], working: Record<string, string>, originOfLot: OriginOfLot) => number
 }
+
+// Where a report's coffee comes from: a roaster lot's country or your own coffee's origin (src/progress.ts)
+export type OriginOfLot = (lot: string | undefined) => Origin | undefined
 
 const distinct = <T,>(a: T[]) => new Set(a).size
 
 // The coffees with a working recipe; keys are "slug|lot" (src/coffees.ts workingKey), older ones just "slug"
 const workingLots = (w: Record<string, string>) => [...new Set(Object.keys(w).flatMap((k) => (k.includes('|') ? [k.split('|')[1]] : [])))]
+
+// Brew coffees from 80% of a continent's origins (src/origins.ts): the rarest ones are left to luck
+export const originGoal = (c: Continent) => Math.round(originsIn(c).length * 0.8)
+const originsBrewed = (c: Continent) => (r: Report[], _w: Record<string, string>, of: OriginOfLot) =>
+  distinct(r.flatMap((x) => {
+    const o = of(x.lot)
+    return o?.continent === c ? [o.en] : []
+  }))
 
 export const MISSIONS: MissionDef[] = [
   { id: 'm1', xp: 50, goal: 1, progress: (r) => r.length },
@@ -374,12 +386,15 @@ export const MISSIONS: MissionDef[] = [
   { id: 'm9', xp: 75, goal: 1, progress: (r) => r.filter((x) => x.lot?.startsWith('my:')).length },
   { id: 'm10', xp: 100, goal: 1, progress: (_r, w) => workingLots(w).filter((l) => !l.startsWith('my:')).length },
   { id: 'm11', xp: 150, goal: 2, progress: (_r, w) => workingLots(w).length },
+  { id: 'm12', xp: 300, goal: originGoal('africa'), progress: originsBrewed('africa') },
+  { id: 'm13', xp: 300, goal: originGoal('asia'), progress: originsBrewed('asia') },
+  { id: 'm14', xp: 300, goal: originGoal('americas'), progress: originsBrewed('americas') },
 ]
 
 // Reports and missions only; progressFor (src/progress.ts) adds the drills, and is what the screens use
-export function missionProgress(reports: Report[], working: Record<string, string>) {
+export function missionProgress(reports: Report[], working: Record<string, string>, originOfLot: OriginOfLot = () => undefined) {
   const missions = MISSIONS.map((m) => {
-    const cur = Math.min(m.goal, m.progress(reports, working))
+    const cur = Math.min(m.goal, m.progress(reports, working, originOfLot))
     return { id: m.id, xp: m.xp, goal: m.goal, cur, done: cur >= m.goal }
   })
   const xp = reports.length * REPORT_XP + missions.filter((m) => m.done).reduce((a, m) => a + m.xp, 0)

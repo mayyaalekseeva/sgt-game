@@ -1,10 +1,14 @@
+import { findMine, type MyCoffee } from './coffees'
 import { missionProgress, rankFor, type Report } from './data'
 import { drillProgress, type Passed } from './drills'
+import { lotBySlug } from './lots'
+import { originOf } from './origins'
 
 // XP, rank, mission and drill progress are always derived from reports and passed drills, never stored as totals.
 // Kept out of data.ts, which the recipe seed script loads in plain Node.
-export function progressFor(reports: Report[], working: Record<string, string>, passed: Passed = {}) {
-  const m = missionProgress(reports, working)
+// A brew of your own coffee counts for its origin only while the coffee is known here (archived ones are).
+export function progressFor(reports: Report[], working: Record<string, string>, passed: Passed = {}, coffees: MyCoffee[] = []) {
+  const m = missionProgress(reports, working, (lot) => originOf(findMine(coffees, lot)?.origin ?? lotBySlug(lot)?.country.en))
   const d = drillProgress(reports, passed)
   const xp = m.xp + d.xp
   return { xp, rank: rankFor(xp), missions: m.missions, drills: d.drills }

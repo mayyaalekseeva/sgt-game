@@ -40,6 +40,8 @@ never reloads during a brew timer (src/sw-update.ts). No service worker in dev; 
 
 - Domain logic stays pure and UI-free: src/diagnose.ts, src/data.ts. Add tests for any change there.
 - XP, rank, mission and drill progress are derived from reports and passed drill field tests (src/progress.ts), never stored as totals.
+  The origin missions (m12-m14) also read the player's coffees, to know where a `my:` coffee comes from; each asks for
+  80% of a continent's origins in src/origins.ts, so adding an origin there can raise the goal.
 - Moments (src/moments.ts, src/moments-layer.tsx): promotion, field test passed and mission done, found by
   comparing progress before and after the player's own action, never on sync or reload. Celebrated ids live in
   localStorage only. 1.5 to 2.5 s, tap to skip, transform and opacity only, final state with reduced motion,
