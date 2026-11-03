@@ -31,7 +31,16 @@ official documents and what is still open. Checked 2026-11-03.
 | Total | Final Score = Total Score (sum of the attribute scores) - defects | Protocol p. 10; form |
 | Bands (on the Final Score) | 90-100 Outstanding, 85-89.99 Excellent, 80-84.99 Very Good (these three: Specialty); < 80.0 Below Specialty Quality (Not Specialty) | Protocol p. 10 |
 
-## Open points
+## Decisions (2026-11-03)
+
+The open points below were decided by the project owner; src/cupping.ts follows them.
+
+1. Scale attributes go from 6 to 10 in 0.25 steps (10 is allowed, nothing below 6).
+2. Up to two defect rows per sample, each cups x intensity, summed.
+3. Five cups per sample, fixed on this form (stored on the form definition, so another form can differ).
+4. The vertical intensity scales are not recorded in v1.
+
+## Open points (as found)
 
 1. **Top of the scale: 9.75 or 10?** The quality-scale table (protocol and form legend) ends at 9.75 and is
    called a 16-point scale. But the form's tick marks run 6 to 10, the protocol says the scale "theoretically
