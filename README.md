@@ -2,7 +2,8 @@
 
 A mobile-first web app that helps you brew better coffee, one change at a time. You brew from a recipe,
 tell the app how the cup tasted and how long it ran, and the Sargento (the app's coach) names the one thing
-to change next. Missions, drills and ranks track how far you have come.
+to change next. Missions, drills and ranks track how far you have come. You can also cup coffees on a form
+based on the SCA cupping form.
 
 **Who it is for:** baristas in training and home brewers who make espresso or filter coffee (V60, Kalita Wave,
 AeroPress, French press) and want to dial in a coffee on purpose instead of by guesswork.
@@ -131,9 +132,6 @@ Waiting on the roaster:
 - Per-lot recipes: a lot is picked and stored with each report, but the recipe doesn't change yet (one placeholder recipe per brewer/roast)
 - Which roasts (espresso, filter or both) each lot in `content/lots.json` has
 - Real Dossier texts, and a check of the recipe ranges and diagnosis thresholds
-
-In progress:
-- Cupping: SCA cupping sessions, scored and synced (branch `feat/cupping`, not merged yet)
 
 Can be done now:
 - More filter brewers: Chemex, Clever (V60, Kalita Wave, AeroPress and French press are done)
