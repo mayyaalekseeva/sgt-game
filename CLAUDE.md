@@ -40,6 +40,10 @@ never reloads during a brew timer (src/sw-update.ts). No service worker in dev; 
 
 - Domain logic stays pure and UI-free: src/diagnose.ts, src/data.ts. Add tests for any change there.
 - XP, rank, mission and drill progress are derived from reports and passed drill field tests (src/progress.ts), never stored as totals.
+- Moments (src/moments.ts, src/moments-layer.tsx): promotion, field test passed and mission done, found by
+  comparing progress before and after the player's own action, never on sync or reload. Celebrated ids live in
+  localStorage only. 1.5 to 2.5 s, tap to skip, transform and opacity only, final state with reduced motion,
+  never over a running brew timer, no sound or vibration, never the Sargento's photo.
 - Every user-facing string goes through i18n in BOTH en and pt.
 - First-run briefing (src/screens/Briefing.tsx, src/briefing.ts): the seen flag and the player's level live in the store's
   localStorage only, also when signed in. The level changes the greeting and mission order, never XP, and never hides or locks a feature.

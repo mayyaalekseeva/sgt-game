@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { ImportOffer, LangToggle, personIcon } from './account'
 import { initial, useAuth } from './auth'
 import { parseRoute, routeHash, type Route, type Sub, type Tab } from './route'
+import { MomentLayer } from './moments-layer'
 import { useStore } from './store'
 import Orders from './screens/Orders'
 import AddCoffee from './screens/AddCoffee'
@@ -211,6 +212,8 @@ export default function App() {
           ))}
         </ul>
       </nav>
+
+      <MomentLayer onTimerScreen={sub === 'timer'} />
     </div>
   )
 }

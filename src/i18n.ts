@@ -532,6 +532,16 @@ const en = {
   'drill.again': 'Read the briefing again',
   'drill.all': 'All drills',
   'diag.taskDone': 'Field assignment done: {d}',
+
+  // Moments (src/moments-layer.tsx): a few seconds each, so the orders stay short
+  'moment.close': 'Close',
+  'moment.approved': 'Approved',
+  'moment.drill': 'Field test passed: {d}',
+  'moment.xp': '+{xp} XP',
+  'moment.order.cabo': 'Well earned, Cabo. Same discipline: one change at a time.',
+  'moment.order.furriel': 'Well done, Furriel. Your reports hold steady. Keep tasting.',
+  'moment.order.sargento': 'Sargento, like me. The bar is yours now.',
+
   'art.sour': 'Sour',
   'art.sweet': 'Sweet',
   'art.bitter': 'Bitter',
@@ -1288,6 +1298,15 @@ const pt: Record<keyof typeof en, string> = {
   'drill.again': 'Ler o briefing outra vez',
   'drill.all': 'Todas as instruções',
   'diag.taskDone': 'Missão de campo cumprida: {d}',
+
+  'moment.close': 'Fechar',
+  'moment.approved': 'Aprovado',
+  'moment.drill': 'Prova de campo passada: {d}',
+  'moment.xp': '+{xp} XP',
+  'moment.order.cabo': 'Bem merecido, Cabo. A mesma disciplina: uma mudança de cada vez.',
+  'moment.order.furriel': 'Muito bem, Furriel. Os teus relatórios são firmes. Continua a provar.',
+  'moment.order.sargento': 'Sargento, como eu. O balcão agora é teu.',
+
   'art.sour': 'Ácido',
   'art.sweet': 'Doce',
   'art.bitter': 'Amargo',
