@@ -1,11 +1,13 @@
-import { and, asc, count, desc, eq, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
+import type { BatchItem } from 'drizzle-orm/batch'
 import { Hono } from 'hono'
 import { requireUser } from './auth'
 import { auth } from './auth-routes'
 import { db, rowsPerInsert } from './db/client'
 import { logError } from './log'
-import { coffees, deletedReports, drillPasses, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
+import { coffees, cuppingSamples, cuppingSessions, deletedReports, drillPasses, recipes, recipeVersions, reports, workingRecipes } from './db/schema'
 import { parseCoffeeBatch, toCoffeeOut, toCoffeeRow, workingKey } from './coffees'
+import { isCuppingId, parseCuppingBatch, toCuppingsOut, toSampleRows, toSessionRow } from './cuppings'
 import { parseDrillBatch, toDrillsOut } from './drills'
 import { toRecipeContent } from './recipes'
 import {
@@ -58,17 +60,20 @@ app.get('/recipes', async (c) => {
 app.get('/reports', requireUser, async (c) => {
   const d = db(c.env)
   const userId = c.var.userId
-  const [rows, working, mine, passed] = await d.batch([
+  const [rows, working, mine, passed, sessions, samples] = await d.batch([
     d.select().from(reports).where(eq(reports.userId, userId)).orderBy(desc(reports.ts)),
     d.select().from(workingRecipes).where(eq(workingRecipes.userId, userId)),
     d.select().from(coffees).where(eq(coffees.userId, userId)).orderBy(asc(coffees.updatedAt)),
     d.select().from(drillPasses).where(eq(drillPasses.userId, userId)),
+    d.select().from(cuppingSessions).where(eq(cuppingSessions.userId, userId)).orderBy(desc(cuppingSessions.day), desc(cuppingSessions.updatedAt)),
+    d.select().from(cuppingSamples).where(eq(cuppingSamples.userId, userId)),
   ])
   return c.json({
     reports: rows.map(toReportOut),
     working: Object.fromEntries(working.map((w) => [workingKey(w.recipeSlug, w.lot), w.reportId])),
     coffees: mine.map(toCoffeeOut),
     drills: toDrillsOut(passed),
+    cuppings: toCuppingsOut(sessions, samples),
   })
 })
 
@@ -301,6 +306,79 @@ app.post('/coffees', requireUser, async (c) => {
   await d.batch([first, ...rest])
   return c.json({ saved: rows.length })
 })
+
+const SAMPLES_PER_INSERT = rowsPerInsert(cuppingSamples)
+
+// Adds or replaces cupping sessions, each with all its samples. An older copy never overwrites a newer one, and a
+// deleted session stays deleted. Two sends of the same copy race harmlessly: both write the same rows.
+app.post('/cuppings', requireUser, async (c) => {
+  const parsed = parseCuppingBatch(await c.req.json().catch(() => null))
+  if ('error' in parsed) return c.json(invalid(parsed.error), 400)
+  const d = db(c.env)
+  const userId = c.var.userId
+  const now = Date.now()
+  const have = await d
+    .select({ id: cuppingSessions.id, updatedAt: cuppingSessions.updatedAt, deletedAt: cuppingSessions.deletedAt })
+    .from(cuppingSessions)
+    .where(and(eq(cuppingSessions.userId, userId), inArray(cuppingSessions.id, parsed.sessions.map((s) => s.id))))
+  const current = new Map(have.map((h) => [h.id, h]))
+  const newer = parsed.sessions.filter((s) => {
+    const h = current.get(s.id)
+    return !h || (h.deletedAt === null && h.updatedAt <= s.updatedAt)
+  })
+  if (newer.length === 0) return c.json({ saved: 0 })
+  const writes: BatchItem<'sqlite'>[] = []
+  for (const s of newer) {
+    const mine = and(eq(cuppingSamples.userId, userId), eq(cuppingSamples.sessionId, s.id))
+    writes.push(
+      d
+        .insert(cuppingSessions)
+        .values(toSessionRow(s, userId, now))
+        .onConflictDoUpdate({
+          target: [cuppingSessions.userId, cuppingSessions.id],
+          set: {
+            day: sql`excluded.day`,
+            place: sql`excluded.place`,
+            protocol: sql`excluded.protocol`,
+            blind: sql`excluded.blind`,
+            revealed: sql`excluded.revealed`,
+            status: sql`excluded.status`,
+            updatedAt: sql`excluded.updated_at`,
+          },
+          setWhere: sql`excluded.updated_at >= ${cuppingSessions.updatedAt} and ${cuppingSessions.deletedAt} is null`,
+        }),
+      d.delete(cuppingSamples).where(mine),
+    )
+    const rows = toSampleRows(s, userId)
+    for (let i = 0; i < rows.length; i += SAMPLES_PER_INSERT) writes.push(d.insert(cuppingSamples).values(rows.slice(i, i + SAMPLES_PER_INSERT)))
+  }
+  const [first, ...rest] = writes
+  await d.batch([first, ...rest])
+  return c.json({ saved: newer.length })
+})
+
+// Removes a session's samples and keeps its id as a tombstone, so a late retry of an older copy is ignored.
+// Repeating it is harmless; deleting an id never seen also leaves a tombstone, for a POST still on its way.
+app.delete('/cuppings/:id', requireUser, async (c) => {
+  const id = c.req.param('id')
+  if (!isCuppingId(id)) return c.json(invalid('cupping id is invalid'), 400)
+  const userId = c.var.userId
+  const now = Date.now()
+  const d = db(c.env)
+  await d.batch([
+    d.delete(cuppingSamples).where(and(eq(cuppingSamples.userId, userId), eq(cuppingSamples.sessionId, id))),
+    d
+      .insert(cuppingSessions)
+      .values({ userId, id, day: '', updatedAt: now, deletedAt: now, createdAt: now })
+      .onConflictDoUpdate({
+        target: [cuppingSessions.userId, cuppingSessions.id],
+        set: { place: null, protocol: null, updatedAt: now, deletedAt: now },
+        setWhere: sql`${cuppingSessions.deletedAt} is null`,
+      }),
+  ])
+  return c.body(null, 204)
+})
+
 
 // Passed drill field tests. The first pass stays: sending one again, or later, changes nothing.
 app.post('/drills', requireUser, async (c) => {

@@ -187,3 +187,53 @@ export const drillPasses = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.drillId] })],
 )
+
+// Cupping sessions (src/cuppings.ts), based on the SCA cupping form. A session is edited many times while it is a
+// draft: the client makes the id and the later updated_at wins, as with coffees. Deleting keeps the row as a
+// tombstone (deleted_at set, the rest cleared) so a late retry of an older copy cannot bring it back.
+export const CUPPING_STATUSES = ['draft', 'done'] as const
+
+export const cuppingSessions = sqliteTable(
+  'cupping_sessions',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id').notNull(),
+    day: text('day').notNull(), // YYYY-MM-DD it was cupped
+    place: text('place'),
+    protocol: text('protocol'), // the player's protocol notes (water, ratio, grind...)
+    blind: integer('blind', { mode: 'boolean' }).notNull().default(false),
+    revealed: integer('revealed', { mode: 'boolean' }).notNull().default(false), // blind names shown
+    status: text('status', { enum: CUPPING_STATUSES }).notNull().default('draft'),
+    updatedAt: integer('updated_at').notNull(), // by the client's clock
+    deletedAt: integer('deleted_at'), // a tombstone when set
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.id] })],
+)
+
+// The coffees cupped in a session, replaced as a whole with each newer copy of the session. Marks follow the form
+// named by form_id (src/cupping.ts FORMS), as JSON, so a new form needs no migration.
+export const cuppingSamples = sqliteTable(
+  'cupping_samples',
+  {
+    userId: text('user_id').notNull(),
+    sessionId: text('session_id').notNull(),
+    id: text('id').notNull(),
+    position: integer('position').notNull(),
+    lot: text('lot'), // a lot slug or `my:<coffee id>`; null for a coffee not in the app
+    code: text('code'), // the blind code on the cup ("A", "317")
+    formId: text('form_id').notNull(),
+    cupCount: integer('cup_count').notNull(),
+    scores: text('scores', { mode: 'json' }).notNull().$type<Record<string, number>>(),
+    cups: text('cups', { mode: 'json' }).notNull().$type<Record<string, boolean[]>>(),
+    defects: text('defects', { mode: 'json' }).notNull().$type<{ kind: string; cups: number; flavor?: string }[]>(),
+    flavors: text('flavors', { mode: 'json' }).$type<string[]>(), // ids from src/flavors.ts; null when none
+    notes: text('notes'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.sessionId, t.id] }),
+    foreignKey({ columns: [t.userId, t.sessionId], foreignColumns: [cuppingSessions.userId, cuppingSessions.id] }).onDelete('cascade'),
+  ],
+)
