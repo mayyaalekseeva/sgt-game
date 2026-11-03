@@ -68,3 +68,12 @@ never reloads during a brew timer (src/sw-update.ts). No service worker in dev; 
 - Desktop from `lg` (1024px): sidebar nav (src/App.tsx) and two-column screens. Columns must keep the
   mobile stacking order, so below lg nothing changes. Also check changes at 1024px and 1280px.
 - One feature per branch, small commits, run `npm test` and `npm run build` before committing.
+- Docs change in the same PR as the code they describe: README.md (setup, deploy, Next), this file (stack,
+  rules, paths) and docs/decisions/ (add a new ADR, or supersede one, when a design choice changes).
+  Check that every path they mention still exists.
+
+## Open questions (for the owner, not to be decided by Claude)
+
+- LICENSE: the repo has no licence yet, so all rights are reserved by default. Which licence, if any, is the
+  owner's call. Facts to weigh: it is a non-commercial portfolio project; public/brand/ and the lot photos
+  are the roaster's, used with permission; heic-to (a runtime dependency) is LGPL-3.0.
