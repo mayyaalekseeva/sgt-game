@@ -61,6 +61,10 @@ never reloads during a brew timer (src/sw-update.ts). No service worker in dev; 
 - Players add their own coffees (src/coffees.ts; D1 `coffees`, synced like reports): roaster, origin, process, roast.
   Reports name them `my:<id>`. Every brew is of a coffee. Working recipes are per recipe and coffee (`workingKey`).
   Starting recipe: your working recipe for that coffee, else the roaster's, else the brewer/roast one (`forRoast`).
+- Cupping (src/cupping.ts form + scoring, src/cuppings.ts sessions; D1 `cupping_sessions`, `cupping_samples`): say
+  "based on the SCA cupping form"; never claim SCA certification or a Q-grade. Every form number is sourced in
+  docs/cupping-research.md. Forms are data: add a new FormDef for a new form, never change a published one.
+  No XP or missions from cupping without asking.
 - Never edit an applied migration; change the schema and run `npm run db:generate`.
 - Never commit secrets. Use .dev.vars locally and Cloudflare secrets in production.
 - Design is mobile-first (390px). Desktop (1024px+) is a secondary adaptation: keep it minimal,
