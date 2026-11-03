@@ -25,7 +25,7 @@ export default function Orders({
   openDrill: (id: string) => void
   addCoffee: () => void
 }) {
-  const { t, method } = useStore()
+  const { t, method, briefing } = useStore()
   const isFilter = method === 'filter'
   const { reports, working, drills } = useReports()
   // the first drill not yet done: its field test, or its field assignment
@@ -45,6 +45,8 @@ export default function Orders({
             <img src="./brand/sargento.jpg" alt="" className="h-12 w-12 flex-none rounded-full border-2 border-cream object-cover" />
             <Display className="text-lg tracking-[0.14em] text-cream">{t('orders.title')}</Display>
           </div>
+          {/* greets by the level from the briefing; nothing until one is picked */}
+          {briefing.level && <p className="mt-3 text-[15px] leading-snug text-cream/85">{t(`greet.${briefing.level}`)}</p>}
           <p className="mt-3 text-[21px] font-medium leading-snug lg:text-[26px]">{t(`tip.${tip as 0 | 1 | 2 | 3 | 4}`)}</p>
           {drill && (
             <button

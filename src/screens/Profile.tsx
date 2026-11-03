@@ -1,15 +1,16 @@
 import { AccountCard, LangToggle } from '../account'
+import { LEVELS } from '../briefing'
 import { CHAPTERS } from '../data'
 import { currentLots } from '../lots'
 import { useReports } from '../reports'
 import type { Sub } from '../route'
 import { useStore } from '../store'
-import { Button, Card, Label, RowButton, ScreenTitle } from '../ui'
+import { Button, Card, Label, RowButton, ScreenTitle, Segmented } from '../ui'
 import RankCard from './RankCard'
 
 // Account, progress and everything that belongs to the player; each row opens a sub-screen
 export default function Profile({ open }: { open: (s: Sub) => void }) {
-  const { t, reset } = useStore()
+  const { t, reset, briefing, setLevel, openBriefing } = useStore()
   const data = useReports()
   const { missions, rank } = data
   const saved = data.loading ? null : Object.values(data.working).filter((id) => data.reports.some((x) => x.id === id)).length
@@ -37,6 +38,15 @@ export default function Profile({ open }: { open: (s: Sub) => void }) {
           <RowButton label={t('drills.title')} value={t('drills.done', { n: drillsDone, total: data.drills.length })} onClick={() => open('drills')} />
           <RowButton label={t('m.title')} value={t('m.done', { n: done, total: missions.length })} onClick={() => open('missions')} />
           <RowButton label={t('dos.title')} value={t('profile.chapters', { n: chapters, total: CHAPTERS.length })} onClick={() => open('dossier')} />
+          <RowButton label={t('brief.replay')} onClick={openBriefing} />
+        </Card>
+
+        <Card>
+          <Label>{t('level.title')}</Label>
+          <div className="mt-2">
+            <Segmented inCard label={t('level.title')} value={briefing.level} onChange={setLevel} options={LEVELS.map((l) => ({ id: l, label: t(`level.${l}`) }))} />
+          </div>
+          <p className="mt-2 text-sm leading-snug text-muted">{t('level.note')}</p>
         </Card>
 
         {/* desktop keeps the language switch in the sidebar */}

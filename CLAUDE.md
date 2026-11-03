@@ -41,6 +41,8 @@ never reloads during a brew timer (src/sw-update.ts). No service worker in dev; 
 - Domain logic stays pure and UI-free: src/diagnose.ts, src/data.ts. Add tests for any change there.
 - XP, rank, mission and drill progress are derived from reports and passed drill field tests (src/progress.ts), never stored as totals.
 - Every user-facing string goes through i18n in BOTH en and pt.
+- First-run briefing (src/screens/Briefing.tsx, src/briefing.ts): the seen flag and the player's level live in the store's
+  localStorage only, also when signed in. The level changes the greeting and mission order, never XP, and never hides or locks a feature.
 - Design: sage #9AA784, cream #F1EDE0, ink #2C140A, olive #3F4F2E, terracotta #B5532F (accent only).
   Never cream text on sage. Fonts: Big Shoulders Stencil Display + Hanken Grotesk.
 - Voice: the Sargento is warm, precise, never mocking. One change per brew.
