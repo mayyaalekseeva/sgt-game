@@ -19,6 +19,7 @@ import { drillById } from './drills'
 import Diary from './screens/Diary'
 import SavedRecipes from './screens/SavedRecipes'
 import { BackButton, Display } from './ui'
+import { UpdateBanner } from './update'
 
 // The current screen, kept in the URL hash. go() adds a history entry; the hashchange listener
 // follows it, and also follows the browser's back and forward buttons.
@@ -144,6 +145,7 @@ export default function App() {
 
       <main className="flex-1 px-4 pb-28 pt-2 lg:min-w-0 lg:px-0 lg:py-8">
         <SignInFailed />
+        <UpdateBanner />
         <ImportOffer />
         {/* keyed by route, so each screen plays its entrance */}
         <div key={`${tab}/${sub ?? ''}/${id ?? ''}`} className="animate-enter">

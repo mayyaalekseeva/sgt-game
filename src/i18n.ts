@@ -619,6 +619,9 @@ const en = {
   'auth.failed': 'Sign-in did not go through. Try again.',
   'auth.dismiss': 'Dismiss',
 
+  'update.ready': 'New version available',
+  'update.reload': 'Reload',
+
   'import.title': 'Bring your reports along?',
   'import.body': 'This device has reports from before you signed in. Add them to your account and they count wherever you sign in.',
   'import.count': 'Reports on this device: {n}',
@@ -1248,6 +1251,9 @@ const pt: Record<keyof typeof en, string> = {
   'auth.signedInAs': 'Sessão iniciada como',
   'auth.failed': 'Não foi possível iniciar sessão. Tenta outra vez.',
   'auth.dismiss': 'Fechar',
+
+  'update.ready': 'Nova versão disponível',
+  'update.reload': 'Recarregar',
 
   'import.title': 'Trazes os teus relatórios?',
   'import.body': 'Este dispositivo tem relatórios de antes de iniciares sessão. Junta-os à tua conta e contam onde quer que entres.',
