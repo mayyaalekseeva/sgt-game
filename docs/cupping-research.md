@@ -37,7 +37,9 @@ The open points below were decided by the project owner; src/cupping.ts follows 
 
 1. Scale attributes go from 6 to 10 in 0.25 steps (10 is allowed, nothing below 6).
 2. Up to two defect rows per sample, each cups x intensity, summed.
-3. Five cups per sample, fixed on this form (stored on the form definition, so another form can differ).
+3. Up to five cups per sample (1-5, default 5). With fewer than five, each cup stands for 5/n of the form's cups,
+   for the per-cup points and for defects, so the best total is still 100. This is not the SCA way (the form
+   has five cups), so the app marks such a sample as scored on fewer cups.
 4. The vertical intensity scales are not recorded in v1.
 
 ## Open points (as found)

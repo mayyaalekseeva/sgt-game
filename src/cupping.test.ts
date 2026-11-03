@@ -11,6 +11,7 @@ import {
   maxTotal,
   scoreSample,
   stepScore,
+  withCupCount,
   type ScaleAttribute,
   type SampleMarks,
 } from './cupping'
@@ -65,6 +66,21 @@ describe('scoring', () => {
   it('subtracts cups x intensity for each defect row: taint 2, fault 4', () => {
     const m = marks(8, { defects: [{ kind: 'taint', cups: 2 }, { kind: 'fault', cups: 1 }] })
     expect(scoreSample(form, m)).toMatchObject({ total: 86, defects: 8, final: 78, band: 'below_specialty' })
+  })
+
+  it('weights fewer cups so the best total is still 100, and says it is not the full count', () => {
+    const three = withCupCount(form, marks(10), 3)
+    expect(scoreSample(form, three)).toMatchObject({ total: 100, final: 100, fullCups: false })
+    expect(scoreSample(form, marks(10)).fullCups).toBe(true)
+    // one bad cup of three: 2 x 5/3 x 2 = 6.67 per attribute
+    three.cups.clean_cup = [true, false, true]
+    expect(scoreSample(form, three).total).toBe(96.67)
+    // a taint in one cup of three counts as 5/3 cups: 3.33
+    three.defects = [{ kind: 'taint', cups: 1 }]
+    expect(scoreSample(form, three)).toMatchObject({ defects: 3.33, final: 93.33 })
+    const one = withCupCount(form, marks(8), 1)
+    one.defects = [{ kind: 'fault', cups: 1 }]
+    expect(scoreSample(form, one)).toMatchObject({ total: 86, defects: 20, final: 66 })
   })
 
   it('reports what is not scored yet and keeps a live total of the rest', () => {
@@ -142,6 +158,23 @@ describe('cleanMarks', () => {
       ],
     })
     expect(m.defects).toEqual([{ kind: 'taint', cups: 2 }, { kind: 'fault', cups: 5 }])
+  })
+
+  it('keeps a cup count of 1-5, else uses 5, and checks defect cups against it', () => {
+    expect(cleanMarks(form, { cupCount: 3, cups: { uniformity: [false] } }).cups.uniformity).toEqual([false, true, true])
+    for (const n of [0, 6, 2.5, '3', null]) expect(cleanMarks(form, { cupCount: n }).cupCount, String(n)).toBe(5)
+    expect(cleanMarks(form, { cupCount: 2, defects: [{ kind: 'taint', cups: 3 }, { kind: 'taint', cups: 2 }] }).defects).toEqual([{ kind: 'taint', cups: 2 }])
+  })
+
+  it('changes the cup count, keeping marks and capping defects', () => {
+    const m = marks(8, { defects: [{ kind: 'fault', cups: 4 }] })
+    m.cups.uniformity = [false, true, true, true, true]
+    const two = withCupCount(form, m, 2)
+    expect(two.cups.uniformity).toEqual([false, true])
+    expect(two.defects).toEqual([{ kind: 'fault', cups: 2 }])
+    expect(withCupCount(form, two, 4).cups.uniformity).toEqual([false, true, true, true])
+    expect(withCupCount(form, m, 9)).toBe(m)
+    expect(emptyMarks(form, 7).cupCount).toBe(5)
   })
 
   it('gives empty marks for anything that is not an object', () => {

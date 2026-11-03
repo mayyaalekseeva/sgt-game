@@ -15,7 +15,7 @@ export interface ScaleAttribute {
   step: number
 }
 
-/** Judged cup by cup: each cup that shows the attribute earns pointsPerCup. */
+/** Judged cup by cup: each cup that shows the attribute earns pointsPerCup (on the form's full cup count). */
 export interface CupsAttribute {
   id: string
   kind: 'cups'
@@ -28,7 +28,8 @@ export type DefectKind = 'taint' | 'fault'
 
 export interface FormDef {
   id: string
-  cups: number
+  cups: number // the form's cup count, and the most a sample can have
+  minCups: number
   attributes: Attribute[]
   defects: {
     intensity: Record<DefectKind, number> // subtracted per affected cup
@@ -43,9 +44,11 @@ const perCup = (id: string): CupsAttribute => ({ id, kind: 'cups', pointsPerCup:
 
 // Protocol p. 5-10. The quality table ends at 9.75, the form's tick marks at 10; 10 is allowed (decided 2026-11-03).
 // Scores start at 6 like the form. Up to two defect rows a sample, summed (the form has one row; decided 2026-11-03).
+// The form has 5 cups; a sample may have 1-5 (decided 2026-11-03), see cupWeight.
 export const SCA_FORM: FormDef = {
   id: 'sca',
   cups: 5,
+  minCups: 1,
   attributes: [
     scale('fragrance'),
     scale('flavor'),
@@ -79,22 +82,43 @@ export const formById = (id: string): FormDef | undefined => FORMS.find((f) => f
 
 export interface Defect {
   kind: DefectKind
-  cups: number // how many cups showed it, 1..form.cups
+  cups: number // how many cups showed it, 1..the sample's cups
   flavor?: string // what it tasted like, a src/flavors.ts id
 }
 
 /** One sample's marks. A scale attribute that is missing is not scored yet. */
 export interface SampleMarks {
+  cupCount: number // form.minCups..form.cups
   scores: Record<string, number>
   cups: Record<string, boolean[]> // per-cup attributes, one entry per cup
   defects: Defect[]
 }
 
+export const isCupCount = (form: FormDef, n: unknown): n is number =>
+  typeof n === 'number' && Number.isInteger(n) && n >= form.minCups && n <= form.cups
+
+/**
+ * How many of the form's cups one of the sample's cups stands for: 1 with the full count, 5/3 with 3 cups. Per-cup
+ * points and defects are both weighted by it, so a sample's best total stays 100 (not the SCA way: the form has 5 cups).
+ */
+export const cupWeight = (form: FormDef, marks: SampleMarks) => form.cups / marks.cupCount
+
 /** A fresh sample: nothing scored, every cup marked as showing the attribute, as cuppers start from 10. */
-export function emptyMarks(form: FormDef): SampleMarks {
+export function emptyMarks(form: FormDef, cupCount = form.cups): SampleMarks {
+  const n = isCupCount(form, cupCount) ? cupCount : form.cups
   const cups: Record<string, boolean[]> = {}
-  for (const a of form.attributes) if (a.kind === 'cups') cups[a.id] = Array<boolean>(form.cups).fill(true)
-  return { scores: {}, cups, defects: [] }
+  for (const a of form.attributes) if (a.kind === 'cups') cups[a.id] = Array<boolean>(n).fill(true)
+  return { cupCount: n, scores: {}, cups, defects: [] }
+}
+
+/** The same marks with another cup count: per-cup lists cut or padded with marked cups, defects capped at the count. */
+export function withCupCount(form: FormDef, marks: SampleMarks, cupCount: number): SampleMarks {
+  if (!isCupCount(form, cupCount)) return marks
+  const cups: Record<string, boolean[]> = {}
+  for (const [id, list] of Object.entries(marks.cups))
+    cups[id] = Array.from({ length: cupCount }, (_, i) => list[i] ?? true)
+  const defects = marks.defects.map((d) => ({ ...d, cups: Math.min(d.cups, cupCount) }))
+  return { ...marks, cupCount, cups, defects }
 }
 
 export function isOnScale(a: ScaleAttribute, v: unknown): v is number {
@@ -103,21 +127,21 @@ export function isOnScale(a: ScaleAttribute, v: unknown): v is number {
   return Math.abs(steps - Math.round(steps)) < 1e-9
 }
 
-/** One stepper tap: the next value on the scale, from the midpoint-ish start when not scored yet. */
+/** One stepper tap: the next value on the scale, or the start value when not scored yet. */
 export function stepScore(a: ScaleAttribute, current: number | undefined, dir: 1 | -1, start = 8): number {
   if (current === undefined) return Math.min(a.max, Math.max(a.min, start))
   return Math.min(a.max, Math.max(a.min, current + dir * a.step))
 }
 
 /**
- * Stored or sent marks made safe for this form: off-scale scores are dropped (unscored), per-cup lists are cut or
- * padded to the form's cups, defects need a known kind and 1..cups cups, at most maxRows of them. Unknown attribute
- * ids are dropped.
+ * Stored or sent marks made safe for this form: a bad cup count becomes the form's, off-scale scores are dropped
+ * (unscored), per-cup lists are cut or padded to the cup count, defects need a known kind and 1..cupCount cups, at
+ * most maxRows of them. Unknown attribute ids are dropped.
  */
 export function cleanMarks(form: FormDef, v: unknown): SampleMarks {
-  const out = emptyMarks(form)
-  if (!v || typeof v !== 'object') return out
-  const raw = v as { scores?: unknown; cups?: unknown; defects?: unknown }
+  if (!v || typeof v !== 'object') return emptyMarks(form)
+  const raw = v as { cupCount?: unknown; scores?: unknown; cups?: unknown; defects?: unknown }
+  const out = emptyMarks(form, isCupCount(form, raw.cupCount) ? raw.cupCount : form.cups)
   const scores = raw.scores && typeof raw.scores === 'object' ? (raw.scores as Record<string, unknown>) : {}
   const cups = raw.cups && typeof raw.cups === 'object' ? (raw.cups as Record<string, unknown>) : {}
   for (const a of form.attributes) {
@@ -135,7 +159,7 @@ export function cleanMarks(form: FormDef, v: unknown): SampleMarks {
       if (!d || typeof d !== 'object') continue
       const { kind, cups: n, flavor } = d as Record<string, unknown>
       if (kind !== 'taint' && kind !== 'fault') continue
-      if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > form.cups) continue
+      if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > out.cupCount) continue
       out.defects.push(isFlavorId(flavor) ? { kind, cups: n, flavor } : { kind, cups: n })
     }
   }
@@ -149,19 +173,24 @@ export interface SampleScore {
   complete: boolean // every scale attribute scored
   missing: string[] // scale attribute ids not scored yet
   band: string // the final score's band id; meaningful only when complete
+  fullCups: boolean // scored on the form's cup count, as the SCA form is
 }
 
 export function attributeScore(form: FormDef, marks: SampleMarks, a: Attribute): number | undefined {
   if (a.kind === 'scale') return marks.scores[a.id]
-  return (marks.cups[a.id] ?? []).slice(0, form.cups).filter(Boolean).length * a.pointsPerCup
+  const marked = (marks.cups[a.id] ?? []).slice(0, marks.cupCount).filter(Boolean).length
+  return marked * a.pointsPerCup * cupWeight(form, marks)
 }
 
-export const defectPoints = (form: FormDef, defects: Defect[]) =>
-  defects.reduce((sum, d) => sum + d.cups * form.defects.intensity[d.kind], 0)
+export const defectPoints = (form: FormDef, marks: SampleMarks) =>
+  marks.defects.reduce((sum, d) => sum + d.cups * form.defects.intensity[d.kind], 0) * cupWeight(form, marks)
 
 export const bandOf = (form: FormDef, final: number) => (form.bands.find((b) => final >= b.min) ?? form.bands[form.bands.length - 1]).id
 
 export const levelOf = (form: FormDef, score: number) => (form.levels.find((l) => score >= l.min) ?? form.levels[form.levels.length - 1]).id
+
+/** Weighted cups make thirds and sevenths: totals are kept to two decimals, like the form's boxes. */
+const round2 = (n: number) => Math.round(n * 100) / 100
 
 /** The live total. Expects marks from cleanMarks or the UI; unscored scale attributes count as 0 until scored. */
 export function scoreSample(form: FormDef, marks: SampleMarks): SampleScore {
@@ -172,9 +201,10 @@ export function scoreSample(form: FormDef, marks: SampleMarks): SampleScore {
     if (s === undefined) missing.push(a.id)
     else total += s
   }
-  const defects = defectPoints(form, marks.defects)
-  const final = total - defects
-  return { total, defects, final, complete: missing.length === 0, missing, band: bandOf(form, final) }
+  const defects = defectPoints(form, marks)
+  // round each from the exact values, so 96.67 - 3.33 shows 93.33, not 93.34
+  const final = round2(total - defects)
+  return { total: round2(total), defects: round2(defects), final, complete: missing.length === 0, missing, band: bandOf(form, final), fullCups: marks.cupCount === form.cups }
 }
 
 /** The best possible total, for a progress bar: 100 on the SCA form. */
