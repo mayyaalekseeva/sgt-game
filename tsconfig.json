@@ -11,7 +11,8 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "vite-plugin-pwa/client"]
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "vite.config.ts", "vitest.config.ts"],
+  "exclude": ["src/sw.ts"] // the service worker needs the WebWorker lib: tsconfig.sw.json
 }
