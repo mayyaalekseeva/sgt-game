@@ -2,13 +2,18 @@ import type { ReactNode } from 'react'
 import type { Brew, Lang, Method, Recipe } from './data'
 import type { Key } from './i18n'
 
-export function Chevrons({ n, size = 22, color = 'currentColor' }: { n: number; size?: number; color?: string }) {
+// press: the last chevron is new and presses onto the insignia (a promotion moment)
+export function Chevrons({ n, size = 22, color = 'currentColor', press = false }: { n: number; size?: number; color?: string; press?: boolean }) {
   const h = 8 * n + 2
   return (
     <svg width={size} height={(size * h) / 20} viewBox={`0 0 20 ${h}`} fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {Array.from({ length: n }, (_, i) => (
-        <path key={i} d={`M2 ${8 * i + 7} L10 ${8 * i + 2} L18 ${8 * i + 7}`} />
-      ))}
+      {Array.from({ length: n }, (_, i) =>
+        press && i === n - 1 ? (
+          <path key={i} d={`M2 ${8 * i + 7} L10 ${8 * i + 2} L18 ${8 * i + 7}`} className="animate-press [animation-delay:300ms] [transform-box:fill-box] [transform-origin:center]" />
+        ) : (
+          <path key={i} d={`M2 ${8 * i + 7} L10 ${8 * i + 2} L18 ${8 * i + 7}`} />
+        ),
+      )}
     </svg>
   )
 }
