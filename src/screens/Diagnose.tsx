@@ -100,7 +100,7 @@ export default function Diagnose({
     const input = { dose, yield: yld, time, taste, bloomed, ...(offNote ? { offNote } : {}), daysOff: daysOffRoast(roastedOn, Date.now()) }
     const diag = style ? diagnoseFilter(style, recipe, input) : diagnose(recipe, input)
     // progress before this report, so the debrief can show what it earned
-    const before = progressFor(reports, working, passed)
+    const before = progressFor(reports, working, passed, coffees)
     const report = addReport({
       ...brew,
       lot,

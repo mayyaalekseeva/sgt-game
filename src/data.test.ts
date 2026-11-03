@@ -17,9 +17,12 @@ import {
   parseReportsResponse,
   rankFor,
   slugOf,
+  originGoal,
   versionOf,
+  type OriginOfLot,
   type Report,
 } from './data'
+import { originOf } from './origins'
 import { gainsFor, progressFor } from './progress'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -39,10 +42,12 @@ const report = (over: Partial<Report> = {}): Report => ({
   ...over,
 })
 
-const progress = (id: string, reports: Report[], working: Record<string, string> = {}) => {
+const none: OriginOfLot = () => undefined
+
+const progress = (id: string, reports: Report[], working: Record<string, string> = {}, of = none) => {
   const m = MISSIONS.find((x) => x.id === id)
   if (!m) throw new Error(`no mission ${id}`)
-  return m.progress(reports, working)
+  return m.progress(reports, working, of)
 }
 
 describe('new missions', () => {
@@ -68,6 +73,21 @@ describe('new missions', () => {
     const w = { 'espresso-medium': 'a', 'filter-v60|peru-naranjo-yacu': 'b', 'espresso-light|peru-naranjo-yacu': 'c', [`filter-v60|${MY}`]: 'd' }
     expect(progress('m10', [], w)).toBe(1)
     expect(progress('m11', [], w)).toBe(2)
+  })
+
+  it('origin missions ask for 80% of each continent', () => {
+    expect([originGoal('africa'), originGoal('asia'), originGoal('americas')]).toEqual([11, 10, 14])
+    expect(MISSIONS.find((m) => m.id === 'm12')!.goal).toBe(11)
+  })
+
+  it('m12-m14 count distinct countries on their continent, in either language', () => {
+    const byLot: Record<string, string> = { a: 'Kenya', b: 'Quénia', c: 'Etiópia', d: 'Yemen', e: 'Peru', f: 'Blend', g: 'Papua New Guinea' }
+    const of: OriginOfLot = (lot) => originOf(lot ? byLot[lot] : undefined)
+    const rs = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((lot) => report({ lot }))
+    expect(progress('m12', rs, {}, of)).toBe(2) // Kenya twice, Ethiopia
+    expect(progress('m13', rs, {}, of)).toBe(1)
+    expect(progress('m14', rs, {}, of)).toBe(1)
+    expect(progress('m12', [report()], {}, of)).toBe(0) // an older report with no lot
   })
 })
 
@@ -121,13 +141,24 @@ describe('missions', () => {
       report({ ts: T0 - 3 * DAY, roast: 'dark' }),
     ]
     for (const m of MISSIONS) {
-      expect(m.progress([...rs].reverse(), {})).toBe(m.progress(rs, {}))
+      expect(m.progress([...rs].reverse(), {}, none)).toBe(m.progress(rs, {}, none))
     }
   })
 })
 
 describe('progressFor', () => {
   const xpOf = (...ids: string[]) => ids.reduce((a, id) => a + MISSIONS.find((m) => m.id === id)!.xp, 0)
+
+  it('finds the origin of roaster lots and your own coffees', () => {
+    const mine = { id: 'b'.repeat(32), roaster: 'Other', origin: 'Etiópia', process: 'washed', roast: 'light' as const, updatedAt: T0 }
+    const rs = [report({ lot: 'peru-naranjo-yacu' }), report({ lot: `my:${mine.id}` }), report({ lot: `my:${'c'.repeat(32)}` })]
+    const cur = (p: ReturnType<typeof progressFor>, id: string) => p.missions.find((m) => m.id === id)!.cur
+    const p = progressFor(rs, {}, {}, [mine])
+    expect(cur(p, 'm14')).toBe(1)
+    expect(cur(p, 'm12')).toBe(1)
+    // without the coffee (another account's, or not synced yet) it is not counted
+    expect(cur(progressFor(rs, {}), 'm12')).toBe(0)
+  })
 
   it('starts empty', () => {
     const p = progressFor([], {})

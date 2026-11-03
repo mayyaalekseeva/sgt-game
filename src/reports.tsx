@@ -245,11 +245,11 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     // Asked only once the server has answered, so import knows which working recipes the account already has
     const offer =
       account && confirmedId && account.server === 'loaded' && !account.cache.importDecided && guestItems > 0
-    const progress = progressFor(shown.reports, shown.working, shown.drills)
+    const progress = progressFor(shown.reports, shown.working, shown.drills, shown.coffees)
     // After the player's own action here, never a sync: celebrate what it earned (src/moments.ts)
     const owner = account?.userId ?? 'guest'
-    const celebrated = (after: { reports: Report[]; working: Record<string, string>; drills: Passed }) =>
-      celebrate(owner, progress, progressFor(after.reports, after.working, after.drills))
+    const celebrated = (after: { reports: Report[]; working: Record<string, string>; drills: Passed; coffees: MyCoffee[] }) =>
+      celebrate(owner, progress, progressFor(after.reports, after.working, after.drills, after.coffees))
     return {
       reports: shown.reports,
       working: shown.working,
