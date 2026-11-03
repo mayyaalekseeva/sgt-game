@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { emptyMarks, SCA_FORM } from './cupping'
 import {
   MAX_SAMPLES,
+  compareSamples,
   deletedIds,
   mergeSessions,
   namesHidden,
@@ -11,6 +12,8 @@ import {
   parseSample,
   parseSession,
   parseSessions,
+  pickDraft,
+  touched,
   type CuppingSession,
 } from './cuppings'
 
@@ -80,5 +83,36 @@ describe('cupping sessions', () => {
     expect(namesHidden(session())).toBe(false)
     expect(namesHidden(session({ blind: true }))).toBe(true)
     expect(namesHidden(session({ blind: true, revealed: true }))).toBe(false)
+  })
+})
+
+describe('drafts and summary', () => {
+  it('opens the browser draft only when it is newer than the synced copy', () => {
+    const saved = session({ updatedAt: 10 })
+    const draft = session({ place: 'Lab', updatedAt: 11 })
+    expect(pickDraft(saved, draft)).toBe(draft)
+    expect(pickDraft(saved, { ...draft, updatedAt: 10 })).toBe(saved)
+    expect(pickDraft(undefined, draft)).toBe(draft)
+    expect(pickDraft(saved, null)).toBe(saved)
+    expect(pickDraft(undefined, undefined)).toBeUndefined()
+  })
+
+  it('stamps every change later than the last, even in the same millisecond', () => {
+    expect(touched(session({ updatedAt: 10 }), 50).updatedAt).toBe(50)
+    expect(touched(session({ updatedAt: 50 }), 50).updatedAt).toBe(51)
+  })
+
+  it('ranks scored samples best first, unfinished and unknown forms last', () => {
+    const scored = (tag: string, v: number) => {
+      const x = newSample(id(tag))
+      for (const a of SCA_FORM.attributes) if (a.kind === 'scale') x.marks.scores[a.id] = v
+      return x
+    }
+    const open = newSample(id('d'))
+    const foreign = { ...newSample(id('e')), form: 'cva_affective' }
+    const ranked = compareSamples(session({ samples: [open, scored('b', 7), foreign, scored('c', 9)] }))
+    expect(ranked.map((r) => r.sample.id)).toEqual([id('c'), id('b'), id('d'), id('e')])
+    expect(ranked[0].score?.final).toBe(93)
+    expect(ranked[3].score).toBeNull()
   })
 })

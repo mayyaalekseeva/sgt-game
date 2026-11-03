@@ -1,4 +1,4 @@
-import { SCA_FORM, cleanMarks, emptyMarks, formById, type FormDef, type SampleMarks } from './cupping'
+import { SCA_FORM, cleanMarks, emptyMarks, formById, scoreSample, type FormDef, type SampleMarks, type SampleScore } from './cupping'
 import { isDay, localDay, MAX_NOTES } from './data'
 import { cleanFlavors } from './flavors'
 
@@ -131,3 +131,31 @@ export function nextCode(session: CuppingSession): string {
 
 /** Whether the coffee's name is hidden: blind and not revealed yet. */
 export const namesHidden = (s: CuppingSession) => s.blind && !s.revealed
+
+/**
+ * The copy to open: the draft kept in this browser while editing, if it is newer than the synced one. A draft
+ * survives a dropped connection or a closed tab before its save went out.
+ */
+export function pickDraft(saved: CuppingSession | undefined, draft: CuppingSession | null | undefined): CuppingSession | undefined {
+  if (draft && (!saved || draft.updatedAt > saved.updatedAt)) return draft
+  return saved
+}
+
+/** A change, stamped later than the copy it changes even within one millisecond, so the newer copy always wins. */
+export const touched = (s: CuppingSession, now: number): CuppingSession => ({ ...s, updatedAt: Math.max(now, s.updatedAt + 1) })
+
+export interface Ranked {
+  sample: CuppingSample
+  score: SampleScore | null // null for a form this build does not know
+}
+
+/** The session's samples for the summary: scored ones by final score, best first; unfinished and unknown ones last. */
+export function compareSamples(session: CuppingSession): Ranked[] {
+  const rank = (r: Ranked) => (r.score?.complete ? r.score.final : -Infinity)
+  return session.samples
+    .map((sample) => {
+      const form = formById(sample.form)
+      return { sample, score: form ? scoreSample(form, sample.marks) : null }
+    })
+    .sort((a, b) => rank(b) - rank(a))
+}
