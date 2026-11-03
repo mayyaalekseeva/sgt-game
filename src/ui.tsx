@@ -124,7 +124,8 @@ export function Segmented<T extends string>({
           type="button"
           aria-pressed={o.id === value}
           onClick={() => onChange(o.id)}
-          className={`h-11 flex-1 text-[15px] font-semibold transition-colors duration-150 ${o.id === value ? 'bg-ink text-cream' : 'bg-transparent text-ink'}`}
+          // min-w-0 lets a long label ("Prensa francesa") wrap onto two lines instead of running past the edge
+          className={`min-h-11 min-w-0 flex-1 px-2 py-1 text-[15px] leading-tight font-semibold text-balance transition-colors duration-150 ${o.id === value ? 'bg-ink text-cream' : 'bg-transparent text-ink'}`}
         >
           {o.label}
         </button>
