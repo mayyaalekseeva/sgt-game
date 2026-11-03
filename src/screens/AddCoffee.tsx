@@ -73,6 +73,7 @@ export default function AddCoffee({ done }: { done: () => void }) {
       <Card className="flex flex-col gap-4">
         <Field label={t('coffee.roaster')} value={roaster} onChange={setRoaster} />
         <OriginPicker value={origin} onChange={setOrigin} />
+        <Field label={t('coffee.name')} value={name} onChange={setName} hint={t('coffee.nameHint')} />
         <div className="flex flex-col gap-1">
           <Label>{t('coffee.process')}</Label>
           <Select
@@ -97,7 +98,6 @@ export default function AddCoffee({ done }: { done: () => void }) {
           <Label>{t('label.roast')}</Label>
           <Segmented inCard label={t('label.roast')} value={roast} onChange={setRoast} options={ROASTS.map((r) => ({ id: r, label: t(`roast.${r}`) }))} />
         </div>
-        <Field label={t('coffee.name')} value={name} onChange={setName} hint={t('coffee.nameHint')} />
         <label className="flex flex-col gap-1">
           <Label>{t('coffee.roastedOn')}</Label>
           <input
