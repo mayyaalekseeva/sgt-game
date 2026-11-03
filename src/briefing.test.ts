@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LEVELS, missionsFor, needsBriefing, parseBriefing, parseLevel, profileRowsFor } from './briefing'
+import { LEVELS, missionsFor, needsBriefing, parseBriefing, parseLevel, profileGroupsFor, profileRowsFor } from './briefing'
 import { MISSIONS } from './data'
 
 describe('parseLevel', () => {
@@ -74,6 +74,22 @@ describe('missionsFor', () => {
     const out = missionsFor(missions, 'home')
     expect(out).toEqual([{ id: 'm5', done: false }, { id: 'm6', done: true }])
     expect(missions[0].id).toBe('m6')
+  })
+})
+
+describe('profileGroupsFor', () => {
+  const groups = [
+    { id: 'coffee', rows: [{ id: 'lots' }, { id: 'coffees' }] },
+    { id: 'log', rows: [{ id: 'diary' }, { id: 'cupping' }] },
+  ]
+  const ids = (l: Parameters<typeof profileGroupsFor>[1]) => profileGroupsFor(groups, l).map((g) => `${g.id}:${g.rows.map((r) => r.id).join(',')}`)
+
+  it('moves cupping and its group first for a pro', () => {
+    expect(ids('pro')).toEqual(['log:cupping,diary', 'coffee:lots,coffees'])
+  })
+
+  it('keeps the order for the other levels', () => {
+    for (const l of ['recruit', 'home', null] as const) expect(ids(l)).toEqual(['coffee:lots,coffees', 'log:diary,cupping'])
   })
 })
 

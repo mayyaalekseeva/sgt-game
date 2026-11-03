@@ -49,3 +49,10 @@ export function profileRowsFor<R extends { id: string }>(rows: R[], level: Level
   }
   return [...rows].sort((a, b) => rank(a) - rank(b))
 }
+
+// The same for grouped rows: rows sort inside their group, and the group whose first row was promoted moves up
+export function profileGroupsFor<R extends { id: string }, G extends { id: string; rows: R[] }>(groups: G[], level: Level | null): G[] {
+  const sorted = groups.map((g) => ({ ...g, rows: profileRowsFor(g.rows, level) }))
+  const lead = sorted.map((g) => ({ id: g.rows[0]?.id ?? g.id, g }))
+  return profileRowsFor(lead, level).map((l) => l.g)
+}
