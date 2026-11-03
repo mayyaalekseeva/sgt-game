@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { needsBriefing, parseBriefing, type Briefing, type Level } from './briefing'
 import { isMyRef, mergeCoffees, parseCoffees, type MyCoffee } from './coffees'
 import { BREWERS, type Brewer, type Lang, type Method, type Report, type Roast } from './data'
 import { parsePassed, type DrillId, type Passed } from './drills'
@@ -19,6 +20,7 @@ interface Persisted {
   coffees: MyCoffee[] // the guest's own coffees
   drills: Passed // the guest's passed drill field tests
   sound: boolean // brew timer tones
+  briefing: Briefing // first-run briefing and level; this device only, also when signed in
 }
 
 const initial = (): Persisted => ({
@@ -32,6 +34,7 @@ const initial = (): Persisted => ({
   coffees: [],
   drills: {},
   sound: true,
+  briefing: { seen: false, level: null },
 })
 
 function load(): Persisted {
@@ -47,6 +50,7 @@ function load(): Persisted {
         lot: isMyRef(saved.lot) || lotBySlug(saved.lot) ? saved.lot : null,
         coffees: parseCoffees(saved.coffees),
         drills: parsePassed(saved.drills),
+        briefing: parseBriefing(saved.briefing),
       }
     }
   } catch {
@@ -65,6 +69,11 @@ interface Store extends Persisted {
   setBrewer: (b: Brewer) => void
   setLot: (lot: string | null) => void
   setSound: (on: boolean) => void
+  setLevel: (l: Level) => void
+  // Open on first run, or when replayed from Profile; ending it, by answering or skipping, marks it seen
+  briefingOpen: boolean
+  openBriefing: () => void
+  endBriefing: (level?: Level) => void
   addReport: (r: Report) => void
   markWorking: (key: string, reportId: string) => void
   editReport: (id: string, fields: EditFields) => void
@@ -90,6 +99,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<Persisted>(load)
   const [timer, setTimer] = useState<Store['timer']>(null)
   const [timed, setTimed] = useState<Store['timed']>(null)
+  const [briefingOpen, setBriefingOpen] = useState(() => needsBriefing(s.briefing))
 
   useEffect(() => {
     try {
@@ -112,6 +122,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setBrewer: (brewer) => setS((p) => ({ ...p, brewer })),
       setLot: (lot) => setS((p) => ({ ...p, lot })),
       setSound: (sound) => setS((p) => ({ ...p, sound })),
+      setLevel: (level) => setS((p) => ({ ...p, briefing: { ...p.briefing, level } })),
+      briefingOpen,
+      openBriefing: () => setBriefingOpen(true),
+      endBriefing: (level) => {
+        setS((p) => ({ ...p, briefing: { seen: true, level: level ?? p.briefing.level } }))
+        setBriefingOpen(false)
+      },
       addReport: (report) => setS((p) => ({ ...p, reports: [report, ...p.reports] })),
       markWorking: (key, reportId) => setS((p) => ({ ...p, working: { ...p.working, [key]: reportId } })),
       editReport: (id, fields) =>
@@ -139,7 +156,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       takeTimed: () => setTimed(null),
     }
-  }, [s, t, timer, timed])
+  }, [s, t, timer, timed, briefingOpen])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -18,6 +18,7 @@ import Drill from './screens/Drill'
 import { drillById } from './drills'
 import Diary from './screens/Diary'
 import SavedRecipes from './screens/SavedRecipes'
+import Briefing from './screens/Briefing'
 import { BackButton, Display } from './ui'
 import { UpdateBanner } from './update'
 
@@ -102,7 +103,7 @@ function SignInFailed() {
 // Mobile: header + fixed bottom tabs, one 480px column.
 // Desktop (lg): sticky sidebar with brand, nav and language; screens lay out in two columns.
 export default function App() {
-  const { t } = useStore()
+  const { t, briefingOpen } = useStore()
   const [{ tab, sub, id }, go] = useRoute()
   const select = (id: Tab) => go({ tab: id, sub: null })
   // A sub-screen opens over the current tab, which stays highlighted; back returns to it
@@ -110,6 +111,9 @@ export default function App() {
   // one drill, or the list with null; over the current tab like any sub-screen
   const openDrill = (d: string | null) => go({ tab, sub: 'drills', ...(d ? { id: d } : {}) })
   const drill = sub === 'drills' && id ? drillById(id) : undefined
+
+  // in place of the app, so focus and the keyboard stay inside it; the route is kept for afterwards
+  if (briefingOpen) return <Briefing />
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-[480px] flex-col lg:max-w-[1200px] lg:flex-row lg:gap-12 lg:px-8">
