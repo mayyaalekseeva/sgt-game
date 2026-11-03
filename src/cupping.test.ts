@@ -15,6 +15,7 @@ import {
   type ScaleAttribute,
   type SampleMarks,
 } from './cupping'
+import { translate, type Key } from './i18n'
 
 const form = SCA_FORM
 const scaleIds = form.attributes.filter((a) => a.kind === 'scale').map((a) => a.id)
@@ -39,6 +40,13 @@ describe('SCA form definition', () => {
     expect(form.cups).toBe(5)
     expect(form.defects.intensity).toEqual({ taint: 2, fault: 4 })
     expect(maxTotal(form)).toBe(100)
+  })
+
+  it('labels every attribute, band and level in en and pt', () => {
+    for (const f of FORMS) {
+      const keys = [...f.attributes.map((a) => `cupping.attr.${a.id}`), ...f.bands.map((b) => `cupping.band.${b.id}`), ...f.levels.map((l) => `cupping.level.${l.id}`)]
+      for (const k of keys) for (const lang of ['en', 'pt'] as const) expect(translate(lang, k as Key), `${lang} ${k}`).not.toBe(k)
+    }
   })
 
   it('has unique form ids and finds a form by id', () => {

@@ -19,6 +19,7 @@ import { drillById } from './drills'
 import Diary from './screens/Diary'
 import SavedRecipes from './screens/SavedRecipes'
 import Briefing from './screens/Briefing'
+import Cupping from './screens/Cupping'
 import { BackButton, Display } from './ui'
 import { UpdateBanner } from './update'
 
@@ -111,6 +112,9 @@ export default function App() {
   // one drill, or the list with null; over the current tab like any sub-screen
   const openDrill = (d: string | null) => go({ tab, sub: 'drills', ...(d ? { id: d } : {}) })
   const drill = sub === 'drills' && id ? drillById(id) : undefined
+  // the session list, a session, or "<session>.<sample>" for one coffee in it
+  const openCupping = (c?: string) => go({ tab, sub: 'cupping', ...(c ? { id: c } : {}) })
+  const cuppingSession = sub === 'cupping' && id ? id.split('.')[0] : undefined
 
   // in place of the app, so focus and the keyboard stay inside it; the route is kept for afterwards
   if (briefingOpen) return <Briefing />
@@ -157,6 +161,10 @@ export default function App() {
           <>
             {drill ? (
               <BackButton label={t('drills.title')} onClick={() => openDrill(null)} />
+            ) : cuppingSession && id?.includes('.') ? (
+              <BackButton label={t('cupping.toSession')} onClick={() => openCupping(cuppingSession)} />
+            ) : cuppingSession ? (
+              <BackButton label={t('cupping.toList')} onClick={() => openCupping()} />
             ) : (
               <BackButton label={t(`tab.${tab}`)} onClick={() => select(tab)} />
             )}
@@ -169,6 +177,7 @@ export default function App() {
             {sub === 'coffee' && <AddCoffee done={() => select(tab)} />}
             {sub === 'coffees' && <MyCoffees add={() => open('coffee')} />}
             {sub === 'lots' && <Lots brew={() => select('orders')} />}
+            {sub === 'cupping' && <Cupping id={id} open={openCupping} />}
           </>
         ) : (
           <>
