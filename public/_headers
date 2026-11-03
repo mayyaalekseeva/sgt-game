@@ -18,8 +18,18 @@
 /lots/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
+# App icons (npm run icons) keep their names too
+/icons/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
 # The app shell must always be fresh so new hashed assets get picked up
 /
   Cache-Control: no-cache
 /index.html
+  Cache-Control: no-cache
+
+# The service worker and manifest are checked on every load, or a new version would not be found
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
   Cache-Control: no-cache

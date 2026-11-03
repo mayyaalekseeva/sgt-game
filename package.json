@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.sw.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "npm run typecheck && vite build",
@@ -17,7 +17,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:seed:local": "node scripts/seed-recipes.mjs --local",
     "db:seed:remote": "node scripts/seed-recipes.mjs --remote",
-    "lots:photos": "node scripts/fetch-lot-photos.mjs"
+    "lots:photos": "node scripts/fetch-lot-photos.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
@@ -36,7 +37,11 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.5",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "workbox-window": "^7.4.1",
     "wrangler": "^4.153.0"
   }
 }

@@ -17,6 +17,10 @@ come from the client so re-sending is a no-op; the client caches per account and
 editedAt wins); dose, yield, time, taste, off-note, roast date and diag never do, since the diagnosis and progress come from them. Deleting
 keeps the id in deleted_reports so a late retry cannot file it again. Edits and deletes queue in the outbox too.
 Screens read reports and progress from useReports, not useStore. Secrets GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET: .dev.vars locally, `wrangler secret put` in production.
+Installable PWA: vite-plugin-pwa (injectManifest, vite.config.ts) writes the manifest and builds src/sw.ts, which
+precaches the build and serves index.html network-first. It never handles /api/* (src/sw-route.ts): no cached API
+responses, and the Google OAuth redirects go straight to the network. src/update.tsx shows the update banner and
+never reloads during a brew timer (src/sw-update.ts). No service worker in dev; try it with build + preview.
 
 ## Scripts
 
@@ -30,6 +34,7 @@ Screens read reports and progress from useReports, not useStore. Secrets GOOGLE_
 - `npm run db:generate`: write a new migration in migrations/ after editing worker/db/schema.ts
 - `npm run db:migrate:local` / `db:migrate:remote`: apply pending migrations to D1
 - `npm run db:seed:local` / `db:seed:remote`: load content/recipes.json into D1
+- `npm run icons`: remake the PWA icons in public/icons/ from public/brand/logo.png (commit them)
 
 ## Rules
 
