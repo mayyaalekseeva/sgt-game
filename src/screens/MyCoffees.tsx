@@ -2,8 +2,9 @@ import { myRef, type MyCoffee } from '../coffees'
 import { useReports } from '../reports'
 import { localDay } from '../data'
 import { useStore } from '../store'
+import DatePicker from './DatePicker'
 import Freshness from './Freshness'
-import { Button, Card, Display, Label, ScreenTitle, SmallButton, field, processLabel } from '../ui'
+import { Button, Card, Display, Label, ScreenTitle, SmallButton, processLabel } from '../ui'
 
 // Your own coffees, opened from Profile. A finished bag leaves the picker but keeps its name in the diary.
 export default function MyCoffees({ add }: { add: () => void }) {
@@ -31,16 +32,10 @@ export default function MyCoffees({ add }: { add: () => void }) {
         </p>
         {!c.archived && <Freshness coffee={c} method={method} />}
         {!c.archived && (
-          <label className="mt-3 flex items-center justify-between gap-3 text-sm font-semibold">
-            {t('coffee.roastedOnShort')}
-            <input
-              type="date"
-              value={c.roastedOn ?? ''}
-              max={localDay(Date.now())}
-              onChange={(e) => setRoastedOn(c, e.target.value)}
-              className={`h-11 ${field}`}
-            />
-          </label>
+          <div className="mt-3 flex flex-col gap-1">
+            <Label>{t('coffee.roastedOnShort')}</Label>
+            <DatePicker label={t('coffee.roastedOnShort')} value={c.roastedOn ?? ''} onChange={(day) => setRoastedOn(c, day)} max={localDay(Date.now())} inCard />
+          </div>
         )}
         <SmallButton onClick={() => toggle(c)}>{t(c.archived ? 'coffee.restore' : 'coffee.finish')}</SmallButton>
       </Card>
