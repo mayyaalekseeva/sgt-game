@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { deletePhoto, fetchReports, putPhoto, sender, type Source } from './api'
 import { useAuth } from './auth'
 import { resolvePick, type MyCoffee, type Pick } from './coffees'
+import type { CuppingSession } from './cuppings'
 import type { Report } from './data'
 import type { DrillId, Passed } from './drills'
 import { progressFor } from './progress'
@@ -13,6 +14,8 @@ import {
   importGuest,
   newReportId,
   parseAccountCache,
+  queueCupping,
+  queueCuppingDelete,
   queueDelete,
   queueEdit,
   view,
@@ -68,7 +71,9 @@ const pending = (o: Outbox) =>
   (o.coffees?.length ?? 0) > 0 ||
   Object.keys(o.edits ?? {}).length > 0 ||
   (o.deletes?.length ?? 0) > 0 ||
-  Object.keys(o.drills ?? {}).length > 0
+  Object.keys(o.drills ?? {}).length > 0 ||
+  (o.cuppings?.length ?? 0) > 0 ||
+  (o.cuppingDeletes?.length ?? 0) > 0
 
 type ImportStatus = 'idle' | 'busy' | 'failed'
 
@@ -80,6 +85,10 @@ interface Reports extends ReturnType<typeof progressFor> {
   working: Record<string, string> // working key (src/coffees.ts workingKey) -> report id
   coffees: MyCoffee[] // the player's own coffees, archived ones included
   passed: Passed // when each drill's field test was passed
+  cuppings: CuppingSession[] // newest day first; drafts included
+  // Queues the latest copy (signed in) or keeps it in this browser (guest). Pass a new updatedAt with each change.
+  saveCupping: (s: CuppingSession) => void
+  deleteCupping: (id: string) => void
   saveCoffee: (c: MyCoffee) => void
   // A drill's field test, passed. The first pass is kept; passing again changes nothing.
   passDrill: (id: DrillId) => void
@@ -182,7 +191,11 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
     if (!a) return
     setImportStatus('busy')
     try {
-      const sent = await importGuest({ reports: guest.reports, working: guest.working, coffees: guest.coffees, drills: guest.drills }, a.cache.working, sender)
+      const sent = await importGuest(
+        { reports: guest.reports, working: guest.working, coffees: guest.coffees, drills: guest.drills, cuppings: guest.cuppings },
+        a.cache.working,
+        sender,
+      )
       updateCache(a.userId, (c) => ({ ...applySent(c, sent), importDecided: true }))
       guest.clearGuest()
       setImportStatus('idle')
@@ -223,8 +236,10 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
   }, [account, updateCache])
 
   const value = useMemo<Reports>(() => {
-    const shown = account ? view(account.cache) : { reports: guest.reports, working: guest.working, coffees: guest.coffees, drills: guest.drills }
-    const guestItems = guest.reports.length + guest.coffees.length + Object.keys(guest.drills).length
+    const shown = account
+      ? view(account.cache)
+      : { reports: guest.reports, working: guest.working, coffees: guest.coffees, drills: guest.drills, cuppings: guest.cuppings }
+    const guestItems = guest.reports.length + guest.coffees.length + Object.keys(guest.drills).length + guest.cuppings.length
     // Asked only once the server has answered, so import knows which working recipes the account already has
     const offer =
       account && confirmedId && account.server === 'loaded' && !account.cache.importDecided && guestItems > 0
@@ -233,6 +248,7 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
       working: shown.working,
       coffees: shown.coffees,
       passed: shown.drills,
+      cuppings: shown.cuppings,
       ...progressFor(shown.reports, shown.working, shown.drills),
       source: account ? 'api' : 'browser',
       loading: account ? !account.cached && account.server === 'loading' : user === undefined,
@@ -268,6 +284,14 @@ export function ReportsProvider({ children }: { children: ReactNode }) {
         const at = Date.now()
         if (account) updateCache(account.userId, (c) => ({ ...c, outbox: { ...c.outbox, drills: { ...c.outbox.drills, [id]: at } } }))
         else guest.passDrill(id, at)
+      },
+      saveCupping: (s) => {
+        if (account) updateCache(account.userId, (c) => queueCupping(c, s))
+        else guest.saveCupping(s)
+      },
+      deleteCupping: (id) => {
+        if (account) updateCache(account.userId, (c) => queueCuppingDelete(c, id))
+        else guest.deleteCupping(id)
       },
       setPhoto,
       importOffer: offer ? { count: guestItems, status: importStatus } : null,

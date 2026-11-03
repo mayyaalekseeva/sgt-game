@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RECIPE_CONTENT, isPhotoNonce, parseRecipeContent, parseReportsResponse, type RecipeEntry, type Report } from './data'
 import { parseCoffees, type MyCoffee } from './coffees'
+import { deletedIds, parseSessions, type CuppingSession } from './cuppings'
 import { parsePassed, type Passed } from './drills'
 import type { Sender } from './sync'
 
@@ -27,14 +28,20 @@ export async function loadRecipes(signal: AbortSignal): Promise<{ recipes: Recip
   }
 }
 
-// The signed-in user's reports, working recipes, coffees and passed drills. Throws on any failure (with .status when the API
+// The signed-in user's reports, working recipes, coffees, passed drills and cupping sessions. Throws on any failure (with .status when the API
 // answered); the caller keeps showing its cached copy.
 export async function fetchReports(
   signal: AbortSignal,
-): Promise<{ reports: Report[]; working: Record<string, string>; coffees: MyCoffee[]; drills: Passed }> {
+): Promise<{ reports: Report[]; working: Record<string, string>; coffees: MyCoffee[]; drills: Passed; cuppings: CuppingSession[]; cuppingsDeleted: string[] }> {
   const raw = await getJson('/api/reports', signal)
-  const { coffees, drills } = raw as { coffees?: unknown; drills?: unknown }
-  return { ...parseReportsResponse(raw), coffees: parseCoffees(coffees), drills: parsePassed(drills) }
+  const { coffees, drills, cuppings } = raw as { coffees?: unknown; drills?: unknown; cuppings?: unknown }
+  return {
+    ...parseReportsResponse(raw),
+    coffees: parseCoffees(coffees),
+    drills: parsePassed(drills),
+    cuppings: parseSessions(cuppings),
+    cuppingsDeleted: deletedIds(cuppings),
+  }
 }
 
 async function send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown) {
@@ -57,6 +64,8 @@ export const sender: Sender = {
   patchReport: (id, edit) => send('PATCH', reportPath(id), { grinder: edit.grinder ?? null, grinderModel: edit.grinderModel ?? null, notes: edit.notes ?? null, flavors: edit.flavors ?? null, editedAt: edit.editedAt }),
   deleteReport: (id) => send('DELETE', reportPath(id)),
   postDrills: (drills) => send('POST', '/api/drills', { drills }),
+  postCuppings: (sessions) => send('POST', '/api/cuppings', { sessions }),
+  deleteCupping: (id) => send('DELETE', `/api/cuppings/${encodeURIComponent(id)}`),
 }
 
 // Report photos (worker/photos.ts). Owner-only: the session cookie goes along like with any same-origin request.
