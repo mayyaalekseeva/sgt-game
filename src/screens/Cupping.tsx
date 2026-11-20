@@ -201,7 +201,8 @@ function SessionView({
             })}
           </ul>
           {session.samples.length > 0 && (
-            <div className="flex gap-2">
+            // stacked: side by side, "Fase do aroma" wraps to two lines on a phone
+            <div className="flex flex-col gap-2">
               <Button variant="secondary" onClick={() => open(`${session.id}.${session.samples[0].id}.aroma`)}>
                 {t('cupping.startAroma')}
               </Button>

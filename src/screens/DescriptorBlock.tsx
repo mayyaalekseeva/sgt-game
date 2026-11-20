@@ -21,7 +21,7 @@ import { field } from '../ui'
 // then a finer one, then a finer one still); the other attributes show a short list. Closed, it is one line with what
 // was picked. src/cupping-descriptors.ts holds the lists and the rules.
 
-const chip = 'min-h-10 rounded-full px-3.5 text-[15px] font-medium transition-colors duration-150 active:scale-[0.98] disabled:opacity-40'
+const chip = 'min-h-11 rounded-full px-3.5 text-[15px] font-medium transition-colors duration-150 active:scale-[0.98] disabled:opacity-40'
 const heading = 'text-xs font-semibold uppercase tracking-[0.12em] text-muted'
 
 export default function DescriptorBlock({
@@ -128,7 +128,7 @@ export default function DescriptorBlock({
       </label>
 
       {!defaultOpen && (
-        <button type="button" aria-expanded={true} onClick={() => setOpen(false)} className="flex h-9 items-center self-start text-sm font-semibold text-muted">
+        <button type="button" aria-expanded={true} onClick={() => setOpen(false)} className="flex min-h-11 items-center self-start text-sm font-semibold text-muted">
           {t('cupping.detail.hide')}
         </button>
       )}

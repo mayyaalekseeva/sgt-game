@@ -377,7 +377,7 @@ function Defects({ form, marks, setMarks }: { form: FormDef; marks: SampleMarks;
                 aria-pressed={on}
                 disabled={!on && full}
                 onClick={() => quick(id)}
-                className={`min-h-10 rounded-full px-3.5 text-[15px] font-medium active:scale-[0.98] disabled:opacity-40 ${on ? 'bg-terracotta text-cream' : 'bg-terracotta/10 text-terracotta'}`}
+                className={`min-h-11 rounded-full px-3.5 text-[15px] font-medium active:scale-[0.98] disabled:opacity-40 ${on ? 'bg-terracotta text-cream' : 'bg-terracotta/10 text-terracotta'}`}
               >
                 {t(`flavor.${id}` as Key)}
               </button>
