@@ -17,3 +17,4 @@ NNNN". Update these in the same PR as the code change (see CLAUDE.md).
 | [0006](0006-service-worker-skips-api.md) | The PWA service worker never touches /api/* | Accepted |
 | [0007](0007-swipe-row-actions.md) | Swipe a row left for its action, as a touch-only shortcut | Accepted |
 | [0008](0008-moments-from-local-actions.md) | Celebration moments come from the player's own actions, remembered on the device | Accepted |
+| [0009](0009-cupping-rounds-and-descriptors.md) | Cupping goes in two rounds, with quick descriptors and a note under each attribute | Accepted |
