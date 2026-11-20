@@ -9,6 +9,8 @@ import {
   stepScore,
   withCupCount,
   attributeScore,
+  toggleNamedDefect,
+  QUICK_DEFECTS,
   type Attribute,
   type CupsAttribute,
   type Defect,
@@ -31,23 +33,6 @@ import FlavorPicker from './FlavorPicker'
 
 // One coffee's scores: every attribute on one screen, big steppers and cup toggles (no keyboard for scores), and the
 // live total pinned above the tab bar.
-
-// One tap names a defect: the ones cuppers meet most, then the Select in each row has the rest
-const QUICK_DEFECTS = [
-  'off.moldy',
-  'off.musty',
-  'off.phenolic',
-  'off.rio',
-  'off.earthy',
-  'off.potato',
-  'off.stale',
-  'off.papery',
-  'off.rubbery',
-  'off.ashy',
-  'fermented.overripe',
-  'fermented.winey',
-  'green.grassy',
-]
 
 // What a defect can be named as: the off-notes, ferment and green flavors
 const DEFECT_FLAVORS = FAMILIES.filter((f) => f.off || f.id === 'fermented' || f.id === 'green').flatMap((f) => f.specifics.map((s) => `${f.id}.${s}`))
@@ -354,14 +339,7 @@ function Defects({ form, marks, setMarks }: { form: FormDef; marks: SampleMarks;
   ]
   const full = marks.defects.length >= form.defects.maxRows
   // a quick tap adds the defect with that name, or takes it off again
-  const quick = (id: string) =>
-    setMarks((m) =>
-      m.defects.some((d) => d.flavor === id)
-        ? { ...m, defects: m.defects.filter((d) => d.flavor !== id) }
-        : m.defects.length >= form.defects.maxRows
-          ? m
-          : { ...m, defects: [...m.defects, { kind: 'taint', cups: 1, flavor: id }] },
-    )
+  const quick = (id: string) => setMarks((m) => toggleNamedDefect(form, m, id))
   return (
     <Card className="flex flex-col gap-3">
       <Label>{t('cupping.defects')}</Label>

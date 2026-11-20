@@ -141,6 +141,30 @@ export function withCupCount(form: FormDef, marks: SampleMarks, cupCount: number
   return { ...marks, cupCount, cups, defects }
 }
 
+/** One-tap defects, the ones cuppers meet most (src/flavors.ts ids); a defect row's Select has the rest. */
+export const QUICK_DEFECTS = [
+  'off.moldy',
+  'off.musty',
+  'off.phenolic',
+  'off.rio',
+  'off.earthy',
+  'off.potato',
+  'off.stale',
+  'off.papery',
+  'off.rubbery',
+  'off.ashy',
+  'fermented.overripe',
+  'fermented.winey',
+  'green.grassy',
+]
+
+/** A quick defect tap: adds a taint in one cup with that name, or takes every row with that name off again. */
+export function toggleNamedDefect(form: FormDef, marks: SampleMarks, flavor: string): SampleMarks {
+  if (marks.defects.some((d) => d.flavor === flavor)) return { ...marks, defects: marks.defects.filter((d) => d.flavor !== flavor) }
+  if (marks.defects.length >= form.defects.maxRows) return marks
+  return { ...marks, defects: [...marks.defects, { kind: 'taint', cups: 1, flavor }] }
+}
+
 export function isOnScale(a: ScaleAttribute, v: unknown): v is number {
   if (typeof v !== 'number' || !Number.isFinite(v) || v < a.min || v > a.max) return false
   const steps = (v - a.min) / a.step

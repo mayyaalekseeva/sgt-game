@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  QUICK_DEFECTS,
+  toggleNamedDefect,
   FORMS,
   defaultPhase,
   hasAromaRound,
@@ -18,6 +20,7 @@ import {
   type ScaleAttribute,
   type SampleMarks,
 } from './cupping'
+import { FLAVORS } from './flavors'
 import { translate, type Key } from './i18n'
 
 const form = SCA_FORM
@@ -214,5 +217,30 @@ describe('rounds', () => {
     expect(defaultPhase(SCA_FORM, m)).toBe('aroma')
     expect(defaultPhase(SCA_FORM, { ...m, scores: { fragrance: 8 } })).toBe('tasting')
     expect(defaultPhase(undefined, m)).toBe('tasting')
+  })
+})
+
+describe('quick defects', () => {
+  it('names only flavors this build lists, each with an en and pt label', () => {
+    for (const id of QUICK_DEFECTS) {
+      expect(FLAVORS).toContain(id)
+      for (const lang of ['en', 'pt'] as const) expect(translate(lang, `flavor.${id}` as Key)).not.toBe(`flavor.${id}`)
+    }
+  })
+
+  it('adds a taint in one cup with that name, and a second tap takes it off', () => {
+    const m = emptyMarks(SCA_FORM)
+    const on = toggleNamedDefect(SCA_FORM, m, 'off.moldy')
+    expect(on.defects).toEqual([{ kind: 'taint', cups: 1, flavor: 'off.moldy' }])
+    const both = toggleNamedDefect(SCA_FORM, on, 'off.rio')
+    expect(both.defects.map((d) => d.flavor)).toEqual(['off.moldy', 'off.rio'])
+    expect(toggleNamedDefect(SCA_FORM, both, 'off.moldy').defects.map((d) => d.flavor)).toEqual(['off.rio'])
+  })
+
+  it('takes off a row the cupper changed to a fault, and adds nothing once the rows are full', () => {
+    const m = { ...emptyMarks(SCA_FORM), defects: [{ kind: 'fault' as const, cups: 3, flavor: 'off.musty' }] }
+    expect(toggleNamedDefect(SCA_FORM, m, 'off.musty').defects).toEqual([])
+    const full = { ...m, defects: Array.from({ length: SCA_FORM.defects.maxRows }, () => ({ kind: 'taint' as const, cups: 1 })) }
+    expect(toggleNamedDefect(SCA_FORM, full, 'off.moldy')).toBe(full)
   })
 })
