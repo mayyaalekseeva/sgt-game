@@ -14,6 +14,7 @@ export interface SampleIn {
   defects: { kind: string; cups: number; flavor?: string }[]
   flavors: string[] | null
   notes: string | null
+  details: Record<string, { tags?: string[]; note?: string }> | null // tags and a note for each attribute
 }
 
 export interface SessionIn {
@@ -37,6 +38,7 @@ const MAX_PLACE = 60
 const MAX_TEXT = 280 // protocol and sample notes, like report notes
 const MAX_CODE = 8
 const MAX_FLAVORS = 5
+const MAX_TAGS = 8 // per attribute, like src/cupping-descriptors.ts
 const ID = /^[0-9a-f]{32}$/
 const LOT = /^([a-z0-9]+(-[a-z0-9]+)*|my:[0-9a-f]{32})$/
 const WORD = /^[a-z]+(_[a-z]+)*$/ // a form, attribute or defect kind id
@@ -45,6 +47,8 @@ const DAY = 24 * 60 * 60 * 1000
 const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))
 const isFlavorId = (v: unknown): v is string =>
   typeof v === 'string' && v.length <= 40 && /^[a-z]+(_[a-z]+)*(\.[a-z]+(_[a-z]+)*)?$/.test(v)
+// A descriptor tag: one to three words joined by dots, "fruity.berry.blackberry" (src/cupping-descriptors.ts isTagId)
+const isTagId = (v: unknown): v is string => typeof v === 'string' && v.length <= 60 && /^[a-z]+(_[a-z]+)*(\.[a-z]+(_[a-z]+)*){0,2}$/.test(v)
 const isWord = (v: unknown): v is string => typeof v === 'string' && v.length <= 30 && WORD.test(v)
 const isInt = (v: unknown, min: number, max: number): v is number => Number.isInteger(v) && (v as number) >= min && (v as number) <= max
 const optText = (v: unknown, max: number) => v == null || v === '' || (typeof v === 'string' && v.length <= max)
@@ -87,6 +91,8 @@ function parseSample(s: unknown, at: string): SampleIn | string {
     return `${at}.flavors is invalid`
   }
   if (!optText(r.notes, MAX_TEXT)) return `${at}.notes is invalid`
+  const details = parseDetails(r.details)
+  if (details === 'invalid') return `${at}.details is invalid`
   return {
     id: r.id,
     lot: typeof r.lot === 'string' ? r.lot : null,
@@ -98,7 +104,26 @@ function parseSample(s: unknown, at: string): SampleIn | string {
     defects,
     flavors: flavors && flavors.length ? (flavors as string[]) : null,
     notes: trimmed(r.notes),
+    details,
   }
+}
+
+// Shape only, like the marks: the client cleans them against what it lists (src/cupping-descriptors.ts cleanDetails)
+function parseDetails(v: unknown): SampleIn['details'] | 'invalid' {
+  if (v == null) return null
+  const d = record(v)
+  if (!d || Object.keys(d).length > MAX_ATTRIBUTES) return 'invalid'
+  const out: NonNullable<SampleIn['details']> = {}
+  for (const [attr, raw] of Object.entries(d)) {
+    const x = record(raw)
+    if (!isWord(attr) || !x) return 'invalid'
+    const tags = x.tags ?? []
+    if (!Array.isArray(tags) || tags.length > MAX_TAGS || !tags.every(isTagId) || new Set(tags).size !== tags.length) return 'invalid'
+    if (!optText(x.note, MAX_TEXT)) return 'invalid'
+    const note = trimmed(x.note)
+    if (tags.length || note) out[attr] = { ...(tags.length ? { tags: tags as string[] } : {}), ...(note ? { note } : {}) }
+  }
+  return Object.keys(out).length ? out : null
 }
 
 /** Validates a POST /api/cuppings body: { sessions: [...] }, each with all its samples. */
@@ -170,6 +195,7 @@ export const toSampleRows = (s: SessionIn, userId: string): (typeof cuppingSampl
     defects: x.defects,
     flavors: x.flavors,
     notes: x.notes,
+    details: x.details,
   }))
 
 type SessionRow = typeof cuppingSessions.$inferSelect
@@ -201,6 +227,7 @@ export function toCuppingsOut(sessions: SessionRow[], samples: SampleRow[]) {
           marks: { cupCount: x.cupCount, scores: x.scores, cups: x.cups, defects: x.defects },
           ...(x.flavors?.length ? { flavors: x.flavors } : {}),
           ...(x.notes ? { notes: x.notes } : {}),
+          ...(x.details && Object.keys(x.details).length ? { details: x.details } : {}),
         })),
     }
   })

@@ -35,7 +35,7 @@ describe('parseCuppingBatch', () => {
           revealed: false,
           status: 'draft',
           updatedAt: NOW - 1000,
-          samples: [{ id: 'b'.repeat(32), lot: null, code: null, form: 'sca', ...marks(), flavors: null, notes: null }],
+          samples: [{ id: 'b'.repeat(32), lot: null, code: null, form: 'sca', ...marks(), flavors: null, notes: null, details: null }],
         },
       ],
     })
@@ -140,7 +140,7 @@ describe('rows', () => {
     const out = toCuppingsOut(
       [{ ...row, place: 'Lab', protocol: null, blind: false, revealed: false, status: 'draft', deletedAt: null, createdAt: NOW }],
       // stored out of order
-      [...samples].reverse().map((x) => ({ ...x, lot: null, code: x.code ?? null, flavors: null, notes: null })),
+      [...samples].reverse().map((x) => ({ ...x, lot: null, code: x.code ?? null, flavors: null, notes: null, details: null })),
     )
     expect(out).toEqual([
       {
@@ -162,5 +162,43 @@ describe('rows', () => {
   it('sends a tombstone as id, deleted and updatedAt only', () => {
     const row = { ...toSessionRow(s, 'u1', NOW), place: null, protocol: null, blind: false, revealed: false, status: 'draft' as const, deletedAt: NOW, createdAt: NOW }
     expect(toCuppingsOut([row], [])).toEqual([{ id: ID, deleted: true, updatedAt: NOW - 1000 }])
+  })
+})
+
+describe('details', () => {
+  const details = { fragrance: { tags: ['fruity.berry.blackberry'], note: ' jammy ' }, acidity: { tags: ['bright'] } }
+
+  it('keeps tags and a trimmed note for each attribute', () => {
+    const r = parse({ sessions: [session({ samples: [sample({ details })] })] }) as { sessions: SessionIn[] }
+    expect(r.sessions[0].samples[0].details).toEqual({ fragrance: { tags: ['fruity.berry.blackberry'], note: 'jammy' }, acidity: { tags: ['bright'] } })
+  })
+
+  it('is null when absent or empty', () => {
+    for (const d of [undefined, null, {}, { body: {} }]) {
+      const r = parse({ sessions: [session({ samples: [sample({ details: d })] })] }) as { sessions: SessionIn[] }
+      expect(r.sessions[0].samples[0].details).toBeNull()
+    }
+  })
+
+  it('refuses a bad tag, a repeated tag, too many tags or a long note', () => {
+    const bad = (d: unknown) => errorOf({ sessions: [session({ samples: [sample({ details: d })] })] })
+    expect(bad({ flavor: { tags: ['Bad id'] } })).toContain('details')
+    expect(bad({ flavor: { tags: ['a.b.c.d'] } })).toContain('details')
+    expect(bad({ flavor: { tags: ['sweet', 'sweet'] } })).toContain('details')
+    expect(bad({ flavor: { tags: Array.from({ length: 9 }, (_, i) => `x${'a'.repeat(i + 1)}`) } })).toContain('details')
+    expect(bad({ flavor: { note: 'x'.repeat(281) } })).toContain('details')
+    expect(bad({ 'Bad Attr': { tags: ['sweet'] } })).toContain('details')
+  })
+
+  it('goes out with the sample and comes back the same', () => {
+    const [s] = (parse({ sessions: [session({ samples: [sample({ details })] })] }) as { sessions: SessionIn[] }).sessions
+    const row = toSessionRow(s, 'u1', NOW)
+    const rows = toSampleRows(s, 'u1')
+    expect(rows[0].details).toEqual(s.samples[0].details)
+    const out = toCuppingsOut(
+      [{ ...row, place: null, protocol: null, blind: false, revealed: false, status: 'draft', deletedAt: null, createdAt: NOW }],
+      rows.map((x) => ({ ...x, lot: null, code: null, flavors: null, notes: null, details: x.details ?? null })),
+    ) as { samples: { details?: unknown }[] }[]
+    expect(out[0].samples[0].details).toEqual(s.samples[0].details)
   })
 })
