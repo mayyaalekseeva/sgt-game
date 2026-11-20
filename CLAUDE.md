@@ -71,6 +71,9 @@ never reloads during a brew timer (src/sw-update.ts). No service worker in dev; 
   "based on the SCA cupping form"; never claim SCA certification or a Q-grade. Every form number is sourced in
   docs/cupping-research.md. Forms are data: add a new FormDef for a new form, never change a published one.
   No XP or missions from cupping without asking.
+  Each attribute has quick descriptors and a note, stored as a sample's `details` (src/cupping-descriptors.ts; the flavor
+  wheel in three tiers for fragrance, flavor and aftertaste, short lists for the rest). Never rename or remove a tag id.
+  The aroma round (fragrance) comes before the tasting round, with a break screen between (docs/decisions/0009).
 - Never edit an applied migration; change the schema and run `npm run db:generate`.
 - Never commit secrets. Use .dev.vars locally and Cloudflare secrets in production.
 - Design is mobile-first (390px). Desktop (1024px+) is a secondary adaptation: keep it minimal,

@@ -1,4 +1,4 @@
-import { formById, maxTotal, scoreSample } from '../cupping'
+import { formById, maxTotal, scoreSample, type PhaseId } from '../cupping'
 import { discardDraft, useCuppingSession } from '../cupping-draft'
 import { MAX_PLACE, MAX_SAMPLES, compareSamples, namesHidden, newSample, newSession, nextCode, withoutSample, type CuppingSession } from '../cuppings'
 import { MAX_NOTES, localDay } from '../data'
@@ -8,6 +8,7 @@ import { useStore } from '../store'
 import { newReportId } from '../sync'
 import { Button, Card, Display, Label, ScreenTitle, field, fmtDate } from '../ui'
 import { coffeeGroups, fmtScore, sampleName } from '../cupping-labels'
+import CuppingBreak from './CuppingBreak'
 import CuppingSampleScreen from './CuppingSample'
 import DatePicker from './DatePicker'
 import SwipeRow from './SwipeRow'
@@ -19,9 +20,9 @@ import SwipeRow from './SwipeRow'
 const badge = 'rounded-full bg-line px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-ink'
 
 export default function Cupping({ id, open }: { id?: string; open: (id?: string) => void }) {
-  const [sessionId, sampleId] = id?.split('.') ?? []
+  const [sessionId, sampleId, phase] = id?.split('.') ?? []
   if (!sessionId) return <CuppingList open={open} />
-  return <SessionScreen id={sessionId} sampleId={sampleId} open={open} />
+  return <SessionScreen id={sessionId} sampleId={sampleId} phase={phase as PhaseId | undefined} open={open} />
 }
 
 function Disclaimer() {
@@ -83,7 +84,7 @@ function CuppingList({ open }: { open: (id?: string) => void }) {
   )
 }
 
-function SessionScreen({ id, sampleId, open }: { id: string; sampleId?: string; open: (id?: string) => void }) {
+function SessionScreen({ id, sampleId, phase, open }: { id: string; sampleId?: string; phase?: PhaseId; open: (id?: string) => void }) {
   const { t } = useStore()
   const { session, change, discard } = useCuppingSession(id)
   if (!session) {
@@ -96,8 +97,10 @@ function SessionScreen({ id, sampleId, open }: { id: string; sampleId?: string; 
       </div>
     )
   }
+  if (sampleId === 'break') return <CuppingBreak session={session} open={open} />
   const sample = sampleId ? session.samples.find((x) => x.id === sampleId) : undefined
-  if (sample) return <CuppingSampleScreen session={session} sample={sample} change={change} open={open} />
+  // keyed so a new coffee or round starts fresh: open descriptor blocks, the wheel's path and a shown blind coffee stay behind
+  if (sample) return <CuppingSampleScreen key={`${sample.id}.${phase ?? ''}`} session={session} sample={sample} phase={phase} change={change} open={open} />
   return <SessionView session={session} change={change} discard={discard} open={open} />
 }
 
@@ -132,7 +135,7 @@ function SessionView({
   const addSample = () => {
     const x = { ...newSample(newReportId()), code: nextCode(session) }
     change((s) => ({ ...s, samples: [...s.samples, x] }))
-    open(`${session.id}.${x.id}`)
+    open(`${session.id}.${x.id}.aroma`)
   }
 
   return (
@@ -197,6 +200,17 @@ function SessionView({
               )
             })}
           </ul>
+          {session.samples.length > 0 && (
+            // stacked: side by side, "Fase do aroma" wraps to two lines on a phone
+            <div className="flex flex-col gap-2">
+              <Button variant="secondary" onClick={() => open(`${session.id}.${session.samples[0].id}.aroma`)}>
+                {t('cupping.startAroma')}
+              </Button>
+              <Button variant="secondary" onClick={() => open(`${session.id}.${session.samples[0].id}.tasting`)}>
+                {t('cupping.startTasting')}
+              </Button>
+            </div>
+          )}
           {session.samples.length < MAX_SAMPLES ? (
             <Button variant="secondary" onClick={addSample}>
               {t('cupping.addSample')}

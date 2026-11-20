@@ -1,17 +1,25 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
+  defaultPhase,
   formById,
+  hasAromaRound,
   levelOf,
+  phaseAttributes,
   scoreSample,
   stepScore,
   withCupCount,
   attributeScore,
+  toggleNamedDefect,
+  QUICK_DEFECTS,
+  type Attribute,
   type CupsAttribute,
   type Defect,
   type FormDef,
   type SampleMarks,
+  type PhaseId,
   type ScaleAttribute,
 } from '../cupping'
+import { withDetail, type AttrDetail, type Details } from '../cupping-descriptors'
 import { MAX_CODE, MAX_NOTES, namesHidden, withoutSample, type CuppingSample, type CuppingSession } from '../cuppings'
 import { FAMILIES, suggestFlavors } from '../flavors'
 import type { Key } from '../i18n'
@@ -20,6 +28,7 @@ import { useReports } from '../reports'
 import { useStore } from '../store'
 import { Button, Card, Display, Label, Segmented, Select, SmallButton, field } from '../ui'
 import { coffeeGroups, fmtScore, sampleName } from '../cupping-labels'
+import DescriptorBlock from './DescriptorBlock'
 import FlavorPicker from './FlavorPicker'
 
 // One coffee's scores: every attribute on one screen, big steppers and cup toggles (no keyboard for scores), and the
@@ -34,11 +43,13 @@ const small = 'flex h-11 w-11 flex-none items-center justify-center rounded-lg b
 export default function CuppingSampleScreen({
   session,
   sample,
+  phase,
   change,
   open,
 }: {
   session: CuppingSession
   sample: CuppingSample
+  phase?: PhaseId // the round; the aroma one until this coffee's aroma is scored, when not given
   change: (f: (s: CuppingSession) => CuppingSession) => void
   open: (id?: string) => void
 }) {
@@ -51,10 +62,19 @@ export default function CuppingSampleScreen({
   const i = session.samples.indexOf(sample)
   const prev = session.samples[i - 1]
   const next = session.samples[i + 1]
+  const first = session.samples[0]
+  const round: PhaseId = form && hasAromaRound(form) ? (phase ?? defaultPhase(form, sample.marks)) : 'tasting'
+  const go = (x: CuppingSample, r: PhaseId = round) => open(`${session.id}.${x.id}.${r}`)
 
   const setSample = (f: (x: CuppingSample) => CuppingSample) =>
     change((s) => ({ ...s, samples: s.samples.map((x) => (x.id === sample.id ? f(x) : x)) }))
   const setMarks = (f: (m: SampleMarks) => SampleMarks) => setSample((x) => ({ ...x, marks: f(x.marks) }))
+  const setDetail = (attr: string, d: AttrDetail) =>
+    setSample((x) => {
+      const details = withDetail(x.details, attr, d)
+      const { details: _old, ...rest } = x
+      return Object.keys(details).length ? { ...rest, details } : rest
+    })
 
   // a blind sample suggests no flavors: the roaster's notes would give the coffee away
   const suggested = suggestFlavors(hidden ? [] : (lotBySlug(sample.lot)?.flavors ?? []), reports.slice(0, 10).map((r) => r.flavors ?? []))
@@ -67,6 +87,22 @@ export default function CuppingSampleScreen({
           {sample.code && !hidden && <p className="mt-1 text-[15px] text-ink/80">{t('cupping.cupCode', { code: sample.code })}</p>}
         </div>
 
+        {form && hasAromaRound(form) && (
+          <div className="flex flex-col gap-2">
+            <Segmented
+              label={t('cupping.phase')}
+              value={round}
+              onChange={(r) => go(sample, r)}
+              options={[
+                { id: 'aroma' as PhaseId, label: t('cupping.phase.aroma') },
+                { id: 'tasting' as PhaseId, label: t('cupping.phase.tasting') },
+              ]}
+            />
+            <p className="text-sm leading-snug text-muted">{round === 'aroma' ? t('cupping.aromaHint') : t('cupping.tastingHint')}</p>
+          </div>
+        )}
+
+        {round === 'aroma' || !form || !hasAromaRound(form) ? (
         <Card className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <Label>{t('cupping.coffee')}</Label>
@@ -114,36 +150,65 @@ export default function CuppingSampleScreen({
             </div>
           )}
         </Card>
+        ) : null}
 
-        {form ? <Scores form={form} marks={sample.marks} setMarks={setMarks} /> : <p className="text-[15px]">{t('cupping.unscored')}</p>}
+        {form ? (
+          <Scores form={form} attrs={phaseAttributes(form, round)} marks={sample.marks} setMarks={setMarks} details={sample.details} setDetail={setDetail} openFirst={round === 'aroma'} />
+        ) : (
+          <p className="text-[15px]">{t('cupping.unscored')}</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">
         {form && <Defects form={form} marks={sample.marks} setMarks={setMarks} />}
 
-        <Card>
-          <FlavorPicker value={sample.flavors ?? []} onChange={(flavors) => setSample((x) => ({ ...x, flavors: flavors.length ? flavors : undefined }))} suggested={suggested} />
-        </Card>
+        {round === 'tasting' && (sample.flavors?.length ?? 0) > 0 && (
+          <Card className="flex flex-col gap-2">
+            <Label>{t('cupping.legacyFlavors')}</Label>
+            <FlavorPicker value={sample.flavors ?? []} onChange={(flavors) => setSample((x) => ({ ...x, flavors: flavors.length ? flavors : undefined }))} suggested={suggested} />
+          </Card>
+        )}
 
-        <Card>
-          <label className="flex flex-col gap-1">
-            <Label>{t('cupping.notes')}</Label>
-            <textarea
-              value={sample.notes ?? ''}
-              maxLength={MAX_NOTES}
-              rows={3}
-              placeholder={t('cupping.notesHint')}
-              onChange={(e) => setSample((x) => ({ ...x, notes: e.target.value || undefined }))}
-              className={`${field} resize-none py-2`}
-            />
-          </label>
-        </Card>
+        {round === 'tasting' && (
+          <Card>
+            <label className="flex flex-col gap-1">
+              <Label>{t('cupping.notes')}</Label>
+              <textarea
+                value={sample.notes ?? ''}
+                maxLength={MAX_NOTES}
+                rows={3}
+                placeholder={t('cupping.notesHint')}
+                onChange={(e) => setSample((x) => ({ ...x, notes: e.target.value || undefined }))}
+                className={`${field} resize-none py-2`}
+              />
+            </label>
+          </Card>
+        )}
 
-        {/* the way on is never a dead button: after the last coffee comes the summary */}
+        {/* the way on is never a dead button. Aroma round: next coffee, after the last one the break. Tasting round: next
+            coffee, after the last one the summary, with a way back to the first coffee */}
         <div className="flex flex-col gap-3">
-          <Button onClick={() => open(next ? `${session.id}.${next.id}` : session.id)}>{next ? `${t('cupping.next')} →` : t('cupping.toSummary')}</Button>
+          {next ? (
+            <Button onClick={() => go(next)}>{`${t('cupping.next')} →`}</Button>
+          ) : round === 'aroma' && form && hasAromaRound(form) ? (
+            <>
+              <Button onClick={() => open(`${session.id}.break`)}>{t('cupping.toBreak')}</Button>
+              <Button variant="secondary" onClick={() => go(first, 'tasting')}>
+                {t('cupping.skipBreak')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => open(session.id)}>{t('cupping.toSummary')}</Button>
+              {first !== sample && (
+                <Button variant="secondary" onClick={() => go(first)}>
+                  ↺ {t('cupping.toFirst')}
+                </Button>
+              )}
+            </>
+          )}
           {prev && (
-            <Button variant="secondary" onClick={() => open(`${session.id}.${prev.id}`)}>
+            <Button variant="secondary" onClick={() => go(prev)}>
               ← {t('cupping.prev')}
             </Button>
           )}
@@ -160,78 +225,108 @@ export default function CuppingSampleScreen({
         </Button>
       </div>
 
-      {form && <TotalBar form={form} marks={sample.marks} />}
+      {form && round === 'tasting' && <TotalBar form={form} marks={sample.marks} />}
     </div>
   )
 }
 
-function Scores({ form, marks, setMarks }: { form: FormDef; marks: SampleMarks; setMarks: (f: (m: SampleMarks) => SampleMarks) => void }) {
+function Scores({
+  form,
+  attrs,
+  marks,
+  setMarks,
+  details,
+  setDetail,
+  openFirst,
+}: {
+  form: FormDef
+  attrs: Attribute[]
+  marks: SampleMarks
+  setMarks: (f: (m: SampleMarks) => SampleMarks) => void
+  details: Details | undefined
+  setDetail: (attr: string, d: AttrDetail) => void
+  openFirst: boolean // the first attribute's descriptors start open (the aroma round has just one)
+}) {
+  const { t } = useStore()
   return (
     <Card className="!py-1">
-      {form.attributes.map((a) =>
-        a.kind === 'scale' ? (
-          <ScaleRow key={a.id} form={form} a={a} value={marks.scores[a.id]} onChange={(v) => setMarks((m) => ({ ...m, scores: { ...m.scores, [a.id]: v } }))} />
+      {attrs.map((a, k) => {
+        const block = (
+          <DescriptorBlock attr={a.id} label={t(`cupping.attr.${a.id}` as Key)} detail={details?.[a.id]} onChange={(d) => setDetail(a.id, d)} defaultOpen={openFirst && k === 0} />
+        )
+        return a.kind === 'scale' ? (
+          <ScaleRow key={a.id} form={form} a={a} value={marks.scores[a.id]} onChange={(v) => setMarks((m) => ({ ...m, scores: { ...m.scores, [a.id]: v } }))}>
+            {block}
+          </ScaleRow>
         ) : (
           <CupsRow
             key={a.id}
             form={form}
             a={a}
             marks={marks}
-            onToggle={(cup) => setMarks((m) => ({ ...m, cups: { ...m.cups, [a.id]: (m.cups[a.id] ?? []).map((on, k) => (k === cup ? !on : on)) } }))}
-          />
-        ),
-      )}
+            onToggle={(cup) => setMarks((m) => ({ ...m, cups: { ...m.cups, [a.id]: (m.cups[a.id] ?? []).map((on, j) => (j === cup ? !on : on)) } }))}
+          >
+            {block}
+          </CupsRow>
+        )
+      })}
     </Card>
   )
 }
 
-function ScaleRow({ form, a, value, onChange }: { form: FormDef; a: ScaleAttribute; value: number | undefined; onChange: (v: number) => void }) {
+function ScaleRow({ form, a, value, onChange, children }: { form: FormDef; a: ScaleAttribute; value: number | undefined; onChange: (v: number) => void; children: ReactNode }) {
   const { t } = useStore()
   const label = t(`cupping.attr.${a.id}` as Key)
   return (
-    <div className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
-      <div className="min-w-0 flex-1">
-        <Label>{label}</Label>
-        <div className="mt-1 flex items-baseline gap-2">
-          <Display className={`text-[34px] !normal-case tracking-wide ${value === undefined ? 'text-muted' : ''}`}>{value === undefined ? '—' : fmtScore(value)}</Display>
-          <span className="truncate text-sm text-muted">{value === undefined ? t('cupping.tapToScore') : t(`cupping.level.${levelOf(form, value)}` as Key)}</span>
+    <div className="border-b border-line py-3 last:border-b-0">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <Label>{label}</Label>
+          <div className="mt-1 flex items-baseline gap-2">
+            <Display className={`text-[34px] !normal-case tracking-wide ${value === undefined ? 'text-muted' : ''}`}>{value === undefined ? '—' : fmtScore(value)}</Display>
+            <span className="truncate text-sm text-muted">{value === undefined ? t('cupping.tapToScore') : t(`cupping.level.${levelOf(form, value)}` as Key)}</span>
+          </div>
         </div>
+        <button type="button" aria-label={`${label} −`} className={big} disabled={value === a.min} onClick={() => onChange(stepScore(a, value, -1))}>
+          −
+        </button>
+        <button type="button" aria-label={`${label} +`} className={big} disabled={value === a.max} onClick={() => onChange(stepScore(a, value, 1))}>
+          +
+        </button>
       </div>
-      <button type="button" aria-label={`${label} −`} className={big} disabled={value === a.min} onClick={() => onChange(stepScore(a, value, -1))}>
-        −
-      </button>
-      <button type="button" aria-label={`${label} +`} className={big} disabled={value === a.max} onClick={() => onChange(stepScore(a, value, 1))}>
-        +
-      </button>
+      {children}
     </div>
   )
 }
 
-function CupsRow({ form, a, marks, onToggle }: { form: FormDef; a: CupsAttribute; marks: SampleMarks; onToggle: (cup: number) => void }) {
+function CupsRow({ form, a, marks, onToggle, children }: { form: FormDef; a: CupsAttribute; marks: SampleMarks; onToggle: (cup: number) => void; children: ReactNode }) {
   const { t } = useStore()
   const label = t(`cupping.attr.${a.id}` as Key)
   const cups = marks.cups[a.id] ?? []
   return (
-    <div role="group" aria-label={label} className="border-b border-line py-3 last:border-b-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <Label>{label}</Label>
-        <Display className="text-[26px] !normal-case">{fmtScore(attributeScore(form, marks, a) ?? 0)}</Display>
+    <div className="border-b border-line py-3 last:border-b-0">
+      <div role="group" aria-label={label}>
+        <div className="flex items-baseline justify-between gap-2">
+          <Label>{label}</Label>
+          <Display className="text-[26px] !normal-case">{fmtScore(attributeScore(form, marks, a) ?? 0)}</Display>
+        </div>
+        <div className="mt-2 flex gap-2">
+          {cups.map((on, k) => (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={on}
+              aria-label={t('cupping.cupN', { n: k + 1 })}
+              onClick={() => onToggle(k)}
+              className={`flex h-12 flex-1 items-center justify-center rounded-full border-2 border-ink text-lg font-bold active:scale-95 ${on ? 'bg-olive text-cream' : 'bg-cream text-ink line-through'}`}
+            >
+              {k + 1}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">{t('cupping.perCupHint')}</p>
       </div>
-      <div className="mt-2 flex gap-2">
-        {cups.map((on, k) => (
-          <button
-            key={k}
-            type="button"
-            aria-pressed={on}
-            aria-label={t('cupping.cupN', { n: k + 1 })}
-            onClick={() => onToggle(k)}
-            className={`flex h-12 flex-1 items-center justify-center rounded-full border-2 border-ink text-lg font-bold active:scale-95 ${on ? 'bg-olive text-cream' : 'bg-cream text-ink line-through'}`}
-          >
-            {k + 1}
-          </button>
-        ))}
-      </div>
-      <p className="mt-1 text-xs text-muted">{t('cupping.perCupHint')}</p>
+      {children}
     </div>
   )
 }
@@ -242,9 +337,32 @@ function Defects({ form, marks, setMarks }: { form: FormDef; marks: SampleMarks;
   const flavorGroups = [
     { label: '', options: [{ id: '', label: t('cupping.defectNone') }, ...DEFECT_FLAVORS.map((id) => ({ id, label: t(`flavor.${id}` as Key) }))] },
   ]
+  const full = marks.defects.length >= form.defects.maxRows
+  // a quick tap adds the defect with that name, or takes it off again
+  const quick = (id: string) => setMarks((m) => toggleNamedDefect(form, m, id))
   return (
     <Card className="flex flex-col gap-3">
       <Label>{t('cupping.defects')}</Label>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm text-ink/70">{t('cupping.defectQuick')}</span>
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_DEFECTS.map((id) => {
+            const on = marks.defects.some((d) => d.flavor === id)
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={on}
+                disabled={!on && full}
+                onClick={() => quick(id)}
+                className={`min-h-11 rounded-full px-3.5 text-[15px] font-medium active:scale-[0.98] disabled:opacity-40 ${on ? 'bg-terracotta text-cream' : 'bg-terracotta/10 text-terracotta'}`}
+              >
+                {t(`flavor.${id}` as Key)}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       {marks.defects.map((d, k) => (
         <div key={k} className="flex flex-col gap-2 rounded-lg bg-line/40 p-3">
           <div className="flex items-center gap-2">
@@ -294,9 +412,9 @@ function Defects({ form, marks, setMarks }: { form: FormDef; marks: SampleMarks;
           />
         </div>
       ))}
-      {marks.defects.length < form.defects.maxRows && (
+      {!full && (
         <Button variant="secondary" onClick={() => setMarks((m) => ({ ...m, defects: [...m.defects, { kind: 'taint', cups: 1 }] }))}>
-          {t('cupping.defectAdd')}
+          {t('cupping.defectOther')}
         </Button>
       )}
       <p className="text-sm leading-snug text-muted">{t('cupping.defectNote')}</p>

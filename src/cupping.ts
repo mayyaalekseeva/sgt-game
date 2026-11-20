@@ -78,6 +78,26 @@ export const SCA_FORM: FormDef = {
 
 export const FORMS: FormDef[] = [SCA_FORM]
 
+// A cupping goes in two rounds: the aroma of the dry grounds and of the wet crust first, then a break (break the crust,
+// skim, let the cups cool), then the taste. Which attributes belong to the first round is a screen matter, not part of the
+// form's numbers, so it lives here and a published form is not touched. Everything not listed is in the tasting round.
+export type PhaseId = 'aroma' | 'tasting'
+export const PHASES: PhaseId[] = ['aroma', 'tasting']
+const AROMA_ATTRIBUTES: Record<string, string[]> = { sca: ['fragrance'] }
+
+/** The form's attributes shown in one round, in form order. */
+export const phaseAttributes = (form: FormDef, phase: PhaseId): Attribute[] => {
+  const aroma = AROMA_ATTRIBUTES[form.id] ?? []
+  return form.attributes.filter((a) => aroma.includes(a.id) === (phase === 'aroma'))
+}
+
+/** Whether the form has a first, aroma-only round. */
+export const hasAromaRound = (form: FormDef) => phaseAttributes(form, 'aroma').length > 0
+
+/** The round a coffee opens in: the aroma one until its aroma is scored, then tasting. */
+export const defaultPhase = (form: FormDef | undefined, marks: SampleMarks): PhaseId =>
+  form && phaseAttributes(form, 'aroma').some((a) => a.kind === 'scale' && marks.scores[a.id] === undefined) ? 'aroma' : 'tasting'
+
 export const formById = (id: string): FormDef | undefined => FORMS.find((f) => f.id === id)
 
 export interface Defect {
@@ -119,6 +139,30 @@ export function withCupCount(form: FormDef, marks: SampleMarks, cupCount: number
     cups[id] = Array.from({ length: cupCount }, (_, i) => list[i] ?? true)
   const defects = marks.defects.map((d) => ({ ...d, cups: Math.min(d.cups, cupCount) }))
   return { ...marks, cupCount, cups, defects }
+}
+
+/** One-tap defects, the ones cuppers meet most (src/flavors.ts ids); a defect row's Select has the rest. */
+export const QUICK_DEFECTS = [
+  'off.moldy',
+  'off.musty',
+  'off.phenolic',
+  'off.rio',
+  'off.earthy',
+  'off.potato',
+  'off.stale',
+  'off.papery',
+  'off.rubbery',
+  'off.ashy',
+  'fermented.overripe',
+  'fermented.winey',
+  'green.grassy',
+]
+
+/** A quick defect tap: adds a taint in one cup with that name, or takes every row with that name off again. */
+export function toggleNamedDefect(form: FormDef, marks: SampleMarks, flavor: string): SampleMarks {
+  if (marks.defects.some((d) => d.flavor === flavor)) return { ...marks, defects: marks.defects.filter((d) => d.flavor !== flavor) }
+  if (marks.defects.length >= form.defects.maxRows) return marks
+  return { ...marks, defects: [...marks.defects, { kind: 'taint', cups: 1, flavor }] }
 }
 
 export function isOnScale(a: ScaleAttribute, v: unknown): v is number {

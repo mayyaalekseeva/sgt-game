@@ -231,6 +231,8 @@ export const cuppingSamples = sqliteTable(
     defects: text('defects', { mode: 'json' }).notNull().$type<{ kind: string; cups: number; flavor?: string }[]>(),
     flavors: text('flavors', { mode: 'json' }).$type<string[]>(), // ids from src/flavors.ts; null when none
     notes: text('notes'),
+    // tags and a note for each attribute, by attribute id (src/cupping-descriptors.ts); null when there are none
+    details: text('details', { mode: 'json' }).$type<Record<string, { tags?: string[]; note?: string }>>(),
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.sessionId, t.id] }),

@@ -11,7 +11,7 @@ export type Sub = (typeof SUBS)[number]
 export interface Route {
   tab: Tab
   sub: Sub | null
-  // one drill, under drills; under cupping a session, or "<session>.<sample>" for one coffee in it. A screen shows its
+  // one drill, under drills; under cupping a session, "<session>.<sample>" for one coffee in it (".aroma" or ".tasting" picks the round), or "<session>.break". A screen shows its
   // list for an id it does not know.
   id?: string
 }
@@ -21,7 +21,7 @@ export const HOME: Route = { tab: 'orders', sub: null }
 // The sub-screens that take an id, and its shape
 const ID_OF: Partial<Record<Sub, RegExp>> = {
   drills: /^[a-z-]+$/,
-  cupping: /^[0-9a-f]{32}(\.[0-9a-f]{32})?$/,
+  cupping: /^[0-9a-f]{32}(\.([0-9a-f]{32}(\.(aroma|tasting))?|break))?$/,
 }
 
 /** Anything unknown (an empty hash, #signin-failed, an old link) opens the home screen. */

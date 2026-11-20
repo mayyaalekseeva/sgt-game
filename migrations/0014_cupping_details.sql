@@ -1,0 +1,1 @@
+ALTER TABLE `cupping_samples` ADD `details` text;

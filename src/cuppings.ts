@@ -1,5 +1,6 @@
 import { SCA_FORM, cleanMarks, emptyMarks, formById, scoreSample, type FormDef, type SampleMarks, type SampleScore } from './cupping'
 import { isDay, localDay, MAX_NOTES } from './data'
+import { cleanDetails, type Details } from './cupping-descriptors'
 import { cleanFlavors } from './flavors'
 
 // Cupping sessions: a day's table of coffees, each scored on a form (src/cupping.ts). Synced like coffees: the client
@@ -13,8 +14,9 @@ export interface CuppingSample {
   code?: string // the blind code on the cup
   form: string // a FormDef id
   marks: SampleMarks
-  flavors?: string[] // src/flavors.ts ids
+  flavors?: string[] // src/flavors.ts ids, for the whole cup (older sessions; the descriptors below replace them)
   notes?: string
+  details?: Details // tags and a note for each attribute, by attribute id (src/cupping-descriptors.ts)
 }
 
 export interface CuppingSession {
@@ -57,6 +59,7 @@ export function parseSample(raw: unknown): CuppingSample | null {
   const marks = form ? cleanMarks(form, s.marks) : foreignMarks(s.marks)
   if (!marks) return null
   const flavors = cleanFlavors(s.flavors)
+  const details = cleanDetails(s.details)
   return {
     id: s.id,
     ...(typeof s.lot === 'string' && LOT.test(s.lot) ? { lot: s.lot } : {}),
@@ -65,6 +68,7 @@ export function parseSample(raw: unknown): CuppingSample | null {
     marks,
     ...(flavors.length ? { flavors } : {}),
     ...(text(s.notes, MAX_NOTES) ? { notes: s.notes.trim() } : {}),
+    ...(Object.keys(details).length ? { details } : {}),
   }
 }
 
