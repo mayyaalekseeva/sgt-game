@@ -123,3 +123,15 @@ describe('drafts and summary', () => {
     expect(ranked[3].score).toBeNull()
   })
 })
+
+describe('sample details', () => {
+  const base = { id: id('b'), form: 'sca', marks: emptyMarks(SCA_FORM) }
+  it('keeps clean tags and notes by attribute and drops the rest', () => {
+    const s = parseSample({ ...base, details: { flavor: { tags: ['fruity.berry', 'fruity.berry', 'Bad'], note: ' sweet ' }, body: { tags: [], note: '' }, 'Bad Attr': { note: 'x' } } })
+    expect(s?.details).toEqual({ flavor: { tags: ['fruity.berry'], note: 'sweet' } })
+  })
+  it('has no details key when there are none', () => {
+    expect(parseSample({ ...base, details: {} })).not.toHaveProperty('details')
+    expect(parseSample(base)).not.toHaveProperty('details')
+  })
+})

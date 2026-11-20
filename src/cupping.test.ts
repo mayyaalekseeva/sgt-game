@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   FORMS,
+  defaultPhase,
+  hasAromaRound,
+  phaseAttributes,
   SCA_FORM,
   bandOf,
   cleanMarks,
@@ -194,5 +197,22 @@ describe('cleanMarks', () => {
     expect(m.scores).toEqual({})
     expect(Object.keys(m.cups)).toEqual(['uniformity', 'clean_cup', 'sweetness'])
     expect(scoreSample(form, m)).toMatchObject({ total: 30, complete: false })
+  })
+})
+
+describe('rounds', () => {
+  it('puts fragrance in the aroma round and every other attribute in the tasting round, in form order', () => {
+    expect(phaseAttributes(SCA_FORM, 'aroma').map((a) => a.id)).toEqual(['fragrance'])
+    const tasting = phaseAttributes(SCA_FORM, 'tasting').map((a) => a.id)
+    expect(tasting).not.toContain('fragrance')
+    expect([...phaseAttributes(SCA_FORM, 'aroma'), ...phaseAttributes(SCA_FORM, 'tasting')]).toHaveLength(SCA_FORM.attributes.length)
+    expect(hasAromaRound(SCA_FORM)).toBe(true)
+  })
+
+  it('opens a coffee in the aroma round until its fragrance is scored', () => {
+    const m = emptyMarks(SCA_FORM)
+    expect(defaultPhase(SCA_FORM, m)).toBe('aroma')
+    expect(defaultPhase(SCA_FORM, { ...m, scores: { fragrance: 8 } })).toBe('tasting')
+    expect(defaultPhase(undefined, m)).toBe('tasting')
   })
 })
