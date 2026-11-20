@@ -99,7 +99,8 @@ function SessionScreen({ id, sampleId, phase, open }: { id: string; sampleId?: s
   }
   if (sampleId === 'break') return <CuppingBreak session={session} open={open} />
   const sample = sampleId ? session.samples.find((x) => x.id === sampleId) : undefined
-  if (sample) return <CuppingSampleScreen session={session} sample={sample} phase={phase} change={change} open={open} />
+  // keyed so a new coffee or round starts fresh: open descriptor blocks, the wheel's path and a shown blind coffee stay behind
+  if (sample) return <CuppingSampleScreen key={`${sample.id}.${phase ?? ''}`} session={session} sample={sample} phase={phase} change={change} open={open} />
   return <SessionView session={session} change={change} discard={discard} open={open} />
 }
 
