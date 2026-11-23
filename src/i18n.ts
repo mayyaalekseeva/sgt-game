@@ -731,7 +731,9 @@ const en = {
   'cupping.summaryEmpty': 'Coffees show here, best first, once each one is fully scored.',
   'cupping.cups': 'Cups',
   'cupping.fewerCups': 'Scored on {n} cups. The SCA form uses 5, so here each cup counts for more.',
+  'cupping.fewerCups.one': 'Scored on {n} cup. The SCA form uses 5, so here each cup counts for more.',
   'cupping.fewerCupsShort': '{n} cups',
+  'cupping.fewerCupsShort.one': '{n} cup',
   'cupping.perCupHint': 'Tap a cup that falls short.',
   'cupping.cupN': 'Cup {n}',
   'cupping.tapToScore': 'Tap + or −',
@@ -1625,7 +1627,9 @@ const pt: Record<keyof typeof en, string> = {
   'cupping.summaryEmpty': 'Os cafés aparecem aqui, o melhor primeiro, quando cada um estiver todo pontuado.',
   'cupping.cups': 'Chávenas',
   'cupping.fewerCups': 'Pontuado em {n} chávenas. O formulário da SCA usa 5, por isso aqui cada chávena conta mais.',
+  'cupping.fewerCups.one': 'Pontuado em {n} chávena. O formulário da SCA usa 5, por isso aqui cada chávena conta mais.',
   'cupping.fewerCupsShort': '{n} chávenas',
+  'cupping.fewerCupsShort.one': '{n} chávena',
   'cupping.perCupHint': 'Toca numa chávena que fique aquém.',
   'cupping.cupN': 'Chávena {n}',
   'cupping.tapToScore': 'Toca em + ou −',
@@ -1791,6 +1795,12 @@ const pt: Record<keyof typeof en, string> = {
 
 export type Key = keyof typeof en
 const dicts = { en, pt }
+
+// en and pt both use the singular for exactly one. Pass the plural key; its singular is '<key>.one'.
+export function plural(key: Key, n: number): Key {
+  const one = `${key}.one`
+  return n === 1 && one in en ? (one as Key) : key
+}
 
 export function translate(lang: Lang, key: Key, vars?: Record<string, string | number>) {
   let s: string = dicts[lang][key] ?? key

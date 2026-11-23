@@ -22,7 +22,7 @@ import {
 import { withDetail, type AttrDetail, type Details } from '../cupping-descriptors'
 import { MAX_CODE, MAX_NOTES, namesHidden, withoutSample, type CuppingSample, type CuppingSession } from '../cuppings'
 import { FAMILIES, suggestFlavors } from '../flavors'
-import type { Key } from '../i18n'
+import { plural, type Key } from '../i18n'
 import { lotBySlug } from '../lots'
 import { useReports } from '../reports'
 import { useStore } from '../store'
@@ -146,7 +146,7 @@ export default function CuppingSampleScreen({
                 onChange={(n) => setMarks((m) => withCupCount(form, m, Number(n)))}
                 options={Array.from({ length: form.cups - form.minCups + 1 }, (_, k) => String(form.minCups + k)).map((n) => ({ id: n, label: n }))}
               />
-              {sample.marks.cupCount !== form.cups && <p className="text-sm leading-snug text-muted">{t('cupping.fewerCups', { n: sample.marks.cupCount })}</p>}
+              {sample.marks.cupCount !== form.cups && <p className="text-sm leading-snug text-muted">{t(plural('cupping.fewerCups', sample.marks.cupCount), { n: sample.marks.cupCount })}</p>}
             </div>
           )}
         </Card>
