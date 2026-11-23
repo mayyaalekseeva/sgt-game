@@ -731,7 +731,9 @@ const en = {
   'cupping.summaryEmpty': 'Coffees show here, best first, once each one is fully scored.',
   'cupping.cups': 'Cups',
   'cupping.fewerCups': 'Scored on {n} cups. The SCA form uses 5, so here each cup counts for more.',
+  'cupping.fewerCups.one': 'Scored on {n} cup. The SCA form uses 5, so here each cup counts for more.',
   'cupping.fewerCupsShort': '{n} cups',
+  'cupping.fewerCupsShort.one': '{n} cup',
   'cupping.perCupHint': 'Tap a cup that falls short.',
   'cupping.cupN': 'Cup {n}',
   'cupping.tapToScore': 'Tap + or −',
@@ -865,8 +867,8 @@ const en = {
   'cupping.aromaHint': 'Round one: the dry fragrance, then the wet aroma after the water. Score and describe only this now; the rest comes after the break.',
   'cupping.tastingHint': 'Round two, after the break: taste each coffee and score the rest.',
   'cupping.toBreak': 'Break →',
-  'cupping.skipBreak': 'Skip the break: first coffee',
-  'cupping.toFirst': 'Back to the first coffee',
+  'cupping.skipBreak': 'Skip the break',
+  'cupping.toFirst': 'To the first coffee',
   'cupping.startAroma': 'Aroma round',
   'cupping.startTasting': 'Tasting round',
   'cupping.break.title': 'Break',
@@ -877,7 +879,7 @@ const en = {
   'cupping.break.timer': 'Time since the break began',
   'cupping.break.start': 'Start the timer',
   'cupping.break.reset': 'Reset',
-  'cupping.break.go': 'Start tasting: first coffee →',
+  'cupping.break.go': 'Start tasting →',
   'cupping.break.back': '← Back to the aroma round',
   'cupping.break.empty': 'Add a coffee first.',
   'cupping.detail.open': 'Descriptors and note',
@@ -1625,7 +1627,9 @@ const pt: Record<keyof typeof en, string> = {
   'cupping.summaryEmpty': 'Os cafés aparecem aqui, o melhor primeiro, quando cada um estiver todo pontuado.',
   'cupping.cups': 'Chávenas',
   'cupping.fewerCups': 'Pontuado em {n} chávenas. O formulário da SCA usa 5, por isso aqui cada chávena conta mais.',
+  'cupping.fewerCups.one': 'Pontuado em {n} chávena. O formulário da SCA usa 5, por isso aqui cada chávena conta mais.',
   'cupping.fewerCupsShort': '{n} chávenas',
+  'cupping.fewerCupsShort.one': '{n} chávena',
   'cupping.perCupHint': 'Toca numa chávena que fique aquém.',
   'cupping.cupN': 'Chávena {n}',
   'cupping.tapToScore': 'Toca em + ou −',
@@ -1759,8 +1763,8 @@ const pt: Record<keyof typeof en, string> = {
   'cupping.aromaHint': 'Primeira fase: a fragrância a seco e depois o aroma com a água. Pontua e descreve só isto agora; o resto vem depois da pausa.',
   'cupping.tastingHint': 'Segunda fase, depois da pausa: prova cada café e pontua o resto.',
   'cupping.toBreak': 'Pausa →',
-  'cupping.skipBreak': 'Saltar a pausa: primeiro café',
-  'cupping.toFirst': 'Voltar ao primeiro café',
+  'cupping.skipBreak': 'Saltar a pausa',
+  'cupping.toFirst': 'Ao primeiro café',
   'cupping.startAroma': 'Fase do aroma',
   'cupping.startTasting': 'Fase da prova',
   'cupping.break.title': 'Pausa',
@@ -1771,7 +1775,7 @@ const pt: Record<keyof typeof en, string> = {
   'cupping.break.timer': 'Tempo desde o início da pausa',
   'cupping.break.start': 'Iniciar o cronómetro',
   'cupping.break.reset': 'Repor',
-  'cupping.break.go': 'Começar a prova: primeiro café →',
+  'cupping.break.go': 'Começar a prova →',
   'cupping.break.back': '← Voltar à fase do aroma',
   'cupping.break.empty': 'Junta primeiro um café.',
   'cupping.detail.open': 'Descritores e nota',
@@ -1791,6 +1795,12 @@ const pt: Record<keyof typeof en, string> = {
 
 export type Key = keyof typeof en
 const dicts = { en, pt }
+
+// en and pt both use the singular for exactly one. Pass the plural key; its singular is '<key>.one'.
+export function plural(key: Key, n: number): Key {
+  const one = `${key}.one`
+  return n === 1 && one in en ? (one as Key) : key
+}
 
 export function translate(lang: Lang, key: Key, vars?: Record<string, string | number>) {
   let s: string = dicts[lang][key] ?? key

@@ -2,7 +2,7 @@ import { formById, maxTotal, scoreSample, type PhaseId } from '../cupping'
 import { discardDraft, useCuppingSession } from '../cupping-draft'
 import { MAX_PLACE, MAX_SAMPLES, compareSamples, namesHidden, newSample, newSession, nextCode, withoutSample, type CuppingSession } from '../cuppings'
 import { MAX_NOTES, localDay } from '../data'
-import type { Key } from '../i18n'
+import { plural, type Key } from '../i18n'
 import { useReports } from '../reports'
 import { useStore } from '../store'
 import { newReportId } from '../sync'
@@ -188,7 +188,7 @@ function SessionView({
                   <button type="button" onClick={() => open(`${session.id}.${x.id}`)} className="flex min-h-14 w-full items-center gap-3 border-b border-line px-1 text-left">
                     <span className="flex-1">
                       <span className="block text-[17px] font-semibold">{sampleName(t, session, x, coffees)}</span>
-                      {form && x.marks.cupCount !== form.cups && <span className="text-sm text-muted">{t('cupping.fewerCupsShort', { n: x.marks.cupCount })}</span>}
+                      {form && x.marks.cupCount !== form.cups && <span className="text-sm text-muted">{t(plural('cupping.fewerCupsShort', x.marks.cupCount), { n: x.marks.cupCount })}</span>}
                     </span>
                     <span className="text-sm text-muted">
                       {!score ? t('cupping.unscored') : score.complete ? fmtScore(score.final) : t('cupping.left', { n: score.missing.length })}
@@ -211,13 +211,6 @@ function SessionView({
               </Button>
             </div>
           )}
-          {session.samples.length < MAX_SAMPLES ? (
-            <Button variant="secondary" onClick={addSample}>
-              {t('cupping.addSample')}
-            </Button>
-          ) : (
-            <p className="text-sm text-muted">{t('cupping.maxSamples', { n: MAX_SAMPLES })}</p>
-          )}
           {namesHidden(session) && session.samples.length > 0 && (
             <Button
               onClick={() => {
@@ -226,6 +219,16 @@ function SessionView({
             >
               {t('cupping.reveal')}
             </Button>
+          )}
+        </Card>
+
+        <Card className="flex flex-col gap-2">
+          {session.samples.length < MAX_SAMPLES ? (
+            <Button variant="secondary" onClick={addSample}>
+              {t('cupping.addSample')}
+            </Button>
+          ) : (
+            <p className="text-sm text-muted">{t('cupping.maxSamples', { n: MAX_SAMPLES })}</p>
           )}
         </Card>
 
@@ -249,7 +252,7 @@ function SessionView({
                     </div>
                     <span className="text-sm text-muted">{t(`cupping.band.${score!.band}` as Key)}</span>
                   </div>
-                  {!score!.fullCups && <p className="ml-9 text-xs text-muted">{t('cupping.fewerCupsShort', { n: sample.marks.cupCount })}</p>}
+                  {!score!.fullCups && <p className="ml-9 text-xs text-muted">{t(plural('cupping.fewerCupsShort', sample.marks.cupCount), { n: sample.marks.cupCount })}</p>}
                 </li>
               ))}
             </ol>

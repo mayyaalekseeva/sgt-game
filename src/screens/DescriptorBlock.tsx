@@ -128,7 +128,7 @@ export default function DescriptorBlock({
       </label>
 
       {!defaultOpen && (
-        <button type="button" aria-expanded={true} onClick={() => setOpen(false)} className="flex min-h-11 items-center self-start text-sm font-semibold text-muted">
+        <button type="button" aria-expanded={true} onClick={() => setOpen(false)} className="flex min-h-11 min-w-11 items-center self-start text-sm font-semibold text-muted">
           {t('cupping.detail.hide')}
         </button>
       )}
