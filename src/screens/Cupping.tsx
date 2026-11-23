@@ -211,13 +211,6 @@ function SessionView({
               </Button>
             </div>
           )}
-          {session.samples.length < MAX_SAMPLES ? (
-            <Button variant="secondary" onClick={addSample}>
-              {t('cupping.addSample')}
-            </Button>
-          ) : (
-            <p className="text-sm text-muted">{t('cupping.maxSamples', { n: MAX_SAMPLES })}</p>
-          )}
           {namesHidden(session) && session.samples.length > 0 && (
             <Button
               onClick={() => {
@@ -226,6 +219,16 @@ function SessionView({
             >
               {t('cupping.reveal')}
             </Button>
+          )}
+        </Card>
+
+        <Card className="flex flex-col gap-2">
+          {session.samples.length < MAX_SAMPLES ? (
+            <Button variant="secondary" onClick={addSample}>
+              {t('cupping.addSample')}
+            </Button>
+          ) : (
+            <p className="text-sm text-muted">{t('cupping.maxSamples', { n: MAX_SAMPLES })}</p>
           )}
         </Card>
 
